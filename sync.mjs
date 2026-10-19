@@ -115,6 +115,11 @@ async function main(){
     await sleep(600);
   }
   const deals=[...seen.values()];
+  // Submerken horen onder het hoofdmerk (één filter per merk), per geval bekeken:
+  // Perla Biologisch/Huisblends/Superiore -> Perla; Nescafé Dolce Gusto -> Nescafé (het systeem blijft in de productnaam);
+  // Douwe Egberts Senseo -> Senseo (apart gezocht); Jumbo's -> Huismerk; Excellent -> AH Excellent.
+  const FAMILIES=[[/^douwe egberts senseo(?!\p{L})/iu,"Senseo"],[/^jumbo['’]?s?$/iu,"Huismerk"],[/^excellent$/iu,"AH Excellent"],[/^perla(?!\p{L})/iu,"Perla"],[/^douwe egberts(?!\p{L})/iu,"Douwe Egberts"],[/^nescaf[eé](?!\p{L})/iu,"Nescafé"],[/^l['’]?or(?!\p{L})/iu,"L'OR"],[/^lavazza(?!\p{L})/iu,"Lavazza"],[/^senseo(?!\p{L})/iu,"Senseo"],[/^starbucks(?!\p{L})/iu,"Starbucks"],[/^segafredo(?!\p{L})/iu,"Segafredo"],[/^illy(?!\p{L})/iu,"illy"],[/^jacobs(?!\p{L})/iu,"Jacobs"],[/^buisman(?!\p{L})/iu,"Buisman"],[/^kanis(?!\p{L})/iu,"Kanis & Gunnink"],[/^smit(?!\p{L})/iu,"Smit & Dorlas"]];
+  deals.forEach(d=>{const b=(d.brand||"").trim();for(const [re,l] of FAMILIES)if(re.test(b)){d.brand=l;break}});
   const key=b=>b.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
   const CANON={lor:"L'OR",nescafe:"Nescafé",cafeintencion:"Café Intención",illy:"illy",kanisgunnink:"Kanis & Gunnink",smitdorlas:"Smit & Dorlas",smitendorlas:"Smit & Dorlas",douweegberts:"Douwe Egberts",cafenova:"Café Nova",laplace:"La Place",fairtrade:"Fairtrade",fairtradeoriginal:"Fairtrade Original"};
   const cnt={};deals.forEach(d=>{const k=key(d.brand);(cnt[k]=cnt[k]||{})[d.brand]=(cnt[k][d.brand]||0)+1});
