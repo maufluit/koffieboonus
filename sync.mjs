@@ -116,7 +116,7 @@ async function main(){
   }
   const deals=[...seen.values()];
   const key=b=>b.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
-  const CANON={lor:"L'OR",nescafe:"Nescafé",cafeintencion:"Café Intención",illy:"illy",kanisgunnink:"Kanis & Gunnink",douweegberts:"Douwe Egberts",cafenova:"Café Nova",laplace:"La Place",fairtrade:"Fairtrade",fairtradeoriginal:"Fairtrade Original"};
+  const CANON={lor:"L'OR",nescafe:"Nescafé",cafeintencion:"Café Intención",illy:"illy",kanisgunnink:"Kanis & Gunnink",smitdorlas:"Smit & Dorlas",smitendorlas:"Smit & Dorlas",douweegberts:"Douwe Egberts",cafenova:"Café Nova",laplace:"La Place",fairtrade:"Fairtrade",fairtradeoriginal:"Fairtrade Original"};
   const cnt={};deals.forEach(d=>{const k=key(d.brand);(cnt[k]=cnt[k]||{})[d.brand]=(cnt[k][d.brand]||0)+1});
   deals.forEach(d=>{const k=key(d.brand);if(!k){d.brand="Overig";return}const v=Object.entries(cnt[k]).sort((a,b)=>b[1]-a[1]);d.brand=CANON[k]||(v.find(([n])=>n!==n.toLowerCase())||v[0])[0]});
   console.log("Controle twijfelmerken:\n"+deals.filter(d=>/^(Oatly|Pickwick|Roots|Illimani|Overig|The Cup factory|Lazarro)$/.test(d.brand)).map(d=>`${d.brand}: ${d.name} (${d.shop})`).join("\n"));
