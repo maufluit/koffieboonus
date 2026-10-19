@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Koffieboonus.nl – koffie in de bonus</title>
+<meta name="description" content="Alle koffie-aanbiedingen van Nederlandse supermarkten op één plek. Filter op supermarkt, merk en type koffie.">
+<meta property="og:title" content="Koffieboonus – koffie in de bonus">
+<meta property="og:description" content="Alle koffie-aanbiedingen van Nederlandse supermarkten op één plek.">
+<meta property="og:image" content="https://koffieboonus.nl/logo-volledig.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="canonical" href="https://koffieboonus.nl/">
+<script>try{var t=localStorage.getItem("kb-theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+/* Opzet: crème thema met bruin, oranje, rood (korting) en groen (akkoord). Donker thema volgt het apparaat en kan met de schakelaar worden gewisseld. */
+:root{--bg:#FFF9E9;--head:#FFF9E9;--card:#FFFFFF;--ink:#2B1B0E;--title:#4E341B;--mute:#6E5F53;--line:#E8DCC2;--brown:#4E341B;--brownink:#FFF9E9;--orange:#EA7116;--orangeink:#241408;--deal:#D8262B;--dealink:#fff;--chip:#FFFFFF;--soon:#B24F00;--banner:#4E341B;--bannerink:#FFF9E9;--ok:#1E7B4F;--okink:#FFFFFF;
+--font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16110C;--head:#16110C;--card:#201812;--ink:#F5ECDD;--title:#F5ECDD;--mute:#B3A395;--line:#3A2D22;--brown:#FFF9E9;--brownink:#4E341B;--orange:#F07F25;--deal:#E5393D;--chip:#201812;--soon:#F5A25C;--banner:#2C2117;--bannerink:#F5ECDD;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#16110C;--head:#16110C;--card:#201812;--ink:#F5ECDD;--title:#F5ECDD;--mute:#B3A395;--line:#3A2D22;--brown:#FFF9E9;--brownink:#4E341B;--orange:#F07F25;--deal:#E5393D;--chip:#201812;--soon:#F5A25C;--banner:#2C2117;--bannerink:#F5ECDD;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--font);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:980px;margin:0 auto}
+header{background:var(--head);border-bottom:1px solid var(--line);margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px))) 0 calc(-1*max(16px,env(safe-area-inset-right,0px)));padding:20px max(16px,env(safe-area-inset-right,0px)) 20px max(16px,env(safe-area-inset-left,0px))}
+header .wrap{display:flex;align-items:center;gap:18px}
+.logo{height:84px;width:auto;flex:none;display:block}
+.logo.d{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .logo.l{display:none}:root:not([data-theme="light"]) .logo.d{display:block}}
+:root[data-theme="dark"] .logo.l{display:none}:root[data-theme="dark"] .logo.d{display:block}
+.theme{margin-left:auto;flex:none;position:relative;width:60px;height:32px;border-radius:999px;border:1px solid var(--line);background:var(--chip);cursor:pointer;padding:0;align-self:flex-start}
+.theme i{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--brown);transition:transform .2s}
+.theme svg{position:absolute;top:7px;width:16px;height:16px;fill:none;stroke:var(--mute);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.theme .sun{left:7px;stroke:var(--brownink)}.theme .moon{left:35px}
+.theme[aria-checked=true] i{transform:translateX(28px)}
+.theme[aria-checked=true] .sun{stroke:var(--mute)}.theme[aria-checked=true] .moon{stroke:var(--brownink)}
+.theme:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+h1{margin:0;font:700 clamp(30px,6vw,46px)/1.05 var(--font);letter-spacing:-.015em;color:var(--title)}
+header p{margin:4px 0 0;color:var(--mute);max-width:46ch}
+main{padding-block:22px}
+.tabs{display:flex;gap:8px;margin:0 0 20px;flex-wrap:wrap}
+.tabs[hidden]{display:none}
+.tabs button{flex:1 1 200px;min-width:0;text-decoration:none;border:2px solid var(--line);background:var(--chip);color:var(--ink);border-radius:12px;padding:12px 16px;font-weight:600;font-size:17px;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--orange);color:var(--orangeink);border-color:var(--orange)}
+.tabs small{font-weight:500;opacity:.8;margin-left:4px}
+fieldset{border:0;margin:0 0 16px;padding:0;min-width:0}
+legend{font-weight:600;margin-bottom:6px;padding:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips label{cursor:pointer}
+.chips input{position:absolute;opacity:0}
+.chips span{display:inline-block;padding:7px 14px;border:1px solid var(--line);border-radius:999px;background:var(--chip)}
+.chips input:checked+span{background:var(--brown);color:var(--brownink);border-color:var(--brown);font-weight:600}
+.chips input:focus-visible+span{outline:3px solid var(--orange);outline-offset:2px}
+.chips label.none span{color:var(--mute);border-style:dashed;background:transparent}
+.chips label.none input:checked+span{color:var(--brownink)}
+.bar{display:flex;justify-content:space-between;align-items:center;margin:20px 0 6px;gap:12px}
+button{font:inherit}
+.link{background:none;border:0;color:var(--ink);text-decoration:underline;cursor:pointer;padding:4px}
+.meta{color:var(--mute);font-size:14px}
+.hint{margin:0 0 14px}
+.list{display:grid;gap:10px}
+.row{display:grid;grid-template-columns:2fr 1.2fr 1fr 1.5fr;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.row>*{min-width:0}
+.shop{font-weight:700}
+.sub{margin-top:4px;font-size:13px}
+.tag{display:inline-block;margin-left:6px;padding:1px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;font-weight:600;color:var(--mute);vertical-align:middle}
+.name{font-weight:600}
+.reg{color:var(--mute);text-decoration:line-through}
+.deal{background:var(--deal);color:var(--dealink);font-weight:700;padding:6px 10px;border-radius:6px;display:inline-block;transform:rotate(-1.5deg)}
+.soon{color:var(--soon);font-weight:600}
+.empty{padding:28px 20px;text-align:center;color:var(--mute);background:var(--card);border:1px dashed var(--line);border-radius:12px}
+.empty strong{color:var(--ink)}
+.empty .link{color:var(--ink);font-weight:600}
+.tog{grid-column:1/-1;justify-self:start;font-size:14px;padding:0;background:none;border:0;color:var(--ink);text-decoration:underline;cursor:pointer}
+.items{grid-column:1/-1;display:grid;gap:6px;border-top:1px solid var(--line);padding-top:10px}.items[hidden]{display:none}
+.it{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+footer{padding:22px 0 90px;color:var(--mute);font-size:13px;text-align:center}
+footer a{color:inherit}
+@media (max-width:640px){.row{grid-template-columns:1fr 1fr}.name{grid-column:1/-1}.logo{height:64px}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.theme i{transition:none}}
+</style>
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "5dfc239a7a484c80a53c81a7646cce7b"}'></script><!-- End Cloudflare Web Analytics -->
+</head>
+<body>
+<header><div class="wrap"><img class="logo l" src="logo.svg" alt="Koffieboonus: een koffiekopje met een vergrootglas en een procentteken" height="84"><img class="logo d" src="logo-donker.svg" alt="" height="84"><div><h1>Koffieboonus</h1><p>Alle koffie in de bonus, op één plek. Kies je supermarkt, merk en type.</p></div><button class="theme" id="theme" type="button" role="switch" aria-checked="false" aria-label="Donkere modus" title="Wissel tussen licht en donker"><i></i><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button></div></header>
+<main><div class="wrap">
+<div class="tabs" id="tabs" role="tablist" aria-label="Periode" hidden><button type="button" role="tab" id="t-nu" aria-selected="true">Nu in de aanbieding <small id="n-nu"></small></button><button type="button" role="tab" id="t-next" aria-selected="false">Volgende week <small id="n-next"></small></button></div>
+<fieldset><legend>Supermarkt</legend><div class="chips" id="f-shop"></div></fieldset>
+<fieldset><legend>Merk</legend><div class="chips" id="f-brand"></div></fieldset>
+<fieldset><legend>Type koffie</legend><div class="chips" id="f-type"></div></fieldset>
+<div class="bar"><strong id="count" aria-live="polite"></strong><button class="link" id="reset" type="button">Wis filters</button></div>
+<p class="meta hint" id="hint">Gesorteerd op hoogste korting. We tonen alleen aanbiedingen vanaf 10% korting.</p>
+<div class="list" id="list"><div class="empty">Aanbiedingen laden…</div></div>
+</div></main>
+<footer><div class="wrap">Koffieboonus.nl · <span id="upd"></span><span id="upd-sep"> · </span>Prijzen en acties kunnen per winkel verschillen: controleer de actuele prijs altijd bij de winkel.<span id="attr" hidden> · Aanbiedingen via <a href="https://www.prijsprofeet.nl">PrijsProfeet</a></span> · Deze site gebruikt geen cookies.</div></footer>
+<script>
+const PREVIEW=false;
+let DEALS=[];
+const SHOPS=["Albert Heijn","Jumbo","PLUS","Dirk","DekaMarkt","Hoogvliet","Poiesz","Vomar","Aldi","Lidl","Coop","Ekoplaza","Nettorama","SPAR","Dagwinkel","Boon's Markt","MCD"];
+const BRANDS=["Douwe Egberts","Nescafé","L'OR","Lavazza","Senseo","Starbucks","Segafredo","Illy","Jacobs","Perla","Buisman","Huismerk"];
+const TYPES=["Bonen","Gemalen koffie","Cups","Pads","Oploskoffie","IJskoffie & koffiedrank"];
+const FIXED={shop:SHOPS,brand:BRANDS,type:TYPES};
+const groups={shop:"f-shop",brand:"f-brand",type:"f-type"};
+const sel={shop:new Set(),brand:new Set(),type:new Set()};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const bkey=b=>String(b).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+const canon=Object.fromEntries(BRANDS.map(b=>[bkey(b),b]));
+const today=new Date().toLocaleDateString("sv-SE");
+let tab="nu";
+const isNext=d=>d.next&&d.from>today;
+const alive=()=>DEALS.filter(d=>!d.end||d.end>=today);
+const live=()=>alive().filter(d=>tab==="next"?isNext(d):!isNext(d));
+const num=v=>parseFloat(String(v).replace("€","").replace(",","."));
+const isNow=d=>/^(Nu voor|Volume)/.test(d.deal);
+const nowP=d=>isNow(d)?num(d.deal.match(/€[\d,]+/)[0]):num(d.reg);
+const mech=d=>d.deal.startsWith("Volume")?"Volume voordeel":/^Nu voor/.test(d.deal)?"Actieprijs":d.deal;
+const fmt=n=>"€"+n.toFixed(2).replace(".",",");
+const TL={Bonen:"koffiebonen",Cups:"cups","Gemalen koffie":"gemalen koffie",Pads:"pads",Oploskoffie:"oploskoffie"};
+const tagH=t=>` <span class="tag">${t}</span>`;
+const same=a=>a.every(v=>Math.abs(v-a[0])<0.015);
+
+function buildChips(){
+  const all=alive();
+  for(const k in groups){
+    const extra=[...new Set(all.map(d=>d[k]).filter(Boolean))].filter(v=>!FIXED[k].some(f=>bkey(f)===bkey(v))).sort((a,b)=>a.localeCompare(b,"nl"));
+    const vals=[...FIXED[k],...extra];
+    document.getElementById(groups[k]).innerHTML=vals.map(v=>`<label><input type="checkbox" data-k="${k}" value="${esc(v)}"${sel[k].has(v)?" checked":""}><span>${esc(v)}</span></label>`).join("");
+  }
+  markEmpty();
+}
+function markEmpty(){
+  const pool=live();
+  document.querySelectorAll(".chips input").forEach(i=>{
+    const has=pool.some(d=>d[i.dataset.k]===i.value);
+    i.parentElement.classList.toggle("none",!has);
+    i.parentElement.title=has?"":(tab==="next"?"Volgende week geen aanbieding":"Nu geen aanbieding");
+  });
+}
+function updTabs(){
+  const nx=alive().filter(isNext).length,nu=alive().length-nx;
+  document.getElementById("tabs").hidden=!nx;
+  document.getElementById("n-nu").textContent="("+nu+")";
+  document.getElementById("n-next").textContent="("+nx+")";
+  if(!nx)tab="nu";
+  ["nu","next"].forEach(t=>document.getElementById("t-"+t).setAttribute("aria-selected",String(t===tab)));
+  let h="Gesorteerd op hoogste korting. We tonen alleen aanbiedingen vanaf 10% korting.";
+  if(tab==="next"){
+    const f=alive().filter(isNext).map(d=>d.fromTxt).sort()[0];
+    h="Deze aanbiedingen gelden nog niet. Ze starten volgende week"+(f?" ("+f.replace("vanaf ","vanaf ")+")":"")+" en kunnen nog wijzigen. Alleen aanbiedingen vanaf 10% korting.";
+  }
+  document.getElementById("hint").textContent=h;
+}
+function discTxt(g){
+  const pc=g.map(x=>x.pct),ab=g.map(x=>+(num(x.reg)-nowP(x)).toFixed(2));
+  if(same(pc))return pc[0]+"% korting";
+  if(same(ab)&&ab[0]>0)return fmt(ab[0])+" korting";
+  return "Tot "+Math.max(...pc)+"% korting";
+}
+function card(g){
+  const d=g[0],n=g.length,pc=g.map(x=>x.pct),lo=Math.min(...pc),hi=Math.max(...pc);
+  const pr=lo===hi?lo+"%":lo+"–"+hi+"%";
+  const sameDeal=g.every(x=>x.deal===d.deal);
+  const dealTxt=sameDeal?d.deal:(mech(d)==="Actieprijs"?discTxt(g):mech(d));
+  const cond=d.qty>1&&g.every(x=>x.qty===d.qty)?` (bij ${d.qty} stuks)`:mech(d)==="Volume voordeel"?" (bij aankoop van het multipack)":"";
+  const allOn=g.every(x=>x.online),allSt=g.every(x=>x.store);
+  const tag=allOn?tagH("Alleen online"):allSt?tagH("Alleen in de winkel"):"";
+  const title=n>1?esc(d.brand)+" "+(TL[d.type]||d.type.toLowerCase()):esc(d.name);
+  const price=n>1?`<span class="from">vanaf ${fmt(Math.min(...g.map(nowP)))}</span>`:`<span class="reg">${esc(d.reg)}</span>`;
+  const items=n>1?g.map(x=>`<div class="it"><span>${esc(x.name)}${x.online&&!allOn?tagH("Alleen online"):""}</span><span class="meta">${isNow(x)?`<s>${esc(x.reg)}</s> ${fmt(nowP(x))}`:esc(x.reg)}</span></div>`).join(""):"";
+  const grey=!sameDeal&&mech(d)==="Actieprijs"&&same(pc)?"Per product, zie de lijst":`Korting per product: ${pr}${cond}`;
+  return `<div class="row"><div class="name">${title}${n>1?`<div class="meta">${n} producten</div>`:""}</div><div><div class="shop">${esc(d.shop)}${tag}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div>${price}<div class="meta">${d.next?`<span class="soon">${esc(d.fromTxt)}</span><br>`:""}${esc(d.until)}</div></div><div><span class="deal">${esc(dealTxt)}</span><div class="meta sub">${grey}</div></div>${n>1?`<button class="tog" type="button" aria-expanded="false" data-n="${n}">Toon alle ${n} producten</button><div class="items" hidden>${items}</div>`:""}</div>`;
+}
+const pick=pool=>pool.filter(d=>Object.keys(sel).every(k=>!sel[k].size||sel[k].has(d[k])));
+function render(){
+  updTabs();markEmpty();
+  const out=pick(live());
+  const map=new Map();
+  out.forEach(d=>{const k=[d.shop,d.brand,d.type,mech(d),d.until].join("|");if(!map.has(k))map.set(k,[]);map.get(k).push(d)});
+  const gs=[...map.values()].sort((a,b)=>Math.max(...b.map(x=>x.pct))-Math.max(...a.map(x=>x.pct)));
+  document.getElementById("count").textContent=gs.length+(gs.length===1?" aanbieding":" aanbiedingen")+(out.length!==gs.length?" · "+out.length+" producten":"");
+  let html;
+  if(gs.length)html=gs.map(card).join("");
+  else{
+    const names=[...sel.shop,...sel.brand,...sel.type];
+    const per=tab==="next"?"volgende week":"nu";
+    const other=pick(alive().filter(d=>tab==="next"?!isNext(d):isNext(d))).length;
+    const alt=other&&!document.getElementById("tabs").hidden?`<br><button class="link" type="button" data-go="${tab==="next"?"nu":"next"}">${tab==="next"?"Bekijk wat er nu wel in de aanbieding is":"Bekijk volgende week: daar zijn "+other+" producten"}</button>`:"";
+    html=names.length?`<div class="empty"><strong>Geen aanbiedingen ${per}</strong> voor ${names.map(esc).join(" · ")}.<br>Op dit moment is dit dus niet in de bonus.${alt}</div>`:`<div class="empty">Er zijn ${per} geen aanbiedingen.${alt}</div>`;
+  }
+  document.getElementById("list").innerHTML=html;
+}
+document.getElementById("list").addEventListener("click",e=>{
+  const go=e.target.closest("[data-go]");if(go){tab=go.dataset.go;render();return}
+  const b=e.target.closest(".tog");if(!b)return;
+  const it=b.nextElementSibling,open=it.hidden;it.hidden=!open;b.setAttribute("aria-expanded",open);b.textContent=open?"Verberg producten":"Toon alle "+b.dataset.n+" producten";
+});
+document.addEventListener("change",e=>{const i=e.target;if(i.dataset&&i.dataset.k){i.checked?sel[i.dataset.k].add(i.value):sel[i.dataset.k].delete(i.value);render()}});
+document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;tab=b.id==="t-next"?"next":"nu";render()});
+document.getElementById("reset").onclick=()=>{document.querySelectorAll(".chips input").forEach(i=>i.checked=false);for(const k in sel)sel[k].clear();render()};
+
+function setDeals(list){
+  DEALS=list.map(d=>({...d,brand:d.brand&&canon[bkey(d.brand)]?canon[bkey(d.brand)]:d.brand}));
+  buildChips();render();
+}
+/* Aanbiedingen komen uit het bestand bij de site (wordt elke nacht ververst). Lukt dat niet, dan proberen we GitHub zelf. */
+const DATA_URLS=["deals.json"];
+const load=async()=>{for(const u of DATA_URLS){try{const r=await fetch(u+(u.startsWith("http")?"":"?d="+today),{cache:"no-cache"});if(!r.ok)continue;const j=await r.json();if(j&&Array.isArray(j.deals)&&j.deals.length)return j}catch(e){}}return null};
+const init=PREVIEW?Promise.resolve(window.PREVIEW_DATA):load();
+init.then(j=>{
+  if(j&&Array.isArray(j.deals)){
+    setDeals(j.deals);
+    document.getElementById("attr").hidden=false;
+    if(j.updated)document.getElementById("upd").textContent="Laatst bijgewerkt: "+new Date(j.updated).toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"});
+    else document.getElementById("upd-sep").hidden=true;
+  }else throw new Error("geen data");
+}).catch(()=>{
+  document.getElementById("upd-sep").hidden=true;
+  setDeals([]);
+  document.getElementById("list").innerHTML='<div class="empty">De aanbiedingen konden niet worden geladen. Probeer het later opnieuw.</div>';
+});
+
+/* Licht/donker schakelaar */
+const root=document.documentElement,mq=matchMedia("(prefers-color-scheme: dark)"),tbtn=document.getElementById("theme");
+const eff=()=>root.getAttribute("data-theme")||(mq.matches?"dark":"light");
+const syncTheme=()=>tbtn.setAttribute("aria-checked",String(eff()==="dark"));
+tbtn.onclick=()=>{const n=eff()==="dark"?"light":"dark";root.setAttribute("data-theme",n);try{localStorage.setItem("kb-theme",n)}catch{}syncTheme()};
+if(mq.addEventListener)mq.addEventListener("change",syncTheme);
+new MutationObserver(syncTheme).observe(root,{attributes:true,attributeFilter:["data-theme"]});
+syncTheme();
+
+</script>
+</body>
+</html>
