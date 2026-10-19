@@ -34,6 +34,19 @@ export function dealOf(p){
   if(t==="multi_buy")return [`Nu voor ${E(p.price)} (check voorwaarden)`,1];
   return [`Nu voor ${E(p.price)}`,1];
 }
+// Huismerk is alleen voor producten zonder eigen merknaam (bijv. "AH koffiebonen", "Dirk koffiebonen").
+// Heeft een huismerk-product een eigen naam (Perla, Bellarom...), dan staat het onder die naam.
+const STORE_BRAND=/^(ah|albert heijn|jumbo|plus|dirk|dekamarkt|deka|hoogvliet|poiesz|vomar|aldi|lidl|coop|ekoplaza|spar|dagwinkel|nettorama|boni|boon'?s markt|huismerk|eigen merk|private label)$/i;
+// Eigen merknamen van supermarkten die niet in het merkveld staan maar wel in de productnaam. Uitbreiden kan hier.
+const SUBBRANDS=[[/^perla\b/i,"Perla"],[/^(ah )?excellent\b/i,"AH Excellent"],[/^bellarom\b/i,"Bellarom"],[/^expressi\b/i,"Expressi"]];
+export function brandOf(p){
+  const b=(p.brand||"").trim();
+  if(!p.private_label)return b;
+  if(b&&!STORE_BRAND.test(b))return b;
+  const n=(p.name||"").trim();
+  for(const [re,label] of SUBBRANDS)if(re.test(n))return label;
+  return "Huismerk";
+}
 function mapOne(p,today){
   const up=p.promotion_status==="upcoming";
   if(!p.is_promotional||!(p.promotion_status==="active"||up)||!p.valid_until||p.valid_until<today)return null;
@@ -46,8 +59,8 @@ function mapOne(p,today){
   let type=typeOf(p);
   if(!type&&p.retailer==="jumbo"&&p.promotion_type==="one_plus_one"&&/\b(450|500|1000) ?g\b|\b1 ?kg\b/i.test(raw+" "+(p.quantity||"")))type="Bonen";
   if(!type)return null;
-  let brand=p.private_label?"Huismerk":(p.brand||""),name=raw;
-  if(brand&&!p.private_label&&name.toLowerCase().startsWith(brand.toLowerCase()))name=name.slice(brand.length).trim();
+  let brand=brandOf(p),name=raw;
+  if(brand&&brand!=="Huismerk"&&name.toLowerCase().startsWith(brand.toLowerCase()))name=name.slice(brand.length).trim();
   name=name.charAt(0).toUpperCase()+name.slice(1);
   const qt=(p.quantity||"").trim();
   if(qt&&!name.toLowerCase().replace(/\s/g,"").includes(qt.toLowerCase().replace(/\s/g,"")))name+=" "+qt;
@@ -107,6 +120,7 @@ async function main(){
   const cnt={};deals.forEach(d=>{const k=key(d.brand);(cnt[k]=cnt[k]||{})[d.brand]=(cnt[k][d.brand]||0)+1});
   deals.forEach(d=>{const k=key(d.brand);if(!k){d.brand="Overig";return}const v=Object.entries(cnt[k]).sort((a,b)=>b[1]-a[1]);d.brand=CANON[k]||(v.find(([n])=>n!==n.toLowerCase())||v[0])[0]});
   console.log("Controle twijfelmerken:\n"+deals.filter(d=>/^(Oatly|Pickwick|Roots|Illimani|Overig|The Cup factory|Lazarro)$/.test(d.brand)).map(d=>`${d.brand}: ${d.name} (${d.shop})`).join("\n"));
+  console.log("Controle huismerk (zonder eigen merknaam):\n"+deals.filter(d=>d.brand==="Huismerk").slice(0,40).map(d=>`${d.shop}: ${d.name}`).join("\n"));
   console.log("Alle merken:",[...new Set(deals.map(d=>d.brand))].sort().join(" | "));
   console.log(`Opgehaald: ${raw} rijen, bruikbaar: ${deals.length} (waarvan volgende week: ${deals.filter(d=>d.next).length})`);
   const by={};deals.forEach(d=>{by[d.shop]=(by[d.shop]||0)+1});console.log("Per winkel:",JSON.stringify(by));
