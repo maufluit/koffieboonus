@@ -1,0 +1,44 @@
+name: Aanbiedingen ophalen en site publiceren
+
+on:
+  schedule:
+    - cron: "30 4 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publiceer:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Haal aanbiedingen op
+        run: node sync.mjs
+        env:
+          PRIJSPROFEET_API_KEY: ${{ secrets.PRIJSPROFEET_API_KEY }}
+      - name: Zet de site klaar (deals.json komt nergens in git)
+        run: |
+          mkdir _site
+          cp index.html deals.json sitemap.xml robots.txt _site/
+          cp *.svg *.png _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
