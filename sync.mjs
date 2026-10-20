@@ -47,6 +47,13 @@ export function brandOf(p){
   for(const [re,label] of SUBBRANDS)if(re.test(n))return label;
   return "Huismerk";
 }
+export const guessed=[],noBrand=[];
+const KNOWN=[[/douwe\s*egberts/i,"Douwe Egberts"],[/nescaf[eé]/i,"Nescafé"],[/\bl['’]or\b/i,"L'OR"],[/lavazza/i,"Lavazza"],[/senseo/i,"Senseo"],[/starbucks/i,"Starbucks"],[/segafredo/i,"Segafredo"],[/\billy\b/i,"illy"],[/jacobs/i,"Jacobs"],[/\bperla\b/i,"Perla"],[/buisman/i,"Buisman"],[/kanis/i,"Kanis & Gunnink"],[/smit\s*(&|en)\s*dorlas/i,"Smit & Dorlas"]];
+function guessBrand(p){
+  const txt=JSON.stringify(p);
+  const hits=[...new Set(KNOWN.filter(([re])=>re.test(txt)).map(([,l])=>l))];
+  return hits.length===1?hits[0]:"";
+}
 function mapOne(p,today){
   const up=p.promotion_status==="upcoming";
   if(!p.is_promotional||!(p.promotion_status==="active"||up)||!p.valid_until||p.valid_until<today)return null;
@@ -60,6 +67,11 @@ function mapOne(p,today){
   if(!type&&p.retailer==="jumbo"&&p.promotion_type==="one_plus_one"&&/\b(450|500|1000) ?g\b|\b1 ?kg\b/i.test(raw+" "+(p.quantity||"")))type="Bonen";
   if(!type)return null;
   let brand=brandOf(p),name=raw;
+  if(!brand){ // sommige winkels (bijv. Vomar) leveren geen merk mee: zoek een bekend merk in de rest van de productgegevens
+    const g=guessBrand(p);
+    if(g){brand=g;guessed.push(`${p.retailer}: ${raw} -> ${g}`)}
+    else noBrand.push(JSON.stringify(p).slice(0,700));
+  }
   if(brand&&brand!=="Huismerk"&&name.toLowerCase().startsWith(brand.toLowerCase()))name=name.slice(brand.length).trim();
   name=name.charAt(0).toUpperCase()+name.slice(1);
   const qt=(p.quantity||"").trim();
@@ -125,6 +137,8 @@ async function main(){
   const cnt={};deals.forEach(d=>{const k=key(d.brand);(cnt[k]=cnt[k]||{})[d.brand]=(cnt[k][d.brand]||0)+1});
   deals.forEach(d=>{const k=key(d.brand);if(!k){d.brand="Overig";return}const v=Object.entries(cnt[k]).sort((a,b)=>b[1]-a[1]);d.brand=CANON[k]||(v.find(([n])=>n!==n.toLowerCase())||v[0])[0]});
   console.log("Controle twijfelmerken:\n"+deals.filter(d=>/^(Oatly|Pickwick|Roots|Illimani|Overig|The Cup factory|Lazarro)$/.test(d.brand)).map(d=>`${d.brand}: ${d.name} (${d.shop})`).join("\n"));
+  console.log("Merk afgeleid uit overige productgegevens:\n"+guessed.slice(0,30).join("\n"));
+  console.log("Zonder merk (ruwe gegevens, eerste 5):\n"+noBrand.slice(0,5).join("\n"));
   console.log("Controle huismerk (zonder eigen merknaam):\n"+deals.filter(d=>d.brand==="Huismerk").slice(0,40).map(d=>`${d.shop}: ${d.name}`).join("\n"));
   console.log("Alle merken:",[...new Set(deals.map(d=>d.brand))].sort().join(" | "));
   console.log(`Opgehaald: ${raw} rijen, bruikbaar: ${deals.length} (waarvan volgende week: ${deals.filter(d=>d.next).length})`);
