@@ -57,7 +57,7 @@ function guessBrand(p){
 // Prijs per kilo / cup / pad / liter, berekend uit de verpakkingsgrootte in de productnaam.
 // We rekenen alleen als alles zeker is; bij twijfel (geen gewicht of aantal, voorwaardelijke actie) laten we het weg.
 const numS=v=>parseFloat(String(v).replace(",","."));
-const UNIT_RE="kg|gr|gram|g|ml|cl|l|liter|stuks?|st|capsules?|cups?|pads?|zakjes|sticks?";
+const UNIT_RE="kg|gr|gram|g|ml|cl|l|liter|stuks?|st|capsules?|cups?|pads?|zakjes|sticks?|koffiecups?|koffiecapsules?|koffiepads?";
 function parseSize(text){
   let t=" "+text.toLowerCase().replace(/(\d),(\d)/g,"$1.$2")+" ",grams=0,ml=0,count=0;
   const add=(v,u)=>{
@@ -82,6 +82,7 @@ export function unitPrice(o){
   const sz=parseSize(o.name||"");
   let v=null,pu=null,lo,hi;
   if(["Bonen","Gemalen koffie","Oploskoffie"].includes(o.type)&&sz.grams>=50){v=price/(sz.grams/1000);pu="kilo";lo=3;hi=150}
+  else if(o.type==="Oploskoffie"&&sz.count>=4){v=price/sz.count;pu="portie";lo=0.03;hi=3}
   else if((o.type==="Cups"||o.type==="Pads")&&sz.count>=4){v=price/sz.count;pu=o.type==="Cups"?"cup":"pad";lo=0.05;hi=3}
   else if(o.type==="IJskoffie & koffiedrank"&&sz.ml>=100){v=price/(sz.ml/1000);pu="liter";lo=1;hi=40}
   if(v==null||!(v>=lo&&v<=hi))return null;
@@ -94,12 +95,14 @@ function mapOne(p,today){
   const raw=p.name||"";
   if(BLOCK.test((p.brand||"").trim())||!COFFEE.test(raw+" "+(p.brand||""))||SKIP.test(raw))return null;
   const orig=p.original_price,price=p.price;
-  const pct=Math.round(p.savings_percentage??(orig>price?(1-price/orig)*100:0));
-  if(!(pct>=10))return null;
+  // Geen normale prijs bekend (bijv. Lidl-eigenmerk, sommige folderketens): we tonen de actieprijs zonder percentage.
+  const nodisc=!(orig>0)&&price>0;
+  const pct=nodisc?0:Math.round(p.savings_percentage??(orig>price?(1-price/orig)*100:0));
+  if(!nodisc&&!(pct>=10))return null;
   let type=typeOf(p);
   if(!type&&p.retailer==="jumbo"&&p.promotion_type==="one_plus_one"&&/\b(450|500|1000) ?g\b|\b1 ?kg\b/i.test(raw+" "+(p.quantity||"")))type="Bonen";
   if(!type)return null;
-  let brand=brandOf(p),name=raw;
+  let brand=brandOf(p),name=raw.replace(/^alle\s+/i,"");
   if(!brand){ // sommige winkels (bijv. Vomar) leveren geen merk mee: zoek een bekend merk in de rest van de productgegevens
     const g=guessBrand(p);
     if(g){brand=g;guessed.push(`${p.retailer}: ${raw} -> ${g}`)}
@@ -112,6 +115,7 @@ function mapOne(p,today){
   const [deal,qty]=dealOf(p);
   const o={id:p.base_product_id||p.product_id,pct,qty,shop:SHOPS[p.retailer]||p.retailer,brand,type,name,reg:E(orig||price),deal,until:until(p.valid_until),end:p.valid_until};
   const unit=unitPrice(o);if(unit){o.pp=unit.pp;o.pu=unit.pu}
+  if(nodisc)o.nodisc=true;
   if(up){o.next=true;o.from=p.valid_from;o.fromTxt=fromT(p.valid_from)}
   if(p.online_only===true)o.online=true;
   if(p.in_store_only===true)o.store=true;
@@ -119,7 +123,16 @@ function mapOne(p,today){
 }
 export const mapItem=mapOne;
 // "X of Y" in de naam betekent in de praktijk: allebei zijn in de aanbieding. We maken er twee aanbiedingen van.
+export const combined=[];
 export function mapItems(p,today){
+  // Gecombineerde aanbieding van twee merken ("Douwe Egberts / L'Or"): een aanbieding per merk.
+  const bs=(p.brand||"").split(/\s+\/\s+/).map(x=>x.trim()).filter(Boolean);
+  if(bs.length>1){
+    const out=[];
+    bs.forEach((b,i)=>{const m=mapOne({...p,brand:b},today);if(m){m.id=`${m.id}-b${i}`;out.push(m)}});
+    if(out.length)combined.push(`${p.retailer}: ${p.name} (${p.brand})`);
+    return out;
+  }
   const parts=(p.name||"").split(/\s+of\s+/i);
   if(parts.length!==2){const m=mapOne(p,today);return m?[m]:[]}
   const [l,r]=parts.map(x=>x.trim()),rw=r.split(/\s+/);
@@ -171,6 +184,7 @@ async function main(){
   const cnt={};deals.forEach(d=>{const k=key(d.brand);(cnt[k]=cnt[k]||{})[d.brand]=(cnt[k][d.brand]||0)+1});
   deals.forEach(d=>{const k=key(d.brand);if(!k){d.brand="Overig";return}const v=Object.entries(cnt[k]).sort((a,b)=>b[1]-a[1]);d.brand=CANON[k]||(v.find(([n])=>n!==n.toLowerCase())||v[0])[0]});
   console.log("Controle twijfelmerken:\n"+deals.filter(d=>/^(Oatly|Pickwick|Roots|Illimani|Overig|The Cup factory|Lazarro)$/.test(d.brand)).map(d=>`${d.brand}: ${d.name} (${d.shop})`).join("\n"));
+  console.log("Gecombineerde merken (gesplitst):\n"+combined.slice(0,20).join("\n"));
   console.log("Merk afgeleid uit overige productgegevens:\n"+guessed.slice(0,30).join("\n"));
   console.log("Zonder merk (ruwe gegevens, eerste 5):\n"+noBrand.slice(0,5).join("\n"));
   console.log(`Prijs per eenheid berekend voor ${deals.filter(d=>d.pp!=null).length} van ${deals.length} aanbiedingen. Zonder (eerste 25):\n`+deals.filter(d=>d.pp==null&&!d.next).slice(0,25).map(d=>`${d.shop}: ${d.name} [${d.type}, ${d.deal}]`).join("\n"));

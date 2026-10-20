@@ -98,13 +98,13 @@ function labelOf(p) {
   return p.shop ? `${core} bij ${p.shop}` : core;
 }
 const sentLabel = p => (p.brand || p.sys) ? labelOf(p) : low(labelOf(p));
-const mech = d => d.deal.startsWith("Volume") ? "Volume voordeel" : /^Nu voor/.test(d.deal) ? `${d.pct}% korting` : d.deal;
+const mech = d => d.deal.startsWith("Volume") ? "Volume voordeel" : /^Nu voor/.test(d.deal) ? (d.nodisc ? d.deal.replace(/^Nu voor/, "Actieprijs") : `${d.pct}% korting`) : d.deal;
 const eur = n => "€" + n.toFixed(2).replace(".", ",");
 const nameOf = d => (d.brand && d.brand !== "Huismerk" && d.brand !== "Overig" ? d.brand + " " : "") + d.name;
 
 function listHtml(list) {
   const sorted = [...list].sort((a, b) => b.pct - a.pct).slice(0, 80);
-  return sorted.map(d => `<div class="row"><div class="name">${esc(d.name)}</div><div><div class="shop">${esc(d.shop)}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div><span class="reg">${esc(d.reg)}</span>${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}<div class="meta">${esc(d.until)}</div></div><div><span class="deal">${esc(mech(d))}</span></div></div>`).join("");
+  return sorted.map(d => `<div class="row"><div class="name">${esc(d.name)}</div><div><div class="shop">${esc(d.shop)}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div>${d.nodisc ? "" : `<span class="reg">${esc(d.reg)}</span>`}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}<div class="meta">${esc(d.until)}</div></div><div><span class="deal">${esc(mech(d))}</span></div></div>`).join("");
 }
 
 function counts(list, key) {
@@ -170,26 +170,27 @@ function crumbs(p) {
 function render(url, { p, list, indexable }) {
   const n = list.length, home = url === "/";
   const sl = sentLabel(p), Label = labelOf(p);
-  const max = n ? Math.max(...list.map(d => d.pct)) : 0;
-  const top = n ? list.find(d => d.pct === max) : null;
+  const disc = list.filter(d => !d.nodisc);
+  const max = disc.length ? Math.max(...disc.map(d => d.pct)) : 0;
+  const top = disc.length ? disc.find(d => d.pct === max) : null;
   const shopsN = new Set(list.map(d => d.shop)).size;
   let title, h1, desc, intro;
   if (home) {
     title = "Koffie in de aanbieding: alle supermarkten op één plek | Koffieboonus";
     h1 = "Koffie in de aanbieding bij alle supermarkten";
-    desc = `Nu ${n} koffie-aanbiedingen bij Nederlandse supermarkten, tot ${max}% korting. Filter op supermarkt, merk en soort koffie. Dagelijks bijgewerkt.`;
+    desc = `Nu ${n} koffie-aanbiedingen bij Nederlandse supermarkten${max ? `, tot ${max}% korting` : ""}. Filter op supermarkt, merk en soort koffie. Dagelijks bijgewerkt.`;
   } else {
     title = n ? `${Label} aanbieding: ${n} deals nu | Koffieboonus` : `${Label} aanbieding | Koffieboonus`;
     if (title.length > 62) title = `${Label} aanbieding | Koffieboonus`;
     h1 = `${Label} in de aanbieding`;
     desc = n
-      ? `Nu ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}, tot ${max}% korting. Dagelijks bijgewerkt op Koffieboonus.`
+      ? `Nu ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}${max ? `, tot ${max}% korting` : ""}. Dagelijks bijgewerkt op Koffieboonus.`
       : `Op dit moment is er geen aanbieding voor ${sl}. Bekijk alle koffie-aanbiedingen van Nederlandse supermarkten op Koffieboonus.`;
   }
   if (n) {
     intro = home
-      ? `Op ${dateNL(updated)} zijn er ${n} koffie-aanbiedingen bij ${shopsN} supermarkten. De grootste korting is ${max}%: ${nameOf(top)} bij ${top.shop}. Kies hieronder je supermarkt, merk of soort koffie.`
-      : `Op ${dateNL(updated)} zijn er ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}. De grootste korting is ${max}%: ${nameOf(top)}${p.shop ? "" : ` bij ${top.shop}`}. Hieronder staan alle aanbiedingen, de filters kun je zelf aanpassen.`;
+      ? `Op ${dateNL(updated)} zijn er ${n} koffie-aanbiedingen bij ${shopsN} supermarkten.${top ? ` De grootste korting is ${max}%: ${nameOf(top)} bij ${top.shop}.` : ""} Kies hieronder je supermarkt, merk of soort koffie.`
+      : `Op ${dateNL(updated)} zijn er ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}.${top ? ` De grootste korting is ${max}%: ${nameOf(top)}${p.shop ? "" : ` bij ${top.shop}`}.` : ""} Hieronder staan alle aanbiedingen, de filters kun je zelf aanpassen.`;
   } else intro = `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Zodra er weer een is, staat die hier. Bekijk intussen de andere aanbiedingen.`;
 
   const canon = SITE + url;
