@@ -1,21 +1,17 @@
 name: Aanbiedingen ophalen en site publiceren
-
 on:
   schedule:
     - cron: "30 4 * * *"
   workflow_dispatch:
   push:
     branches: [main]
-
 permissions:
   contents: read
   pages: write
   id-token: write
-
 concurrency:
   group: pages
   cancel-in-progress: false
-
 jobs:
   publiceer:
     runs-on: ubuntu-latest
@@ -31,14 +27,18 @@ jobs:
         run: node sync.mjs
         env:
           PRIJSPROFEET_API_KEY: ${{ secrets.PRIJSPROFEET_API_KEY }}
-      - name: Zet de site klaar (deals.json komt nergens in git)
+      - name: Bouw de site (alle pagina's; deals.json komt nergens in git)
         run: |
           mkdir _site
-          cp index.html deals.json sitemap.xml robots.txt _site/
+          cp deals.json robots.txt f9653690eb8d828652b2a85679de7801.txt _site/
           cp *.svg *.png _site/
+          node build.mjs _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Laat Bing weten dat er nieuwe pagina's zijn
+        continue-on-error: true
+        run: node indexnow.mjs
