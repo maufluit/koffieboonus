@@ -40,6 +40,11 @@ header .wrap{display:flex;align-items:center;gap:18px}
 .links{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 8px}.links li{padding:4px 12px;border:1px solid var(--line);border-radius:999px;background:var(--chip);font-size:14px}.links a{color:var(--ink)}
 .faq details{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:0 0 8px}.faq summary{cursor:pointer;font-weight:600}.faq p{margin:8px 0 0}
 .row .from{font-weight:600}
+.ppu{font-size:14px;margin-top:2px}
+.best{display:inline-block;margin-top:6px;padding:1px 9px;border-radius:999px;background:var(--ok);color:var(--okink);font-size:12px;font-weight:700}
+.sortrow{display:flex;align-items:center;gap:8px;margin:0 0 12px}.sortrow[hidden]{display:none}
+select{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--chip);color:var(--ink);max-width:100%}
+#ppnote{margin:14px 0 0}
 header p{margin:4px 0 0;color:var(--mute);max-width:46ch}
 main{padding-block:22px}
 .tabs{display:flex;gap:8px;margin:0 0 20px;flex-wrap:wrap}
@@ -97,7 +102,9 @@ footer a{color:inherit}
 <div class="bar"><strong id="count" aria-live="polite"></strong><button class="link" id="reset" type="button">Wis filters</button></div>
 <div class="presetnote" id="pnote" hidden></div>
 <p class="meta hint" id="hint">Gesorteerd op hoogste korting. We tonen alleen aanbiedingen vanaf 10% korting.</p>
+<div class="sortrow" id="sortrow" hidden><label class="meta" for="sort">Sorteer op</label><select id="sort"></select></div>
 <div class="list" id="list">{{LIST}}</div>
+<p class="meta" id="ppnote" hidden>Prijs per kilo, cup, pad of liter is berekend uit de verpakkingsgrootte in de productnaam en laat alleen producten zien waarbij dat zeker is. Controleer de prijs altijd bij de winkel.</p>
 {{BOTTOM}}
 </div></main>
 <footer><div class="wrap">Koffieboonus.nl · <span id="upd"></span><span id="upd-sep"> · </span>Prijzen en acties kunnen per winkel verschillen: controleer de actuele prijs altijd bij de winkel.<span id="attr" hidden> · Aanbiedingen via <a href="https://www.prijsprofeet.nl">PrijsProfeet</a></span> · Deze site gebruikt geen cookies.</div></footer>
@@ -129,6 +136,8 @@ const mech=d=>d.deal.startsWith("Volume")?"Volume voordeel":/^Nu voor/.test(d.de
 const fmt=n=>"€"+n.toFixed(2).replace(".",",");
 const TL={Bonen:"koffiebonen",Cups:"cups","Gemalen koffie":"gemalen koffie",Pads:"pads",Oploskoffie:"oploskoffie"};
 const tagH=t=>` <span class="tag">${t}</span>`;
+const fmtPP=n=>"€"+n.toFixed(2).replace(".",",");
+let sortBy="korting";
 const same=a=>a.every(v=>Math.abs(v-a[0])<0.015);
 
 function buildChips(){
@@ -168,7 +177,7 @@ function discTxt(g){
   if(same(ab)&&ab[0]>0)return fmt(ab[0])+" korting";
   return "Tot "+Math.max(...pc)+"% korting";
 }
-function card(g){
+function card(g,best){
   const d=g[0],n=g.length,pc=g.map(x=>x.pct),lo=Math.min(...pc),hi=Math.max(...pc);
   const pr=lo===hi?lo+"%":lo+"–"+hi+"%";
   const sameDeal=g.every(x=>x.deal===d.deal);
@@ -178,20 +187,36 @@ function card(g){
   const tag=allOn?tagH("Alleen online"):allSt?tagH("Alleen in de winkel"):"";
   const title=n>1?esc(d.brand)+" "+(TL[d.type]||d.type.toLowerCase()):esc(d.name);
   const price=n>1?`<span class="from">vanaf ${fmt(Math.min(...g.map(nowP)))}</span>`:`<span class="reg">${esc(d.reg)}</span>`;
-  const items=n>1?g.map(x=>`<div class="it"><span>${esc(x.name)}${x.online&&!allOn?tagH("Alleen online"):""}</span><span class="meta">${isNow(x)?`<s>${esc(x.reg)}</s> ${fmt(nowP(x))}`:esc(x.reg)}</span></div>`).join(""):"";
+  const items=n>1?g.map(x=>`<div class="it"><span>${esc(x.name)}${x.online&&!allOn?tagH("Alleen online"):""}</span><span class="meta">${isNow(x)?`<s>${esc(x.reg)}</s> ${fmt(nowP(x))}`:esc(x.reg)}${x.pp!=null?` · ${fmtPP(x.pp)} per ${x.pu}`:""}</span></div>`).join(""):"";
+  const allPP=g.every(x=>x.pp!=null)&&new Set(g.map(x=>x.pu)).size===1;
+  const pu=allPP?g[0].pu:null,lowest=allPP?Math.min(...g.map(x=>x.pp)):null;
+  const ppLine=allPP?`<div class="meta ppu">${n>1?"vanaf ":""}${fmtPP(lowest)} per ${pu}</div>`:"";
+  const isBest=allPP&&best&&best[pu]&&best[pu].n>=3&&lowest===best[pu].v;
+  const badge=isBest?`<div><span class="best">Laagste prijs per ${pu}</span></div>`:"";
   const grey=!sameDeal&&mech(d)==="Actieprijs"&&same(pc)?"Per product, zie de lijst":`Korting per product: ${pr}${cond}`;
-  return `<div class="row"><div class="name">${title}${n>1?`<div class="meta">${n} producten</div>`:""}</div><div><div class="shop">${esc(d.shop)}${tag}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div>${price}<div class="meta">${d.next?`<span class="soon">${esc(d.fromTxt)}</span><br>`:""}${esc(d.until)}</div></div><div><span class="deal">${esc(dealTxt)}</span><div class="meta sub">${grey}</div></div>${n>1?`<button class="tog" type="button" aria-expanded="false" data-n="${n}">Toon alle ${n} producten</button><div class="items" hidden>${items}</div>`:""}</div>`;
+  return `<div class="row"><div class="name">${title}${n>1?`<div class="meta">${n} producten</div>`:""}</div><div><div class="shop">${esc(d.shop)}${tag}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div>${price}${ppLine}<div class="meta">${d.next?`<span class="soon">${esc(d.fromTxt)}</span><br>`:""}${esc(d.until)}</div>${badge}</div><div><span class="deal">${esc(dealTxt)}</span><div class="meta sub">${grey}</div></div>${n>1?`<button class="tog" type="button" aria-expanded="false" data-n="${n}">Toon alle ${n} producten</button><div class="items" hidden>${items}</div>`:""}</div>`;
 }
 const pick=pool=>pool.filter(d=>Object.keys(sel).every(k=>!sel[k].size||sel[k].has(d[k])));
 function render(){
   updTabs();markEmpty();
   const out=pick(live());
+  const best={};
+  out.forEach(d=>{if(d.pp!=null){const b=best[d.pu]||(best[d.pu]={v:d.pp,n:0});b.n++;if(d.pp<b.v)b.v=d.pp}});
+  const us=Object.keys(best),canPP=us.length===1;
+  if(sortBy==="pp"&&!canPP)sortBy="korting";
+  const so=document.getElementById("sort");
+  so.innerHTML=`<option value="korting">Hoogste korting</option><option value="pp"${canPP?"":" disabled"}>${canPP?"Laagste prijs per "+us[0]:"Laagste prijs (kies eerst één soort koffie)"}</option>`;
+  so.value=sortBy;
+  document.getElementById("sortrow").hidden=out.length<2||!us.length;
+  document.getElementById("ppnote").hidden=!us.length;
   const map=new Map();
   out.forEach(d=>{const k=[d.shop,d.brand,d.type,mech(d),d.until].join("|");if(!map.has(k))map.set(k,[]);map.get(k).push(d)});
-  const gs=[...map.values()].sort((a,b)=>Math.max(...b.map(x=>x.pct))-Math.max(...a.map(x=>x.pct)));
+  const lowPP=g=>{const v=g.filter(x=>x.pp!=null).map(x=>x.pp);return v.length?Math.min(...v):Infinity};
+  const gs=[...map.values()].sort((a,b)=>{const byPct=Math.max(...b.map(x=>x.pct))-Math.max(...a.map(x=>x.pct));return sortBy==="pp"?(lowPP(a)-lowPP(b))||byPct:byPct});
+  if(sortBy==="pp")document.getElementById("hint").textContent=document.getElementById("hint").textContent.replace("Gesorteerd op hoogste korting.","Gesorteerd op laagste prijs per "+us[0]+".");
   document.getElementById("count").textContent=gs.length+(gs.length===1?" aanbieding":" aanbiedingen")+(out.length!==gs.length?" · "+out.length+" producten":"");
   let html;
-  if(gs.length)html=gs.map(card).join("");
+  if(gs.length)html=gs.map(g=>card(g,best)).join("");
   else{
     const names=[...sel.shop,...sel.brand,...sel.type];
     const per=tab==="next"?"volgende week":"nu";
@@ -216,6 +241,7 @@ document.getElementById("list").addEventListener("click",e=>{
   const it=b.nextElementSibling,open=it.hidden;it.hidden=!open;b.setAttribute("aria-expanded",open);b.textContent=open?"Verberg producten":"Toon alle "+b.dataset.n+" producten";
 });
 document.addEventListener("change",e=>{const i=e.target;if(i.dataset&&i.dataset.k){i.checked?sel[i.dataset.k].add(i.value):sel[i.dataset.k].delete(i.value);render()}});
+document.getElementById("sort").addEventListener("change",e=>{sortBy=e.target.value;render()});
 document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;tab=b.id==="t-next"?"next":"nu";render()});
 document.getElementById("reset").onclick=()=>{document.querySelectorAll(".chips input").forEach(i=>i.checked=false);for(const k in sel)sel[k].clear();render()};
 

@@ -99,11 +99,12 @@ function labelOf(p) {
 }
 const sentLabel = p => (p.brand || p.sys) ? labelOf(p) : low(labelOf(p));
 const mech = d => d.deal.startsWith("Volume") ? "Volume voordeel" : /^Nu voor/.test(d.deal) ? `${d.pct}% korting` : d.deal;
+const eur = n => "€" + n.toFixed(2).replace(".", ",");
 const nameOf = d => (d.brand && d.brand !== "Huismerk" && d.brand !== "Overig" ? d.brand + " " : "") + d.name;
 
 function listHtml(list) {
   const sorted = [...list].sort((a, b) => b.pct - a.pct).slice(0, 80);
-  return sorted.map(d => `<div class="row"><div class="name">${esc(d.name)}</div><div><div class="shop">${esc(d.shop)}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div><span class="reg">${esc(d.reg)}</span><div class="meta">${esc(d.until)}</div></div><div><span class="deal">${esc(mech(d))}</span></div></div>`).join("");
+  return sorted.map(d => `<div class="row"><div class="name">${esc(d.name)}</div><div><div class="shop">${esc(d.shop)}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div><span class="reg">${esc(d.reg)}</span>${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}<div class="meta">${esc(d.until)}</div></div><div><span class="deal">${esc(mech(d))}</span></div></div>`).join("");
 }
 
 function counts(list, key) {
@@ -118,8 +119,18 @@ function faqOf(p, list) {
   if (!n) a1 = `Op dit moment bij geen enkele supermarkt. Deze pagina wordt elke nacht bijgewerkt, dus kom gerust later terug.`;
   else if (p.shop) a1 = `Bij ${p.shop} zijn er nu ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl.replace(` bij ${p.shop}`, "")}.`;
   else a1 = `Op dit moment bij ${counts(list, "shop").map(([s, c]) => `${s} (${c})`).join(", ")}.`;
+  const ppFaq = [];
+  const byUnit = {};
+  list.forEach(d => { if (d.pp != null) (byUnit[d.pu] = byUnit[d.pu] || []).push(d); });
+  for (const [u, arr] of Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length).slice(0, 2)) {
+    if (arr.length < 2) continue;
+    const lo = arr.reduce((m, d) => d.pp < m.pp ? d : m);
+    const word = u === "kilo" ? "kilo" : u;
+    ppFaq.push([`Wat is nu de laagste prijs per ${word} voor ${sl}?`, `Op ${dateNL(updated)} is dat ${eur(lo.pp)} per ${word}: ${nameOf(lo)} bij ${lo.shop} (${mech(lo)}, ${lo.until}). De prijs is berekend uit de verpakkingsgrootte; controleer hem altijd bij de winkel.`]);
+  }
   return [
     [`Waar is ${sl} nu in de aanbieding?`, a1],
+    ...ppFaq,
     ["Hoe vaak worden de aanbiedingen bijgewerkt?", `Elke nacht. Deze pagina is voor het laatst bijgewerkt op ${dateNL(updated)}. De aanbiedingen komen van PrijsProfeet.`],
     ["Zijn de prijzen en acties altijd actueel?", "Prijzen en acties kunnen per winkel verschillen. Controleer de actuele prijs daarom altijd bij de winkel zelf voordat je koopt."],
   ];
