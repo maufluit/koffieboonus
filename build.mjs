@@ -57,12 +57,19 @@ const urlOf = p => "/" + [p.brand ? slugOf("brand", p.brand) : p.sys ? slugOf("s
 const keyOf = p => urlOf(p);
 
 const pages = new Map(); // url -> {p, list}
-function add(p, force) {
+const seenSets = new Map(); // welke aanbiedingen staan al op een pagina? (tegen bijna-dubbele pagina's)
+const setKey = p => deals.map((d, i) => match(d, p) ? i : -1).filter(i => i >= 0).join(",");
+function add(p) {
   const list = dealsFor(p);
   const dims = Object.keys(p).length;
-  if (dims >= 2 && list.length < MIN_COMBO_DEALS) return;
   const u = urlOf(p);
-  if (u === "/" && dims) return;
+  if (dims >= 2) {
+    if (list.length < MIN_COMBO_DEALS) return;
+    // Heeft een bredere pagina precies dezelfde aanbiedingen, dan maken we deze niet: geen dubbele pagina's.
+    const k = setKey(p);
+    if (seenSets.has(k)) return;
+    seenSets.set(k, u);
+  } else if (list.length) seenSets.set(setKey(p), seenSets.get(setKey(p)) || u);
   pages.set(u, { p, list, indexable: dims === 0 || (dims === 1 ? list.length >= 1 : true) });
 }
 add({});
@@ -73,10 +80,13 @@ for (const v of SHOPS) add({ shop: v });
 const A = [{}, ...BRANDS.map(brand => ({ brand })), ...SYSTEMS.map(sys => ({ sys }))];
 const T = [{}, ...TYPES.map(type => ({ type }))];
 const S = [{}, ...SHOPS.map(shop => ({ shop }))];
+const combos = [];
 for (const a of A) for (const t of T) for (const s of S) {
   const p = { ...a, ...t, ...s };
-  if (Object.keys(p).length >= 2) add(p);
+  if (Object.keys(p).length >= 2) combos.push(p);
 }
+combos.sort((x, y) => Object.keys(x).length - Object.keys(y).length); // eerst de bredere pagina's
+combos.forEach(add);
 
 // ---------- teksten ----------
 function labelOf(p) {
@@ -215,6 +225,7 @@ for (const [url, pg] of pages) {
   if (pg.indexable) sitemap.push(`  <url><loc>${SITE}${url}</loc><lastmod>${updated}</lastmod></url>`);
 }
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
-// Eigen 404-pagina: verwijst terug naar de startpagina
-fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}</style></head><body><h1>Deze pagina bestaat niet (meer)</h1><p>Misschien is de aanbieding afgelopen. Bekijk <a href="/">alle koffie-aanbiedingen</a>.</p></body></html>`);
+// Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)
+const known = [...pages.keys()];
+fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}}</style></head><body><h1>Hier is nu geen aanbieding</h1><p>Deze pagina bestaat op dit moment niet: er zijn te weinig aanbiedingen voor deze combinatie, of de aanbieding is afgelopen.</p><p id="near"></p><p><a href="/">Bekijk alle koffie-aanbiedingen</a></p><script>const K=${JSON.stringify(known)};let p=location.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);while(p.length){const u="/"+p.join("/")+"/";if(K.includes(u)){document.getElementById("near").innerHTML='Misschien zoek je <a href="'+u+'">een bredere pagina</a>.';break}p.pop()}</script></body></html>`);
 console.log(`Pagina's gebouwd: ${pages.size} (in sitemap: ${sitemap.length}), aanbiedingen: ${deals.length}`);
