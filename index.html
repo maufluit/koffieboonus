@@ -79,12 +79,12 @@ button{font:inherit}
 .gocell{justify-self:end}
 .row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.3fr) 12.5rem;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
 .row>*{min-width:0}
-.shop{font-weight:700}
+.shop{font-weight:700;display:flex;align-items:center}
 .hub fieldset,.hub .bar,.hub #hint,.hub #sortrow,.hub #ppnote,.hub #tabs,.hub #pnote{display:none}
 .hubsec{display:grid;gap:10px;margin:0 0 24px}.hubsec h2{margin:0;font-size:20px}.hubsec p{margin:2px 0 0}.hubsec p a{color:var(--ink);font-weight:600}
 .morefilters{margin:4px 0 12px}.morefilters summary{cursor:pointer;color:var(--mute);font-size:14px;padding:4px 0}.morefilters[open] summary{margin-bottom:8px}
 .rk{display:inline-block;min-width:1.6em;color:var(--mute);font-weight:700}
-.sdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:var(--c,var(--line))}
+.sdot{flex:none;display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:var(--c,var(--line))}
 .sub{margin-top:4px;font-size:13px}
 .tag{display:inline-block;margin-left:6px;padding:1px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;font-weight:600;color:var(--mute);vertical-align:middle}
 .name{font-weight:600}
@@ -102,7 +102,7 @@ button{font:inherit}
 .go:hover,.go:focus-visible{text-decoration:underline;border-color:var(--ink)}
 footer{padding:22px 0 90px;color:var(--mute);font-size:13px;text-align:center}
 footer a{color:inherit}
-@media (max-width:640px){
+@media (max-width:860px){
 .row{grid-template-columns:1fr auto;grid-template-areas:"name act" "who act" "pr go";gap:6px 12px;padding:12px 14px}
 .name{grid-area:name}.who{grid-area:who}.act{grid-area:act;justify-items:end;text-align:right;align-self:start}
 .pr{grid-area:pr;align-self:end}.gocell{grid-area:go;align-self:end}
@@ -158,7 +158,7 @@ const fmt=n=>"€"+n.toFixed(2).replace(".",",");
 const TL={Bonen:"koffiebonen",Cups:"cups","Gemalen koffie":"gemalen koffie",Pads:"pads",Oploskoffie:"oploskoffie"};
 const tagH=t=>` <span class="tag">${t}</span>`;
 // Winkelkleuren (alleen een lichte tint, geen logo). Winkels zonder kleur krijgen een neutraal vlak.
-const SHOPCOL={"Albert Heijn":"#00ADE6","Jumbo":"#FFC900","Dirk":"#E2001A","PLUS":"#00A651","Aldi":"#2F5BD0","Lidl":"#0050AA","Coop":"#E30613","SPAR":"#009640","Ekoplaza":"#7AB800"};
+const SHOPCOL={"Albert Heijn":"#00ADE6","Jumbo":"#FFC900","Dirk":"#E2001A","PLUS":"#00A651","Aldi":"#2F5BD0","Lidl":"#0050AA","Coop":"#E30613","SPAR":"#009640","Ekoplaza":"#7AB800","Hoogvliet":"#00ACE7","DekaMarkt":"#E30613","Poiesz":"#3DA643","Vomar":"#E20613","Nettorama":"#FFD700","Dagwinkel":"#FF6600","Boon's Markt":"#C8102E","MCD":"#D32F2F","boni":"#E30613","Boni":"#E30613"};
 const shopChip=s=>`<span class="sdot"${SHOPCOL[s]?` style="--c:${SHOPCOL[s]}"`:""}></span>${esc(s)}`;
 const fmtPP=n=>"€"+n.toFixed(2).replace(".",",");
 let sortBy=window.SORT||"korting";

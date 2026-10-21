@@ -136,7 +136,7 @@ const nameOf = d => (d.brand && d.brand !== "Huismerk" && d.brand !== "Overig" ?
 function listHtml(list, o = {}) {
   const sorted = [...list].sort(o.sort || ((a, b) => b.pct - a.pct)).slice(0, o.limit || 80);
   const nowS = d => (d.deal.match(/€[\d,]+/) || [""])[0];
-  const SHOPCOL = {"Albert Heijn":"#00ADE6","Jumbo":"#FFC900","Dirk":"#E2001A","PLUS":"#00A651","Aldi":"#2F5BD0","Lidl":"#0050AA","Coop":"#E30613","SPAR":"#009640","Ekoplaza":"#7AB800"};
+  const SHOPCOL = {"Albert Heijn":"#00ADE6","Jumbo":"#FFC900","Dirk":"#E2001A","PLUS":"#00A651","Aldi":"#2F5BD0","Lidl":"#0050AA","Coop":"#E30613","SPAR":"#009640","Ekoplaza":"#7AB800","Hoogvliet":"#00ACE7","DekaMarkt":"#E30613","Poiesz":"#3DA643","Vomar":"#E20613","Nettorama":"#FFD700","Dagwinkel":"#FF6600","Boon's Markt":"#C8102E","MCD":"#D32F2F","boni":"#E30613","Boni":"#E30613"};
   const chip = s => `<span class="sdot"${SHOPCOL[s] ? ` style="--c:${SHOPCOL[s]}"` : ""}></span>${esc(s)}`;
   return sorted.map((d, i) => {
     const priceType = !d.nodisc && !d.noprice && /^Nu voor/.test(d.deal);
