@@ -88,6 +88,32 @@ for (const a of A) for (const t of T) for (const s of S) {
 combos.sort((x, y) => Object.keys(x).length - Object.keys(y).length); // eerst de bredere pagina's
 combos.forEach(add);
 
+// ---------- "Goedkoopste ..."-pagina's: aanbiedingen gesorteerd op prijs per kilo, cup of pad ----------
+// Mensen zoeken op "goedkoopste koffiebonen" (niet op "prijs per kilo"): deze pagina's zetten de goedkoopste aanbiedingen op een rij.
+const CHEAP = [
+  { slug: "goedkoopste-koffiebonen", word: "koffiebonen", unit: "kilo", f: { type: "Bonen" } },
+  { slug: "goedkoopste-gemalen-koffie", word: "gemalen koffie", unit: "kilo", f: { type: "Gemalen koffie" } },
+  { slug: "goedkoopste-koffiecups", word: "koffiecups", unit: "cup", f: { type: "Cups" } },
+  { slug: "goedkoopste-dolce-gusto-cups", word: "Dolce Gusto cups", unit: "cup", f: { sys: "Dolce Gusto", type: "Cups" } },
+  { slug: "goedkoopste-nespresso-cups", word: "Nespresso cups", unit: "cup", f: { sys: "Nespresso", type: "Cups" } },
+  { slug: "goedkoopste-koffiepads", word: "koffiepads", unit: "pad", f: { type: "Pads" } },
+  { slug: "goedkoopste-senseo-pads", word: "Senseo pads", unit: "pad", f: { sys: "Senseo", type: "Pads" } },
+];
+const MIN_CHEAP = 3; // pas indexeren vanaf zoveel vergelijkbare aanbiedingen
+const cheapPages = new Map(); // url -> {c, list, ranked, indexable}
+for (const c of CHEAP) {
+  if (taken.has(c.slug)) { console.warn(`Slug-botsing overgeslagen: ${c.slug}`); continue; }
+  const list = deals.filter(d => match(d, c.f));
+  const ranked = list.filter(d => d.pp != null && d.pu === c.unit).sort((a, b) => a.pp - b.pp || b.pct - a.pct);
+  cheapPages.set(`/${c.slug}/`, { c, list, ranked, indexable: ranked.length >= MIN_CHEAP });
+}
+const cheapLinks = p => {
+  const home = !Object.keys(p).length;
+  const match_ = g => home || (p.type && !p.sys && !p.brand && !p.shop && g.c.f.type === p.type && !g.c.f.sys) || (p.sys && !p.brand && !p.shop && !p.type && g.c.f.sys === p.sys);
+  const li = [...cheapPages].filter(([, g]) => g.indexable && match_(g)).map(([u, g]) => `<li><a href="${u}">Goedkoopste ${esc(g.c.word)}</a> <span class="meta">(per ${g.c.unit})</span></li>`);
+  return li.length ? `<div class="grp"><h3>Goedkoopste</h3><ul class="links">${li.join("")}</ul></div>` : "";
+};
+
 // ---------- teksten ----------
 function labelOf(p) {
   const a = p.brand || p.sys;
@@ -102,15 +128,17 @@ const mech = d => d.deal.startsWith("Volume") ? "Volume voordeel" : /^Nu voor/.t
 const eur = n => "€" + n.toFixed(2).replace(".", ",");
 const nameOf = d => (d.brand && d.brand !== "Huismerk" && d.brand !== "Overig" ? d.brand + " " : "") + d.name;
 
-function listHtml(list) {
-  const sorted = [...list].sort((a, b) => b.pct - a.pct).slice(0, 80);
+function listHtml(list, o = {}) {
+  const sorted = [...list].sort(o.sort || ((a, b) => b.pct - a.pct)).slice(0, o.limit || 80);
   const nowS = d => (d.deal.match(/€[\d,]+/) || [""])[0];
-  return sorted.map(d => {
+  const SHOPCOL = {"Albert Heijn":"#00ADE6","Jumbo":"#FFC900","Dirk":"#E2001A","PLUS":"#00A651","Aldi":"#2F5BD0","Lidl":"#0050AA","Coop":"#E30613","SPAR":"#009640","Ekoplaza":"#7AB800"};
+  const chip = s => `<span class="sdot"${SHOPCOL[s] ? ` style="--c:${SHOPCOL[s]}"` : ""}></span>${esc(s)}`;
+  return sorted.map((d, i) => {
     const priceType = !d.nodisc && !d.noprice && /^Nu voor/.test(d.deal);
     const price = d.noprice || d.nodisc ? "" : priceType ? `<div class="pnow">${esc(nowS(d))} <s class="reg">${esc(d.reg)}</s></div>` : `<span class="reg">${esc(d.reg)}</span>`;
     const badge = d.noprice ? d.deal : d.nodisc ? d.deal.replace(/^Nu voor/, "Actieprijs") : priceType ? `${d.pct}% korting` : mech(d);
     const note = d.noprice ? `<div class="meta sub">Prijs onbekend, check de winkel</div>` : d.nodisc ? `<div class="meta sub">Normale prijs onbekend</div>` : "";
-    return `<div class="row"><div class="name">${esc(d.name)}<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div></div><div class="who"><div class="shop">${esc(d.shop)}</div></div><div class="act"><span class="deal">${esc(badge)}</span><div class="meta">${esc(d.until)}</div></div><div class="pr">${price}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}${note}</div>${d.url ? `<div class="gocell"><a class="go" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>` : `<div class="gocell"></div>`}</div>`;
+    return `<div class="row"><div class="name">${o.rank ? `<span class="rk">${i + 1}.</span> ` : ""}${esc(d.name)}<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div></div><div class="who"><div class="shop">${chip(d.shop)}</div></div><div class="act"><span class="deal">${esc(badge)}</span><div class="meta">${esc(d.until)}</div></div><div class="pr">${price}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}${note}</div>${d.url ? `<div class="gocell"><a class="go" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>` : `<div class="gocell"></div>`}</div>`;
   }).join("");
 }
 
@@ -160,6 +188,8 @@ function relatedHtml(url, p) {
   const wider = [];
   for (const k of ["shop", "type", "brand", "sys"]) if (p[k] && Object.keys(p).length >= 1) { const q = { ...p }; delete q[k]; const t = Object.keys(q).length ? labelOf(q) : "Alle koffie-aanbiedingen"; wider.push(`<li><a href="${urlOf(q)}">${esc(t)}</a></li>`); }
   if (wider.length) groups.push(`<div class="grp"><h3>Breder zoeken</h3><ul class="links">${wider.join("")}</ul></div>`);
+  const cg = cheapLinks(p);
+  if (cg) groups.unshift(cg);
   return groups.length ? `<section class="more"><h2>Ook bekijken</h2>${groups.join("")}</section>` : "";
 }
 
@@ -233,6 +263,62 @@ function render(url, { p, list, indexable }) {
   return html;
 }
 
+function renderCheap(url, { c, list, ranked, indexable }) {
+  const n = ranked.length, lo = ranked[0], u = c.unit;
+  const shown = Math.min(n, 15);
+  let title = n ? `Goedkoopste ${c.word}: nu vanaf ${eur(lo.pp)} per ${u} | Koffieboonus` : `Goedkoopste ${c.word} | Koffieboonus`;
+  if (title.length > 62) title = `Goedkoopste ${c.word} per ${u} | Koffieboonus`;
+  const h1 = `Goedkoopste ${c.word} in de aanbieding`;
+  const desc = n
+    ? `De ${plural(shown, "goedkoopste aanbieding", "goedkoopste aanbiedingen")} voor ${c.word}, op volgorde van prijs per ${u}. Nu vanaf ${eur(lo.pp)} per ${u} bij ${lo.shop}. Dagelijks bijgewerkt.`
+    : `Op dit moment kunnen we voor ${c.word} geen prijzen per ${u} vergelijken. Bekijk alle aanbiedingen op Koffieboonus.`;
+  const intro = n
+    ? `Op ${dateNL(updated)} is de goedkoopste aanbieding voor ${c.word} ${eur(lo.pp)} per ${u}: ${nameOf(lo)} bij ${lo.shop} (${mech(lo)}, ${lo.until}). Hieronder staan de goedkoopste aanbiedingen op een rij. We rekenen de prijs om naar een prijs per ${u}, zodat je verschillende verpakkingen eerlijk kunt vergelijken.`
+    : `Op ${dateNL(updated)} kunnen we voor ${c.word} geen prijzen per ${u} vergelijken. Zodra dat weer kan, staat de lijst hier.`;
+  const faq = [
+    [`Wat is nu de goedkoopste ${c.word}?`, n ? `Op ${dateNL(updated)} is dat ${nameOf(lo)} bij ${lo.shop}: ${eur(lo.pp)} per ${u} (${mech(lo)}, ${lo.until}). Controleer de prijs altijd bij de winkel.` : `Op dit moment is er geen aanbieding waarvan we de prijs per ${u} kunnen berekenen.`],
+    ["Hoe vergelijken jullie de prijzen?", `We rekenen de aanbiedingsprijs om naar een prijs per ${u}, op basis van de verpakkingsgrootte in de productnaam. Alleen producten waarvan die grootte zeker is, doen mee.`],
+    [`Is dit ook de goedkoopste ${c.word} buiten de aanbieding?`, "Niet per se. We vergelijken alleen producten die nu in de aanbieding zijn. Een product met een lage vaste prijs staat hier alleen tussen als de winkel het als aanbieding aanmerkt."],
+    ["Hoe vaak worden deze prijzen bijgewerkt?", `Elke nacht. Deze pagina is voor het laatst bijgewerkt op ${dateNL(updated)}. De aanbiedingen komen van PrijsProfeet.`],
+  ];
+  const canon = SITE + url;
+  const trail = [{ name: "Koffieboonus", url: "/" }, { name: `Goedkoopste ${c.word}`, url }];
+  const ld = [
+    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: trail.map((t, i) => ({ "@type": "ListItem", position: i + 1, name: t.name, item: SITE + t.url })) },
+    { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+  ];
+  const head = [
+    `<title>${esc(title)}</title>`,
+    `<meta name="description" content="${esc(desc)}">`,
+    `<meta name="robots" content="${indexable ? "index,follow,max-image-preview:large" : "noindex,follow"}">`,
+    `<link rel="canonical" href="${canon}">`,
+    `<meta property="og:type" content="website"><meta property="og:locale" content="nl_NL"><meta property="og:site_name" content="Koffieboonus">`,
+    `<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${canon}">`,
+    `<meta property="og:image" content="${SITE}/logo-volledig.png"><meta name="twitter:card" content="summary">`,
+    ...ld.map(o => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`),
+  ].join("\n");
+  const crumbHtml = `<nav class="crumbs" aria-label="Kruimelpad"><a href="/">Koffieboonus</a> › <span aria-current="page">Goedkoopste ${esc(c.word)}</span></nav>`;
+  const top_ = `<section class="pagehead">${crumbHtml}<h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p></section>`;
+  // Ook bekijken: de gewone pagina, de andere "goedkoopste"-pagina's en de startpagina
+  const items = [];
+  const plain = pages.get(urlOf(c.f));
+  if (plain && plain.list.length) items.push(`<li><a href="${urlOf(c.f)}">Alle ${esc(low(labelOf(c.f)))} in de aanbieding</a> <span class="meta">(${plain.list.length})</span></li>`);
+  for (const [u2, g] of cheapPages) if (u2 !== url && g.indexable) items.push(`<li><a href="${u2}">Goedkoopste ${esc(g.c.word)}</a></li>`);
+  items.push(`<li><a href="/">Alle koffie-aanbiedingen</a></li>`);
+  const more = `<section class="more"><h2>Ook bekijken</h2><div class="grp"><ul class="links">${items.join("")}</ul></div></section>`;
+  const bottom = more + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
+  const preset = { brand: [], sys: c.f.sys ? [c.f.sys] : [], type: c.f.type ? [c.f.type] : [], shop: [] };
+  const presetJs = `<script>window.PRESET=${JSON.stringify(preset)};window.PLABEL=${JSON.stringify(`Goedkoopste ${c.word}`)};window.SORT="pp";window.STATIC=${list.length ? "true" : "false"};</script>`;
+  const body = n ? listHtml(ranked, { sort: (a, b) => a.pp - b.pp || b.pct - a.pct, limit: 15, rank: true }) : list.length ? listHtml(list) : `<div class="empty">Aanbiedingen laden…</div>`;
+  return tpl
+    .replace("{{HEAD}}", () => head)
+    .replace("{{PRESETJS}}", () => presetJs)
+    .replace("{{TOP}}", () => top_)
+    .replace("{{LIST}}", () => body)
+    .replace("{{BOTTOM}}", () => bottom)
+    .replace("Gesorteerd op hoogste korting.", () => `Gesorteerd op laagste prijs per ${u}.`);
+}
+
 // ---------- schrijven ----------
 fs.mkdirSync(OUT, { recursive: true });
 const sitemap = [];
@@ -243,8 +329,14 @@ for (const [url, pg] of pages) {
   fs.writeFileSync(path.join(dir, "index.html"), html);
   if (pg.indexable) sitemap.push(`  <url><loc>${SITE}${url}</loc><lastmod>${updated}</lastmod></url>`);
 }
+for (const [url, pg] of cheapPages) {
+  const dir = path.join(OUT, url);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "index.html"), renderCheap(url, pg));
+  if (pg.indexable) sitemap.push(`  <url><loc>${SITE}${url}</loc><lastmod>${updated}</lastmod></url>`);
+}
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
 // Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)
-const known = [...pages.keys()];
+const known = [...pages.keys(), ...cheapPages.keys()];
 fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}}</style></head><body><h1>Hier is nu geen aanbieding</h1><p>Deze pagina bestaat op dit moment niet: er zijn te weinig aanbiedingen voor deze combinatie, of de aanbieding is afgelopen.</p><p id="near"></p><p><a href="/">Bekijk alle koffie-aanbiedingen</a></p><script>const K=${JSON.stringify(known)};let p=location.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);while(p.length){const u="/"+p.join("/")+"/";if(K.includes(u)){document.getElementById("near").innerHTML='Misschien zoek je <a href="'+u+'">een bredere pagina</a>.';break}p.pop()}</script></body></html>`);
 console.log(`Pagina's gebouwd: ${pages.size} (in sitemap: ${sitemap.length}), aanbiedingen: ${deals.length}`);
