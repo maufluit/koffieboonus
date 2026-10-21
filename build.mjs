@@ -133,6 +133,16 @@ const mech = d => d.deal.startsWith("Volume") ? "Volume voordeel" : /^Nu voor/.t
 const eur = n => "€" + n.toFixed(2).replace(".", ",");
 const nameOf = d => (d.brand && d.brand !== "Huismerk" && d.brand !== "Overig" ? d.brand + " " : "") + d.name;
 
+// Meerkoop (1+1, 2+1, 2e halve prijs, "3 voor €10"): toon wat je betaalt voor q stuks.
+function multiOf(d) {
+  const r = parseFloat(String(d.reg).replace("€", "").replace(",", ".")); let m;
+  if (!(r > 0)) return null;
+  if (/^1\+1 gratis/.test(d.deal)) return { q: 2, t: r, r };
+  if (/^2\+1 gratis/.test(d.deal)) return { q: 3, t: r * 2, r };
+  if (/^2e halve prijs/.test(d.deal)) return { q: 2, t: r * 1.5, r };
+  if ((m = d.deal.match(/^(\d+) voor €([\d,]+)/))) return { q: +m[1], t: parseFloat(m[2].replace(",", ".")), r };
+  return null;
+}
 function listHtml(list, o = {}) {
   const sorted = [...list].sort(o.sort || ((a, b) => b.pct - a.pct)).slice(0, o.limit || 80);
   const nowS = d => (d.deal.match(/€[\d,]+/) || [""])[0];
@@ -140,7 +150,8 @@ function listHtml(list, o = {}) {
   const chip = s => `<span class="sdot"${SHOPCOL[s] ? ` style="--c:${SHOPCOL[s]}"` : ""}></span>${esc(s)}`;
   return sorted.map((d, i) => {
     const priceType = !d.nodisc && !d.noprice && /^Nu voor/.test(d.deal);
-    const price = d.noprice || d.nodisc ? "" : priceType ? `<div class="pnow">${esc(nowS(d))} <s class="reg">${esc(d.reg)}</s></div>` : `<span class="reg">${esc(d.reg)}</span>`;
+    const mm = multiOf(d);
+    const price = d.noprice || d.nodisc ? "" : mm ? `<div class="pnow">${mm.q} voor ${eur(mm.t)} <s class="reg">${eur(mm.q * mm.r)}</s></div>` : priceType ? `<div class="pnow">${esc(nowS(d))} <s class="reg">${esc(d.reg)}</s></div>` : `<span class="reg">${esc(d.reg)}</span>`;
     const badge = d.noprice ? d.deal : d.nodisc ? d.deal.replace(/^Nu voor/, "Actieprijs") : priceType ? `${d.pct}% korting` : mech(d);
     const note = d.noprice ? `<div class="meta sub">Prijs onbekend, check de winkel</div>` : d.nodisc ? `<div class="meta sub">Normale prijs onbekend</div>` : "";
     return `<div class="row"><div class="name">${o.rank ? `<span class="rk">${i + 1}.</span> ` : ""}${esc(d.name)}<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div></div><div class="who"><div class="shop">${chip(d.shop)}</div></div><div class="act"><span class="deal">${esc(badge)}</span><div class="meta">${esc(d.until)}</div></div><div class="pr">${price}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}${note}</div>${d.url ? `<div class="gocell"><a class="go" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>` : `<div class="gocell"></div>`}</div>`;

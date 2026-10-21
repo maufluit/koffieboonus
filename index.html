@@ -155,6 +155,17 @@ const isNow=d=>/^(Nu voor|Volume)/.test(d.deal);
 const nowP=d=>isNow(d)?num(d.deal.match(/€[\d,]+/)[0]):num(d.reg);
 const mech=d=>d.deal.startsWith("Volume")?"Volume voordeel":/^Nu voor/.test(d.deal)?"Actieprijs":d.deal;
 const fmt=n=>"€"+n.toFixed(2).replace(".",",");
+// Meerkoop (1+1, 2+1, 2e halve prijs, "3 voor €10"): wat je werkelijk betaalt voor q stuks, zodat de prijs niet voor één stuk lijkt te gelden.
+function multi(d){
+  const r=num(d.reg);let m;
+  if(/^1\+1 gratis/.test(d.deal))return{q:2,t:r};
+  if(/^2\+1 gratis/.test(d.deal))return{q:3,t:r*2};
+  if(/^2e halve prijs/.test(d.deal))return{q:2,t:r*1.5};
+  if((m=d.deal.match(/^(\d+) voor €([\d,]+)/)))return{q:+m[1],t:num("€"+m[2])};
+  return null;
+}
+const effP=d=>{const m=multi(d);return m?m.t/m.q:nowP(d)};
+const multiTxt=d=>{const m=multi(d);return `${m.q} voor ${fmt(m.t)}`};
 const TL={Bonen:"koffiebonen",Cups:"cups","Gemalen koffie":"gemalen koffie",Pads:"pads",Oploskoffie:"oploskoffie"};
 const tagH=t=>` <span class="tag">${t}</span>`;
 // Winkelkleuren (alleen een lichte tint, geen logo). Winkels zonder kleur krijgen een neutraal vlak.
@@ -176,6 +187,20 @@ const same=a=>a.every(v=>Math.abs(v-a[0])<0.015);
   d.appendChild(s);
   idle.forEach(k=>d.appendChild(document.getElementById(groups[k]).parentElement));
   document.querySelector(".bar").parentNode.insertBefore(d,document.querySelector(".bar"));
+})();
+/* Homepage op een telefoon: Merk en Systeem klappen standaard in, zodat de eerste aanbiedingen sneller in beeld zijn. */
+(function(){
+  if(window.PLABEL||window.HUB||!window.matchMedia||!matchMedia("(max-width:860px)").matches)return;
+  const idle=["brand","sys"].filter(k=>groups[k]);
+  if(!idle.length)return;
+  const NAMES={brand:"Merk",sys:"Systeem"};
+  const d=document.createElement("details");d.className="morefilters";
+  const s=document.createElement("summary");s.textContent="Meer filters: "+idle.map(k=>NAMES[k]).join(", ");
+  d.appendChild(s);
+  idle.forEach(k=>d.appendChild(document.getElementById(groups[k]).parentElement));
+  const tg=document.getElementById(groups.type);
+  const anchor=tg?tg.parentElement:document.querySelector(".bar");
+  anchor.parentNode.insertBefore(d,tg?anchor.nextSibling:anchor);
 })();
 function buildChips(){
   const all=alive();
@@ -221,7 +246,7 @@ function card(g,best){
   const nd=g.every(x=>x.nodisc);
   const np=g.every(x=>x.noprice);
   const dealTxt=np?(same(pc)?pc[0]+"% korting":"Tot "+hi+"% korting"):nd?(sameDeal?d.deal.replace(/^Nu voor/,"Actieprijs"):"Actieprijs, zie de lijst"):(sameDeal?d.deal:(mech(d)==="Actieprijs"?discTxt(g):mech(d)));
-  const cond=d.qty>1&&g.every(x=>x.qty===d.qty)?` (bij ${d.qty} stuks)`:mech(d)==="Volume voordeel"?" (bij aankoop van het multipack)":"";
+  const cond=d.qty>1&&g.every(x=>x.qty===d.qty)&&!(!g.some(x=>x.nodisc||x.noprice)&&g.every(multi))?` (bij ${d.qty} stuks)`:mech(d)==="Volume voordeel"?" (bij aankoop van het multipack)":"";
   const allOn=g.every(x=>x.online),allSt=g.every(x=>x.store);
   const tag=allOn?tagH("Alleen online"):allSt?tagH("Alleen in de winkel"):"";
   const title=n>1?esc(d.brand)+" "+(TL[d.type]||d.type.toLowerCase()):esc(d.name);
@@ -229,13 +254,17 @@ function card(g,best){
   const lowNow=fmt(Math.min(...g.map(nowP)));
   // Zonder bekende normale prijs staat de actieprijs zelf in het rode vak (bij verschillende prijzen: "vanaf").
   const badgeTxt=np?dealTxt:nd?(sameDeal?dealTxt:`Actieprijs vanaf ${lowNow}`):priceType?discTxt(g):dealTxt;
-  const price=(np||nd)?"":priceType?`<div class="pnow">${n>1?"vanaf "+lowNow:fmt(nowP(d))}${n===1?` <s class="reg">${esc(d.reg)}</s>`:""}</div>`:(n>1?`<div class="pnow">vanaf ${lowNow}</div>`:`<span class="reg">${esc(d.reg)}</span>`);
+  const ms=g.map(multi),allMulti=!np&&!nd&&ms.every(Boolean)&&new Set(ms.map(x=>x.q)).size===1;
+  const anyMulti=!np&&!nd&&ms.some(Boolean);
+  const lowEff=fmt(Math.min(...g.map(effP)));
+  const multiPrice=allMulti?(n>1?`<div class="pnow">vanaf ${ms[0].q} voor ${fmt(Math.min(...ms.map(x=>x.t)))}</div>`:`<div class="pnow">${multiTxt(d)} <s class="reg">${fmt(ms[0].q*num(d.reg))}</s></div>`):anyMulti?`<div class="pnow">vanaf ${lowEff} per stuk</div>`:null;
+  const price=(np||nd)?"":multiPrice!==null?multiPrice:priceType?`<div class="pnow">${n>1?"vanaf "+lowNow:fmt(nowP(d))}${n===1?` <s class="reg">${esc(d.reg)}</s>`:""}</div>`:(n>1?`<div class="pnow">vanaf ${lowNow}</div>`:`<span class="reg">${esc(d.reg)}</span>`);
   const lnk=x=>x.url?`<a href="${esc(x.url)}" target="_blank" rel="sponsored nofollow noopener">${esc(x.name)}</a>`:esc(x.name);
   const urls=[...new Set(g.map(x=>x.url).filter(Boolean))];
   let goUrl=urls.length===1?urls[0]:"";
   if(!goUrl&&urls.length){try{goUrl=new URL(urls[0]).origin+"/"}catch(e){}}
   const go=goUrl?`<div class="gocell"><a class="go" href="${esc(goUrl)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>`:`<div class="gocell"></div>`;
-  const items=n>1?g.map(x=>`<div class="it"><span>${lnk(x)}${x.online&&!allOn?tagH("Alleen online"):""}</span><span class="meta">${x.noprice?"prijs onbekend":x.nodisc?(isNow(x)?fmt(nowP(x)):esc(x.deal)):(isNow(x)?`<s>${esc(x.reg)}</s> ${fmt(nowP(x))}`:esc(x.reg))}${x.pp!=null?` · ${fmtPP(x.pp)} per ${x.pu}`:""}</span></div>`).join(""):"";
+  const items=n>1?g.map(x=>`<div class="it"><span>${lnk(x)}${x.online&&!allOn?tagH("Alleen online"):""}</span><span class="meta">${x.noprice?"prijs onbekend":x.nodisc?(isNow(x)?fmt(nowP(x)):esc(x.deal)):(isNow(x)?`<s>${esc(x.reg)}</s> ${fmt(nowP(x))}`:multi(x)?multiTxt(x):esc(x.reg))}${x.pp!=null?` · ${fmtPP(x.pp)} per ${x.pu}`:""}</span></div>`).join(""):"";
   const allPP=g.every(x=>x.pp!=null)&&new Set(g.map(x=>x.pu)).size===1;
   const pu=allPP?g[0].pu:null,lowest=allPP?Math.min(...g.map(x=>x.pp)):null;
   const ppLine=allPP?`<div class="meta ppu">${n>1?"vanaf ":""}${fmtPP(lowest)} per ${pu}</div>`:"";
