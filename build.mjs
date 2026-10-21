@@ -104,7 +104,14 @@ const nameOf = d => (d.brand && d.brand !== "Huismerk" && d.brand !== "Overig" ?
 
 function listHtml(list) {
   const sorted = [...list].sort((a, b) => b.pct - a.pct).slice(0, 80);
-  return sorted.map(d => `<div class="row"><div class="name">${esc(d.name)}</div><div><div class="shop">${esc(d.shop)}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div>${d.nodisc || d.noprice ? "" : `<span class="reg">${esc(d.reg)}</span>`}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}<div class="meta">${esc(d.until)}</div>${d.noprice ? `<div class="meta">Prijs onbekend, check de winkel</div>` : ""}</div><div><span class="deal">${esc(mech(d))}</span>${d.url ? `<div><a class="go" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener">Bekijk bij ${esc(d.shop)}</a></div>` : ""}</div></div>`).join("");
+  const nowS = d => (d.deal.match(/€[\d,]+/) || [""])[0];
+  return sorted.map(d => {
+    const priceType = !d.nodisc && !d.noprice && /^Nu voor/.test(d.deal);
+    const price = d.noprice || d.nodisc ? "" : priceType ? `<div class="pnow">${esc(nowS(d))} <s class="reg">${esc(d.reg)}</s></div>` : `<span class="reg">${esc(d.reg)}</span>`;
+    const badge = d.noprice ? d.deal : d.nodisc ? d.deal.replace(/^Nu voor/, "Actieprijs") : priceType ? `${d.pct}% korting` : mech(d);
+    const note = d.noprice ? `<div class="meta sub">Prijs onbekend, check de winkel</div>` : d.nodisc ? `<div class="meta sub">Normale prijs onbekend</div>` : "";
+    return `<div class="row"><div class="name">${esc(d.name)}<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div></div><div class="who"><div class="shop">${esc(d.shop)}</div></div><div class="act"><span class="deal">${esc(badge)}</span><div class="meta">${esc(d.until)}</div></div><div class="pr">${price}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}${note}</div>${d.url ? `<div class="gocell"><a class="go" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>` : `<div class="gocell"></div>`}</div>`;
+  }).join("");
 }
 
 function counts(list, key) {

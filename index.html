@@ -42,7 +42,8 @@ header .wrap{display:flex;align-items:center;gap:18px}
 .row .from{font-weight:600}
 .ppu{font-size:14px;margin-top:2px}
 .best{display:inline-block;margin-top:6px;padding:1px 9px;border-radius:999px;background:var(--ok);color:var(--okink);font-size:12px;font-weight:700}
-.sortrow{display:flex;align-items:center;gap:8px;margin:0 0 12px}.sortrow[hidden]{display:none}
+.sortrow{display:flex;align-items:center;gap:8px;margin:0 0 12px}.sortrow select{min-width:0;flex:0 1 auto}
+header .wrap>div{min-width:0}.sortrow[hidden]{display:none}
 select{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--chip);color:var(--ink);max-width:100%}
 #ppnote{margin:14px 0 0}
 header p{margin:4px 0 0;color:var(--mute);max-width:46ch}
@@ -68,7 +69,14 @@ button{font:inherit}
 .meta{color:var(--mute);font-size:14px}
 .hint{margin:0 0 14px}
 .list{display:grid;gap:10px}
-.row{display:grid;grid-template-columns:2fr 1.2fr 1fr 1.5fr;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.pnow{font-size:20px;font-weight:700;line-height:1.2}
+.pnow .reg{font-size:14px;font-weight:400;margin-left:4px}
+.pr .ppu{font-size:14px;font-weight:600;color:var(--ink);margin-top:2px}
+.act{display:grid;gap:6px;justify-items:start}
+.act .sub{margin-top:0}
+.act .go{margin-top:2px}
+.gocell{justify-self:end}
+.row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.3fr) 12.5rem;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
 .row>*{min-width:0}
 .shop{font-weight:700}
 .sub{margin-top:4px;font-size:13px}
@@ -84,11 +92,15 @@ button{font:inherit}
 .items{grid-column:1/-1;display:grid;gap:6px;border-top:1px solid var(--line);padding-top:10px}.items[hidden]{display:none}
 .it{display:flex;justify-content:space-between;gap:12px;font-size:14px}
 .it a{color:inherit}
-.go{display:inline-block;margin-top:10px;padding:5px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;background:var(--card)}
+.go{display:inline-block;white-space:nowrap;padding:5px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;background:var(--card)}
 .go:hover,.go:focus-visible{text-decoration:underline;border-color:var(--ink)}
 footer{padding:22px 0 90px;color:var(--mute);font-size:13px;text-align:center}
 footer a{color:inherit}
-@media (max-width:640px){.row{grid-template-columns:1fr 1fr}.name{grid-column:1/-1}.logo{height:64px}}
+@media (max-width:640px){
+.row{grid-template-columns:1fr auto;grid-template-areas:"name act" "who act" "pr go";gap:6px 12px;padding:12px 14px}
+.name{grid-area:name}.who{grid-area:who}.act{grid-area:act;justify-items:end;text-align:right;align-self:start}
+.pr{grid-area:pr;align-self:end}.gocell{grid-area:go;align-self:end}
+.bt,.gs{display:none}.logo{height:56px}header .wrap{gap:12px}.site{font-size:26px}.theme{width:52px;height:28px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.theme i{transition:none}}
 </style>
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "5dfc239a7a484c80a53c81a7646cce7b"}'></script><!-- End Cloudflare Web Analytics -->
@@ -191,20 +203,25 @@ function card(g,best){
   const allOn=g.every(x=>x.online),allSt=g.every(x=>x.store);
   const tag=allOn?tagH("Alleen online"):allSt?tagH("Alleen in de winkel"):"";
   const title=n>1?esc(d.brand)+" "+(TL[d.type]||d.type.toLowerCase()):esc(d.name);
-  const price=np?"":n>1?`<span class="from">vanaf ${fmt(Math.min(...g.map(nowP)))}</span>`:(nd?"":`<span class="reg">${esc(d.reg)}</span>`);
+  const priceType=!nd&&!np&&mech(d)==="Actieprijs";
+  const lowNow=fmt(Math.min(...g.map(nowP)));
+  // Zonder bekende normale prijs staat de actieprijs zelf in het rode vak (bij verschillende prijzen: "vanaf").
+  const badgeTxt=np?dealTxt:nd?(sameDeal?dealTxt:`Actieprijs vanaf ${lowNow}`):priceType?discTxt(g):dealTxt;
+  const price=(np||nd)?"":priceType?`<div class="pnow">${n>1?"vanaf "+lowNow:fmt(nowP(d))}${n===1?` <s class="reg">${esc(d.reg)}</s>`:""}</div>`:(n>1?`<div class="pnow">vanaf ${lowNow}</div>`:`<span class="reg">${esc(d.reg)}</span>`);
   const lnk=x=>x.url?`<a href="${esc(x.url)}" target="_blank" rel="sponsored nofollow noopener">${esc(x.name)}</a>`:esc(x.name);
   const urls=[...new Set(g.map(x=>x.url).filter(Boolean))];
   let goUrl=urls.length===1?urls[0]:"";
   if(!goUrl&&urls.length){try{goUrl=new URL(urls[0]).origin+"/"}catch(e){}}
-  const go=goUrl?`<div><a class="go" href="${esc(goUrl)}" target="_blank" rel="sponsored nofollow noopener">Bekijk bij ${esc(d.shop)}</a></div>`:"";
+  const go=goUrl?`<div class="gocell"><a class="go" href="${esc(goUrl)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>`:`<div class="gocell"></div>`;
   const items=n>1?g.map(x=>`<div class="it"><span>${lnk(x)}${x.online&&!allOn?tagH("Alleen online"):""}</span><span class="meta">${x.noprice?"prijs onbekend":x.nodisc?(isNow(x)?fmt(nowP(x)):esc(x.deal)):(isNow(x)?`<s>${esc(x.reg)}</s> ${fmt(nowP(x))}`:esc(x.reg))}${x.pp!=null?` · ${fmtPP(x.pp)} per ${x.pu}`:""}</span></div>`).join(""):"";
   const allPP=g.every(x=>x.pp!=null)&&new Set(g.map(x=>x.pu)).size===1;
   const pu=allPP?g[0].pu:null,lowest=allPP?Math.min(...g.map(x=>x.pp)):null;
   const ppLine=allPP?`<div class="meta ppu">${n>1?"vanaf ":""}${fmtPP(lowest)} per ${pu}</div>`:"";
   const isBest=allPP&&best&&best[pu]&&best[pu].n>=3&&lowest===best[pu].v;
   const badge=isBest?`<div><span class="best">Laagste prijs per ${pu}</span></div>`:"";
-  const grey=np?"Prijs onbekend, controleer de prijs in de winkel":nd?"Normale prijs onbekend":(!sameDeal&&mech(d)==="Actieprijs"&&same(pc)?"Per product, zie de lijst":`Korting per product: ${pr}${cond}`);
-  return `<div class="row"><div class="name">${title}${n>1?`<div class="meta">${n} producten</div>`:""}</div><div><div class="shop">${esc(d.shop)}${tag}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div>${price}${ppLine}<div class="meta">${d.next?`<span class="soon">${esc(d.fromTxt)}</span><br>`:""}${esc(d.until)}</div>${badge}</div><div><span class="deal">${esc(dealTxt)}</span><div class="meta sub">${grey}</div>${go}</div>${n>1?`<button class="tog" type="button" aria-expanded="false" data-n="${n}">Toon alle ${n} producten</button><div class="items" hidden>${items}</div>`:""}</div>`;
+  const grey=np?"Prijs onbekend, controleer de prijs in de winkel":nd?"Normale prijs onbekend":priceType?"":(!sameDeal&&mech(d)==="Actieprijs"&&same(pc)?"Per product, zie de lijst":`Korting per product: ${pr}${cond}`);
+  const sub=n>1?`<div class="meta">${n} producten</div>`:`<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div>`;
+  return `<div class="row"><div class="name">${title}${sub}</div><div class="who"><div class="shop">${esc(d.shop)}${tag}</div></div><div class="act"><span class="deal">${esc(badgeTxt)}</span><div class="meta">${d.next?`<span class="soon">${esc(d.fromTxt)}</span> · `:""}${esc(d.until)}</div></div><div class="pr">${price}${ppLine}${badge}${grey?`<div class="meta sub">${grey}</div>`:""}</div>${go}${n>1?`<button class="tog" type="button" aria-expanded="false" data-n="${n}">Toon alle ${n} producten</button><div class="items" hidden>${items}</div>`:""}</div>`;
 }
 const pick=pool=>pool.filter(d=>Object.keys(sel).every(k=>!sel[k].size||sel[k].has(d[k])));
 function render(){
