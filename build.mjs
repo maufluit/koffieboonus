@@ -107,10 +107,15 @@ for (const c of CHEAP) {
   const ranked = list.filter(d => d.pp != null && d.pu === c.unit).sort((a, b) => a.pp - b.pp || b.pct - a.pct);
   cheapPages.set(`/${c.slug}/`, { c, list, ranked, indexable: ranked.length >= MIN_CHEAP });
 }
+// Overzichtspagina "Goedkoopste koffie": per soort de 3 goedkoopste, met links naar de volledige lijsten.
+const HUB_URL = "/goedkoopste-koffie/";
+const hubSections = ["goedkoopste-koffiebonen", "goedkoopste-gemalen-koffie", "goedkoopste-koffiecups", "goedkoopste-koffiepads"].map(s => cheapPages.get(`/${s}/`)).filter(g => g && g.ranked.length);
+const hubIndexable = hubSections.filter(g => g.indexable).length >= 2;
 const cheapLinks = p => {
   const home = !Object.keys(p).length;
   const match_ = g => home || (p.type && !p.sys && !p.brand && !p.shop && g.c.f.type === p.type && !g.c.f.sys) || (p.sys && !p.brand && !p.shop && !p.type && g.c.f.sys === p.sys);
   const li = [...cheapPages].filter(([, g]) => g.indexable && match_(g)).map(([u, g]) => `<li><a href="${u}">Goedkoopste ${esc(g.c.word)}</a> <span class="meta">(per ${g.c.unit})</span></li>`);
+  if (home && hubIndexable) li.unshift(`<li><a href="${HUB_URL}">Goedkoopste koffie: overzicht per soort</a></li>`);
   return li.length ? `<div class="grp"><h3>Goedkoopste</h3><ul class="links">${li.join("")}</ul></div>` : "";
 };
 
@@ -304,6 +309,7 @@ function renderCheap(url, { c, list, ranked, indexable }) {
   const plain = pages.get(urlOf(c.f));
   if (plain && plain.list.length) items.push(`<li><a href="${urlOf(c.f)}">Alle ${esc(low(labelOf(c.f)))} in de aanbieding</a> <span class="meta">(${plain.list.length})</span></li>`);
   for (const [u2, g] of cheapPages) if (u2 !== url && g.indexable) items.push(`<li><a href="${u2}">Goedkoopste ${esc(g.c.word)}</a></li>`);
+  if (hubIndexable) items.push(`<li><a href="${HUB_URL}">Goedkoopste koffie: overzicht per soort</a></li>`);
   items.push(`<li><a href="/">Alle koffie-aanbiedingen</a></li>`);
   const more = `<section class="more"><h2>Ook bekijken</h2><div class="grp"><ul class="links">${items.join("")}</ul></div></section>`;
   const bottom = more + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
@@ -317,6 +323,50 @@ function renderCheap(url, { c, list, ranked, indexable }) {
     .replace("{{LIST}}", () => body)
     .replace("{{BOTTOM}}", () => bottom)
     .replace("Gesorteerd op hoogste korting.", () => `Gesorteerd op laagste prijs per ${u}.`);
+}
+
+function renderHub() {
+  const byPP = (a, b) => a.pp - b.pp || b.pct - a.pct;
+  const line = g => { const lo = g.ranked[0]; return `${g.c.word} ${eur(lo.pp)} per ${g.c.unit} (${nameOf(lo)} bij ${lo.shop})`; };
+  const title = "Goedkoopste koffie in de aanbieding | Koffieboonus";
+  const h1 = "Goedkoopste koffie in de aanbieding";
+  const desc = "De goedkoopste koffie van deze week: koffiebonen en gemalen koffie per kilo, cups en pads per stuk. Alle aanbiedingen vergeleken, dagelijks bijgewerkt.";
+  const intro = `Op ${dateNL(updated)} zijn dit de goedkoopste aanbiedingen per soort koffie: ${hubSections.map(line).join("; ")}. Per soort rekenen we de prijs om naar een prijs per kilo of per stuk, zodat je verschillende verpakkingen eerlijk kunt vergelijken.`;
+  const faq = [
+    ["Wat is nu de goedkoopste koffie?", `Dat hangt van de soort af. Op ${dateNL(updated)}: ${hubSections.map(line).join("; ")}. Controleer de prijs altijd bij de winkel.`],
+    ["Hoe vergelijken jullie de prijzen?", "We rekenen de aanbiedingsprijs om naar een prijs per kilo (bonen en gemalen koffie) of per cup of pad, op basis van de verpakkingsgrootte in de productnaam. Alleen producten waarvan die grootte zeker is, doen mee."],
+    ["Is dit ook de goedkoopste koffie buiten de aanbieding?", "Niet per se. We vergelijken alleen producten die nu in de aanbieding zijn. Een product met een lage vaste prijs staat hier alleen tussen als de winkel het als aanbieding aanmerkt."],
+    ["Hoe vaak worden deze prijzen bijgewerkt?", `Elke nacht. Deze pagina is voor het laatst bijgewerkt op ${dateNL(updated)}. De aanbiedingen komen van PrijsProfeet.`],
+  ];
+  const canon = SITE + HUB_URL;
+  const trail = [{ name: "Koffieboonus", url: "/" }, { name: "Goedkoopste koffie", url: HUB_URL }];
+  const ld = [
+    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: trail.map((t, i) => ({ "@type": "ListItem", position: i + 1, name: t.name, item: SITE + t.url })) },
+    { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+  ];
+  const head = [
+    `<title>${esc(title)}</title>`,
+    `<meta name="description" content="${esc(desc)}">`,
+    `<meta name="robots" content="${hubIndexable ? "index,follow,max-image-preview:large" : "noindex,follow"}">`,
+    `<link rel="canonical" href="${canon}">`,
+    `<meta property="og:type" content="website"><meta property="og:locale" content="nl_NL"><meta property="og:site_name" content="Koffieboonus">`,
+    `<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${canon}">`,
+    `<meta property="og:image" content="${SITE}/logo-volledig.png"><meta name="twitter:card" content="summary">`,
+    ...ld.map(o => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`),
+  ].join("\n");
+  const top_ = `<section class="pagehead"><nav class="crumbs" aria-label="Kruimelpad"><a href="/">Koffieboonus</a> › <span aria-current="page">Goedkoopste koffie</span></nav><h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p></section>`;
+  const body = hubSections.map(g => `<section class="hubsec"><h2>Goedkoopste ${esc(g.c.word)}</h2>${listHtml(g.ranked, { sort: byPP, limit: 3, rank: true })}<p><a href="/${g.c.slug}/">Bekijk alle goedkoopste ${esc(g.c.word)} ›</a></p></section>`).join("");
+  const items = [...cheapPages].filter(([, g]) => g.indexable).map(([u, g]) => `<li><a href="${u}">Goedkoopste ${esc(g.c.word)}</a></li>`);
+  items.push(`<li><a href="/">Alle koffie-aanbiedingen</a></li>`);
+  const bottom = `<section class="more"><h2>Ook bekijken</h2><div class="grp"><ul class="links">${items.join("")}</ul></div></section><section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
+  const presetJs = `<script>window.PRESET=null;window.PLABEL=null;window.HUB=true;window.STATIC=true;</script>`;
+  return tpl
+    .replace("<body>", '<body class="hub">')
+    .replace("{{HEAD}}", () => head)
+    .replace("{{PRESETJS}}", () => presetJs)
+    .replace("{{TOP}}", () => top_)
+    .replace("{{LIST}}", () => body)
+    .replace("{{BOTTOM}}", () => bottom);
 }
 
 // ---------- schrijven ----------
@@ -335,8 +385,13 @@ for (const [url, pg] of cheapPages) {
   fs.writeFileSync(path.join(dir, "index.html"), renderCheap(url, pg));
   if (pg.indexable) sitemap.push(`  <url><loc>${SITE}${url}</loc><lastmod>${updated}</lastmod></url>`);
 }
+if (hubSections.length) {
+  fs.mkdirSync(path.join(OUT, HUB_URL), { recursive: true });
+  fs.writeFileSync(path.join(OUT, HUB_URL, "index.html"), renderHub());
+  if (hubIndexable) sitemap.push(`  <url><loc>${SITE}${HUB_URL}</loc><lastmod>${updated}</lastmod></url>`);
+}
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
 // Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)
-const known = [...pages.keys(), ...cheapPages.keys()];
+const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : [])];
 fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}}</style></head><body><h1>Hier is nu geen aanbieding</h1><p>Deze pagina bestaat op dit moment niet: er zijn te weinig aanbiedingen voor deze combinatie, of de aanbieding is afgelopen.</p><p id="near"></p><p><a href="/">Bekijk alle koffie-aanbiedingen</a></p><script>const K=${JSON.stringify(known)};let p=location.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);while(p.length){const u="/"+p.join("/")+"/";if(K.includes(u)){document.getElementById("near").innerHTML='Misschien zoek je <a href="'+u+'">een bredere pagina</a>.';break}p.pop()}</script></body></html>`);
 console.log(`Pagina's gebouwd: ${pages.size} (in sitemap: ${sitemap.length}), aanbiedingen: ${deals.length}`);

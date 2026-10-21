@@ -80,13 +80,16 @@ button{font:inherit}
 .row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.3fr) 12.5rem;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
 .row>*{min-width:0}
 .shop{font-weight:700}
+.hub fieldset,.hub .bar,.hub #hint,.hub #sortrow,.hub #ppnote,.hub #tabs,.hub #pnote{display:none}
+.hubsec{display:grid;gap:10px;margin:0 0 24px}.hubsec h2{margin:0;font-size:20px}.hubsec p{margin:2px 0 0}.hubsec p a{color:var(--ink);font-weight:600}
+.morefilters{margin:4px 0 12px}.morefilters summary{cursor:pointer;color:var(--mute);font-size:14px;padding:4px 0}.morefilters[open] summary{margin-bottom:8px}
 .rk{display:inline-block;min-width:1.6em;color:var(--mute);font-weight:700}
 .sdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:var(--c,var(--line))}
 .sub{margin-top:4px;font-size:13px}
 .tag{display:inline-block;margin-left:6px;padding:1px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;font-weight:600;color:var(--mute);vertical-align:middle}
 .name{font-weight:600}
 .reg{color:var(--mute);text-decoration:line-through}
-.deal{background:var(--deal);color:var(--dealink);font-weight:700;padding:6px 10px;border-radius:6px;display:inline-block}
+.deal{background:var(--deal);color:var(--dealink);font-weight:700;padding:6px 10px;border-radius:6px;display:inline-block;transform:rotate(-1.5deg)}
 .soon{color:var(--soon);font-weight:600}
 .empty{padding:28px 20px;text-align:center;color:var(--mute);background:var(--card);border:1px dashed var(--line);border-radius:12px}
 .empty strong{color:var(--ink)}
@@ -161,6 +164,19 @@ const fmtPP=n=>"€"+n.toFixed(2).replace(".",",");
 let sortBy=window.SORT||"korting";
 const same=a=>a.every(v=>Math.abs(v-a[0])<0.015);
 
+/* Op een pagina met een voorinstelling (bijv. alleen koffiebonen) klappen de filters in die niet gebruikt worden. */
+(function(){
+  if(!P||!window.PLABEL||window.HUB)return;
+  const used=Object.keys(groups).filter(k=>(P[k]||[]).length);
+  const idle=Object.keys(groups).filter(k=>!used.includes(k));
+  if(!used.length||!idle.length)return;
+  const NAMES={shop:"Supermarkt",brand:"Merk",sys:"Systeem",type:"Type koffie"};
+  const d=document.createElement("details");d.className="morefilters";
+  const s=document.createElement("summary");s.textContent="Meer filters: "+idle.map(k=>NAMES[k]).join(", ");
+  d.appendChild(s);
+  idle.forEach(k=>d.appendChild(document.getElementById(groups[k]).parentElement));
+  document.querySelector(".bar").parentNode.insertBefore(d,document.querySelector(".bar"));
+})();
 function buildChips(){
   const all=alive();
   for(const k in groups){
@@ -231,6 +247,7 @@ function card(g,best){
 }
 const pick=pool=>pool.filter(d=>Object.keys(sel).every(k=>!sel[k].size||sel[k].has(d[k])));
 function render(){
+  if(window.HUB)return; // overzichtspagina "Goedkoopste koffie": de lijst staat al in de pagina
   updTabs();markEmpty();
   const out=pick(live());
   if(out.some(d=>d.nodisc)){const hn=document.getElementById("hint");hn.textContent=hn.textContent.replace("We tonen alleen aanbiedingen vanaf 10% korting.","We tonen aanbiedingen vanaf 10% korting, en aanbiedingen waarvan de normale prijs onbekend is (zonder percentage).")}
