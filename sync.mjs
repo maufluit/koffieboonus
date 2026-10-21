@@ -41,9 +41,14 @@ const STORE_BRAND=/^(ah|albert heijn|jumbo|plus|dirk|dekamarkt|deka|hoogvliet|po
 const SUBBRANDS=[[/^perla\b/i,"Perla"],[/^(ah )?excellent\b/i,"AH Excellent"],[/^bellarom\b/i,"Bellarom"],[/^expressi\b/i,"Expressi"]];
 export function brandOf(p){
   const b=(p.brand||"").trim();
-  if(!p.private_label)return b;
-  if(b&&!STORE_BRAND.test(b))return b;
   const n=(p.name||"").trim();
+  // Zonder merkveld (bijv. Lidl BELLAROM, waar private_label leeg is): herken de eigen merknaam in de productnaam.
+  if(!p.private_label){
+    if(b)return b;
+    for(const [re,label] of SUBBRANDS)if(re.test(n))return label;
+    return b;
+  }
+  if(b&&!STORE_BRAND.test(b))return b;
   for(const [re,label] of SUBBRANDS)if(re.test(n))return label;
   return "Huismerk";
 }
@@ -137,14 +142,22 @@ export function mapItems(p,today){
   if(parts.length!==2){const m=mapOne(p,today);return m?[m]:[]}
   const [l,r]=parts.map(x=>x.trim()),rw=r.split(/\s+/);
   let names,brandCase=false;
-  if(r.startsWith("-")){const w=l.split(/\s+/);const last=w[w.length-1],rest=r.slice(1);names=[l,[...w.slice(0,-1),/^koffie/i.test(last)?"koffie"+rest:rest].join(" ")]}
+  // "koffiebonen of -capsules": het prijsvoorbeeld in de folder hoort bij het eerste product (bijv. Masterblend zak 500 gram).
+  // Het tweede product krijgt wel de korting, maar geen prijs (noprice): we verzinnen geen prijs.
+  let dash=false;
+  if(r.startsWith("-")){dash=true;const w=l.split(/\s+/);const last=w[w.length-1],rest=r.slice(1);names=[l,[...w.slice(0,-1),/^koffie/i.test(last)?"koffie"+rest:rest].join(" ")]}
   else if(!/\s/.test(l)&&rw.length>=2&&/^[A-Z]/.test(r)){names=[l+" "+rw.slice(1).join(" "),r];brandCase=true}
   else names=[l,r];
   const out=[];
   names.forEach((n,i)=>{
     const q={...p,name:n};
+    if(dash&&i>0)q.quantity="";
     if(brandCase&&!p.brand&&!p.private_label)q.brand=n.split(/\s+/)[0];
     const m=mapOne(q,today);
+    if(m&&dash&&i>0){
+      if(m.nodisc)return; // zonder percentage en zonder prijs valt er niets te tonen
+      m.noprice=true;m.deal=`${m.pct}% korting`;m.reg="";m.qty=1;delete m.pp;delete m.pu;
+    }
     if(m){m.id=`${m.id}-${i}`;out.push(m)}
   });
   return out;

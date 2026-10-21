@@ -104,7 +104,7 @@ const nameOf = d => (d.brand && d.brand !== "Huismerk" && d.brand !== "Overig" ?
 
 function listHtml(list) {
   const sorted = [...list].sort((a, b) => b.pct - a.pct).slice(0, 80);
-  return sorted.map(d => `<div class="row"><div class="name">${esc(d.name)}</div><div><div class="shop">${esc(d.shop)}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div>${d.nodisc ? "" : `<span class="reg">${esc(d.reg)}</span>`}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}<div class="meta">${esc(d.until)}</div></div><div><span class="deal">${esc(mech(d))}</span></div></div>`).join("");
+  return sorted.map(d => `<div class="row"><div class="name">${esc(d.name)}</div><div><div class="shop">${esc(d.shop)}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div>${d.nodisc || d.noprice ? "" : `<span class="reg">${esc(d.reg)}</span>`}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}<div class="meta">${esc(d.until)}</div>${d.noprice ? `<div class="meta">Prijs onbekend, check de winkel</div>` : ""}</div><div><span class="deal">${esc(mech(d))}</span></div></div>`).join("");
 }
 
 function counts(list, key) {

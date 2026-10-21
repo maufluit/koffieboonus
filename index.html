@@ -182,19 +182,20 @@ function card(g,best){
   const pr=lo===hi?lo+"%":lo+"–"+hi+"%";
   const sameDeal=g.every(x=>x.deal===d.deal);
   const nd=g.every(x=>x.nodisc);
-  const dealTxt=nd?(sameDeal?d.deal.replace(/^Nu voor/,"Actieprijs"):"Actieprijs, zie de lijst"):(sameDeal?d.deal:(mech(d)==="Actieprijs"?discTxt(g):mech(d)));
+  const np=g.every(x=>x.noprice);
+  const dealTxt=np?(same(pc)?pc[0]+"% korting":"Tot "+hi+"% korting"):nd?(sameDeal?d.deal.replace(/^Nu voor/,"Actieprijs"):"Actieprijs, zie de lijst"):(sameDeal?d.deal:(mech(d)==="Actieprijs"?discTxt(g):mech(d)));
   const cond=d.qty>1&&g.every(x=>x.qty===d.qty)?` (bij ${d.qty} stuks)`:mech(d)==="Volume voordeel"?" (bij aankoop van het multipack)":"";
   const allOn=g.every(x=>x.online),allSt=g.every(x=>x.store);
   const tag=allOn?tagH("Alleen online"):allSt?tagH("Alleen in de winkel"):"";
   const title=n>1?esc(d.brand)+" "+(TL[d.type]||d.type.toLowerCase()):esc(d.name);
-  const price=n>1?`<span class="from">vanaf ${fmt(Math.min(...g.map(nowP)))}</span>`:(nd?"":`<span class="reg">${esc(d.reg)}</span>`);
-  const items=n>1?g.map(x=>`<div class="it"><span>${esc(x.name)}${x.online&&!allOn?tagH("Alleen online"):""}</span><span class="meta">${x.nodisc?(isNow(x)?fmt(nowP(x)):esc(x.deal)):(isNow(x)?`<s>${esc(x.reg)}</s> ${fmt(nowP(x))}`:esc(x.reg))}${x.pp!=null?` · ${fmtPP(x.pp)} per ${x.pu}`:""}</span></div>`).join(""):"";
+  const price=np?"":n>1?`<span class="from">vanaf ${fmt(Math.min(...g.map(nowP)))}</span>`:(nd?"":`<span class="reg">${esc(d.reg)}</span>`);
+  const items=n>1?g.map(x=>`<div class="it"><span>${esc(x.name)}${x.online&&!allOn?tagH("Alleen online"):""}</span><span class="meta">${x.noprice?"prijs onbekend":x.nodisc?(isNow(x)?fmt(nowP(x)):esc(x.deal)):(isNow(x)?`<s>${esc(x.reg)}</s> ${fmt(nowP(x))}`:esc(x.reg))}${x.pp!=null?` · ${fmtPP(x.pp)} per ${x.pu}`:""}</span></div>`).join(""):"";
   const allPP=g.every(x=>x.pp!=null)&&new Set(g.map(x=>x.pu)).size===1;
   const pu=allPP?g[0].pu:null,lowest=allPP?Math.min(...g.map(x=>x.pp)):null;
   const ppLine=allPP?`<div class="meta ppu">${n>1?"vanaf ":""}${fmtPP(lowest)} per ${pu}</div>`:"";
   const isBest=allPP&&best&&best[pu]&&best[pu].n>=3&&lowest===best[pu].v;
   const badge=isBest?`<div><span class="best">Laagste prijs per ${pu}</span></div>`:"";
-  const grey=nd?"Normale prijs onbekend":(!sameDeal&&mech(d)==="Actieprijs"&&same(pc)?"Per product, zie de lijst":`Korting per product: ${pr}${cond}`);
+  const grey=np?"Prijs onbekend, controleer de prijs in de winkel":nd?"Normale prijs onbekend":(!sameDeal&&mech(d)==="Actieprijs"&&same(pc)?"Per product, zie de lijst":`Korting per product: ${pr}${cond}`);
   return `<div class="row"><div class="name">${title}${n>1?`<div class="meta">${n} producten</div>`:""}</div><div><div class="shop">${esc(d.shop)}${tag}</div><div class="meta">${esc(d.brand)} · ${esc(d.type)}</div></div><div>${price}${ppLine}<div class="meta">${d.next?`<span class="soon">${esc(d.fromTxt)}</span><br>`:""}${esc(d.until)}</div>${badge}</div><div><span class="deal">${esc(dealTxt)}</span><div class="meta sub">${grey}</div></div>${n>1?`<button class="tog" type="button" aria-expanded="false" data-n="${n}">Toon alle ${n} producten</button><div class="items" hidden>${items}</div>`:""}</div>`;
 }
 const pick=pool=>pool.filter(d=>Object.keys(sel).every(k=>!sel[k].size||sel[k].has(d[k])));
@@ -212,7 +213,7 @@ function render(){
   document.getElementById("sortrow").hidden=out.length<2||!us.length;
   document.getElementById("ppnote").hidden=!us.length;
   const map=new Map();
-  out.forEach(d=>{const k=[d.shop,d.brand,d.type,mech(d),d.until,d.nodisc?"n":""].join("|");if(!map.has(k))map.set(k,[]);map.get(k).push(d)});
+  out.forEach(d=>{const k=[d.shop,d.brand,d.type,mech(d),d.until,d.nodisc?"n":"",d.noprice?"p":""].join("|");if(!map.has(k))map.set(k,[]);map.get(k).push(d)});
   const lowPP=g=>{const v=g.filter(x=>x.pp!=null).map(x=>x.pp);return v.length?Math.min(...v):Infinity};
   const gs=[...map.values()].sort((a,b)=>{const byPct=Math.max(...b.map(x=>x.pct))-Math.max(...a.map(x=>x.pct));return sortBy==="pp"?(lowPP(a)-lowPP(b))||byPct:byPct});
   if(sortBy==="pp")document.getElementById("hint").textContent=document.getElementById("hint").textContent.replace("Gesorteerd op hoogste korting.","Gesorteerd op laagste prijs per "+us[0]+".");
