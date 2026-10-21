@@ -17,11 +17,27 @@ export function typeOf(p){
   if(/pads?\b|senseo/.test(s))return "Pads";
   if(/concentrate|ijskoffie|\bice\b|iced|chilled|frappuccino|frappe|doubleshot|warm of koud/.test(s))return "IJskoffie & koffiedrank";
   if(/bonen|beans|boontjes|grani\b/.test(s))return "Bonen";
-  if(/maling|gemalen|filterkoffie|snelfilter/.test(s))return "Gemalen koffie";
+  if(/maling|gemalen|filterkoffie|snelfilter|\bfilter\b/.test(s))return "Gemalen koffie";
+  if(/l['’]?or\b.*destination/.test(b+" "+s))return "Cups";
   if(p.unit==="L"||/\bml\b/.test(q))return "IJskoffie & koffiedrank";
   if(/starbucks/.test(b+" "+s)&&/latte|macchiato|cappuccino/.test(s))return /\d\s?g\b/.test(q)?"Cups":"IJskoffie & koffiedrank";
   if(/espresso|lungo|ristretto|decaf/.test(s)&&/stuks?/.test(s+" "+q))return "Cups";
   if(/cappuccino|latte|macchiato|cafe au|café au/.test(s))return "Oploskoffie";
+  return null;
+}
+// Als de productnaam zelf geen soort verraadt, kijken we ook naar de productlink (daar staat vaak "koffiebonen" of "oploskoffie" in),
+// en Nescafé zonder verdere aanduiding is vrijwel altijd oploskoffie. Alles wat dan nog niet herkend is, komt in het logboek.
+export const untyped=[];
+function typeFallback(p){
+  let slug="";
+  try{slug=decodeURIComponent((p.product_url||"").replace(/^https?:\/\/[^/]+/i,"")).toLowerCase().replace(/[^a-zà-ÿ0-9']+/g," ")}catch{}
+  const t=typeOf({...p,name:`${p.name||""} ${slug}`});
+  if(t)return t;
+  if(/nescaf[eé]/i.test(`${p.name||""} ${p.brand||""}`))return "Oploskoffie";
+  if(/dubai chocolate/i.test(p.name||""))return "Oploskoffie"; // Douwe Egberts Dubai chocolate = oploskoffie (bevestigd via de.nl)
+  if(/aroma rood.*espresso/i.test(p.name||""))return "Bonen"; // Douwe Egberts Aroma Rood Espresso = koffiebonen (bevestigd)
+  const k=`${p.retailer}|${p.name}`;
+  if(!untyped.some(u=>u.k===k))untyped.push({k,retailer:p.retailer,name:p.name,brand:p.brand,quantity:p.quantity,unit:p.unit,url:p.product_url,savings:p.savings_percentage});
   return null;
 }
 export function dealOf(p){
@@ -84,6 +100,8 @@ export function unitPrice(o){
   else if(/^2e halve prijs/.test(raw))price=reg*0.75;
   else if((m=raw.match(/^(\d+) voor €([\d,]+)/)))price=numS(m[2])/+m[1];
   if(!(price>0))return null;
+  // "zak 450/500 gram": twee verpakkingen in één regel, dus de maat is niet zeker en we rekenen niets uit.
+  if(/\d\s?\/\s?\d+(?:[.,]\d+)?\s?(kg|gr|gram|g|ml|cl|l|liter)(?![a-z])/i.test(o.name||""))return null;
   const sz=parseSize(o.name||"");
   let v=null,pu=null,lo,hi;
   if(["Bonen","Gemalen koffie","Oploskoffie"].includes(o.type)&&sz.grams>=50){v=price/(sz.grams/1000);pu="kilo";lo=3;hi=150}
@@ -106,6 +124,7 @@ function mapOne(p,today){
   if(!nodisc&&!(pct>=10))return null;
   let type=typeOf(p);
   if(!type&&p.retailer==="jumbo"&&p.promotion_type==="one_plus_one"&&/\b(450|500|1000) ?g\b|\b1 ?kg\b/i.test(raw+" "+(p.quantity||"")))type="Bonen";
+  if(!type)type=typeFallback(p);
   if(!type)return null;
   let brand=brandOf(p),name=raw.replace(/^alle\s+/i,"");
   if(!brand){ // sommige winkels (bijv. Vomar) leveren geen merk mee: zoek een bekend merk in de rest van de productgegevens
@@ -197,6 +216,7 @@ async function main(){
   const cnt={};deals.forEach(d=>{const k=key(d.brand);(cnt[k]=cnt[k]||{})[d.brand]=(cnt[k][d.brand]||0)+1});
   deals.forEach(d=>{const k=key(d.brand);if(!k){d.brand="Overig";return}const v=Object.entries(cnt[k]).sort((a,b)=>b[1]-a[1]);d.brand=CANON[k]||(v.find(([n])=>n!==n.toLowerCase())||v[0])[0]});
   console.log("Controle twijfelmerken:\n"+deals.filter(d=>/^(Oatly|Pickwick|Roots|Illimani|Overig|The Cup factory|Lazarro)$/.test(d.brand)).map(d=>`${d.brand}: ${d.name} (${d.shop})`).join("\n"));
+  console.log("Soort niet herkend (met gegevens, eerste 15):\n"+untyped.slice(0,15).map(u=>JSON.stringify({w:u.retailer,n:u.name,m:u.brand,q:u.quantity,u:u.unit,url:u.url,k:u.savings})).join("\n"));
   console.log("Gecombineerde merken (gesplitst):\n"+combined.slice(0,20).join("\n"));
   console.log("Merk afgeleid uit overige productgegevens:\n"+guessed.slice(0,30).join("\n"));
   console.log("Zonder merk (ruwe gegevens, eerste 5):\n"+noBrand.slice(0,5).join("\n"));
