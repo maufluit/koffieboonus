@@ -34,6 +34,7 @@ function typeFallback(p){
   const t=typeOf({...p,name:`${p.name||""} ${slug}`});
   if(t)return t;
   if(/nescaf[eé]/i.test(`${p.name||""} ${p.brand||""}`))return "Oploskoffie";
+  if(/rood ?merk/i.test(p.name||""))return "Gemalen koffie"; // Douwe Egberts Roodmerk (kilozak) = gemalen filterkoffie
   if(/dubai chocolate/i.test(p.name||""))return "Oploskoffie"; // Douwe Egberts Dubai chocolate = oploskoffie (bevestigd via de.nl)
   if(/aroma rood.*espresso/i.test(p.name||""))return "Bonen"; // Douwe Egberts Aroma Rood Espresso = koffiebonen (bevestigd)
   const k=`${p.retailer}|${p.name}`;
@@ -86,6 +87,7 @@ function parseSize(text){
     else if(u==="l"||u==="liter")ml+=v*1000;else if(u==="cl")ml+=v*10;else if(u==="ml")ml+=v;
     else count+=v;
   };
+  t=t.replace(/\bkilo ?zak\b/g," 1 kg ");
   t=t.replace(new RegExp("(\\d+)\\s?[x×]\\s?(\\d+(?:\\.\\d+)?)\\s?("+UNIT_RE+")(?![a-z])","g"),(m,a,b,u)=>{add(+a*+b,u);return " "});
   for(const m of t.matchAll(new RegExp("(\\d+(?:\\.\\d+)?)\\s?("+UNIT_RE+")(?![a-z])","g")))add(+m[1],m[2]);
   return {grams,ml,count};
