@@ -8,6 +8,7 @@ const BLOCK=/^(absolut|smirnoff|bacardi|baileys|pickwick|pukka|lipton|twinings|t
 const SKIP=/\b(earl grey|thee|tea|rooibos|koffiemelk|creamer|koffiefilters?|filterzakjes|koek(je|jes)?|broodje|wasmiddel|wasverzachter|vaatwas\w*|afwas\w*|allesreiniger|luchtverfrisser|toiletreiniger|tabletten|vitamine\w*|supplement\w*|ontkalk\w*|reiniger|mokken?|glazen?|servies|apparaat|machine|bonbons?|snoep|chocolade|repen|reep|kaas|yoghurt|kwark|vla|pudding|cake|taart|likeur|bier|wijn|roomijs|stroopwafels?)\b/i;
 const DAYS=["zo","ma","di","wo","do","vr","za"],MON=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
 const E=n=>"€"+Number(n).toFixed(2).replace(".",",");
+const safeUrl=u=>{try{const x=new URL(u);return x.protocol==="https:"?x.href:""}catch{return ""}};
 const until=iso=>{const d=new Date(iso+"T12:00:00Z");return `t/m ${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MON[d.getUTCMonth()]}`};
 const fromT=iso=>{const d=new Date(iso+"T12:00:00Z");return `vanaf ${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MON[d.getUTCMonth()]}`};
 export function typeOf(p){
@@ -142,6 +143,7 @@ function mapOne(p,today){
   const o={id:p.base_product_id||p.product_id,pct,qty,shop:SHOPS[p.retailer]||p.retailer,brand,type,name,reg:E(orig||price),deal,until:until(p.valid_until),end:p.valid_until};
   const unit=unitPrice(o);if(unit){o.pp=unit.pp;o.pu=unit.pu}
   if(nodisc)o.nodisc=true;
+  const link=safeUrl(p.product_url);if(link)o.url=link; // voor de knop "Bekijk bij ..."
   if(up){o.next=true;o.from=p.valid_from;o.fromTxt=fromT(p.valid_from)}
   if(p.online_only===true)o.online=true;
   if(p.in_store_only===true)o.store=true;
