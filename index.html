@@ -81,7 +81,7 @@ button{font:inherit}
 .row>*{min-width:0}
 .shop{font-weight:700;display:flex;align-items:center}
 .hub fieldset,.hub .bar,.hub #hint,.hub #sortrow,.hub #ppnote,.hub #tabs,.hub #pnote{display:none}
-.hubsec{display:grid;gap:10px;margin:0 0 24px}.hubsec h2{margin:0;font-size:20px}.hubsec p{margin:2px 0 0}.hubsec p a{color:var(--ink);font-weight:600}
+.hubsec{display:grid;gap:10px;margin:0 0 24px}.hubsec.alt{margin-top:24px}.hubsec h2{margin:0;font-size:20px}.hubsec p{margin:2px 0 0}.hubsec p a{color:var(--ink);font-weight:600}
 .morefilters{margin:4px 0 12px}.morefilters summary{cursor:pointer;color:var(--mute);font-size:14px;padding:4px 0}.morefilters[open] summary{margin-bottom:8px}
 .rk{display:inline-block;min-width:1.6em;color:var(--mute);font-weight:700}
 .sdot{flex:none;display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:var(--c,var(--line))}
@@ -298,7 +298,7 @@ function render(){
   let html;
   if(gs.length)html=gs.map(g=>card(g,best)).join("");
   else{
-    const names=[...sel.shop,...sel.brand,...sel.type];
+    const names=[...sel.brand,...sel.sys,...sel.type,...sel.shop];
     const per=tab==="next"?"volgende week":"nu";
     const other=pick(alive().filter(d=>tab==="next"?!isNext(d):isNext(d))).length;
     const alt=other&&!document.getElementById("tabs").hidden?`<br><button class="link" type="button" data-go="${tab==="next"?"nu":"next"}">${tab==="next"?"Bekijk wat er nu wel in de aanbieding is":"Bekijk volgende week: daar zijn "+other+" producten"}</button>`:"";

@@ -88,6 +88,65 @@ for (const a of A) for (const t of T) for (const s of S) {
 combos.sort((x, y) => Object.keys(x).length - Object.keys(y).length); // eerst de bredere pagina's
 combos.forEach(add);
 
+// ---------- vaste adressen: een pagina die ooit bestond, blijft (tijdelijk) bestaan ----------
+// Zo krijgt niemand (ook Google niet) een 404 als de aanbiedingen voor een merk of combinatie tijdelijk op zijn.
+// Zonder genoeg aanbiedingen: melding + alternatieven, "noindex" en niet in de sitemap.
+// Na KEEP_DAYS dagen zonder aanbieding verdwijnt de pagina alsnog (dan is het geen tijdelijk gat meer).
+// Het geheugen: vaste-paginas.json (in de repo) plus /paginas.json van de live site (wat de vorige build publiceerde).
+// /paginas.json onthoudt per pagina ook wanneer de inhoud voor het laatst veranderde (voor de sitemap en IndexNow).
+const KEEP_DAYS = 90;
+const KNOWN_PAGES = {}; // url -> {p, seen, h, mod}
+const norm = v => v && typeof v === "object" && v.p !== undefined ? v : { p: v };
+try { for (const [u, v] of Object.entries(JSON.parse(fs.readFileSync("vaste-paginas.json", "utf8")))) KNOWN_PAGES[u] = norm(v); } catch { console.warn("vaste-paginas.json niet gevonden"); }
+let memoryOk = false;
+for (let i = 1; i <= 3 && !memoryOk; i++) {
+  try {
+    const r = await fetch(process.env.KB_MEMORY_URL || SITE + "/paginas.json", { signal: AbortSignal.timeout(15000), headers: { "User-Agent": "koffieboonus-build" } });
+    if (r.status === 404) { console.log("Nog geen /paginas.json op de live site (eerste keer)."); memoryOk = true; break; }
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    for (const [u, v] of Object.entries(await r.json())) KNOWN_PAGES[u] = { ...(KNOWN_PAGES[u] || {}), ...norm(v) };
+    memoryOk = true;
+  } catch (e) {
+    if (i === 3) { const msg = `Geheugen (/paginas.json) niet opgehaald na 3 pogingen (${e.message}); alleen vaste-paginas.json gebruikt.`; console.warn(msg); if (process.env.GITHUB_ACTIONS) console.log("::warning title=Vaste adressen::" + msg); }
+    else await new Promise(r => setTimeout(r, 3000 * i));
+  }
+}
+const daysBetween = (a, b) => Math.round((new Date(b + "T12:00:00Z") - new Date(a + "T12:00:00Z")) / 864e5);
+let keptN = 0, expiredN = 0;
+for (const [u, k] of Object.entries(KNOWN_PAGES)) {
+  const p0 = k.p;
+  if (pages.has(u) || !p0 || typeof p0 !== "object") continue;
+  const p = {};
+  for (const key of ["brand", "sys", "type", "shop"]) if (typeof p0[key] === "string" && p0[key]) p[key] = p0[key];
+  if (!Object.keys(p).length) continue;
+  if (p.brand && !slugOf("brand", p.brand)) { const s = slug(p.brand); if (s && !taken.has(s)) { taken.set(s, "brand"); dict.brand.set(s, p.brand); } }
+  if (urlOf(p) !== u) { console.warn(`Vast adres overgeslagen (klopt niet meer): ${u}`); continue; }
+  const list = dealsFor(p);
+  if (!list.length && k.seen && daysBetween(k.seen, updated) > KEEP_DAYS) { expiredN++; continue; }
+  pages.set(u, { p, list, indexable: false, kept: true, t: k.t });
+  keptN++;
+}
+
+// Alternatieven voor een pagina zonder aanbiedingen: steeds één onderdeel weglaten (eerst de supermarkt, dan het merk/systeem, dan de soort).
+function alternativesOf(p, hintType) {
+  const tries = [];
+  const drop = (...ks) => { const q = { ...p }; ks.forEach(k => delete q[k]); return q; };
+  if (p.shop) tries.push(drop("shop"));
+  // Merk of systeem zonder soort: eerst dezelfde soort koffie die dit merk meestal had (bijv. Lavazza -> koffiebonen)
+  if (!p.type && hintType && TYPES.includes(hintType)) { tries.push({ ...drop("brand", "sys"), type: hintType }); if (p.shop) tries.push({ type: hintType }); }
+  if (p.brand || p.sys) tries.push(drop("brand", "sys"));
+  if (p.type && (p.brand || p.sys)) tries.push(drop("type"));
+  if (p.shop && (p.brand || p.sys || p.type)) tries.push(drop("brand", "sys", "type"));
+  tries.push({});
+  const seen = new Set();
+  for (const q of tries) {
+    const u = urlOf(q); if (seen.has(u) || u === urlOf(p)) continue; seen.add(u);
+    const list = dealsFor(q);
+    if (list.length) return { q, u, list };
+  }
+  return null;
+}
+
 // ---------- "Goedkoopste ..."-pagina's: aanbiedingen gesorteerd op prijs per kilo, cup of pad ----------
 // Mensen zoeken op "goedkoopste koffiebonen" (niet op "prijs per kilo"): deze pagina's zetten de goedkoopste aanbiedingen op een rij.
 const CHEAP = [
@@ -220,7 +279,8 @@ function crumbs(p) {
   return trail;
 }
 
-function render(url, { p, list, indexable }) {
+function render(url, pg) {
+  const { p, list, indexable } = pg;
   const n = list.length, home = url === "/";
   const sl = sentLabel(p), Label = labelOf(p);
   const disc = list.filter(d => !d.nodisc);
@@ -266,10 +326,19 @@ function render(url, { p, list, indexable }) {
   ].join("\n");
   const crumbHtml = home ? "" : `<nav class="crumbs" aria-label="Kruimelpad">${trail.map((t, i) => i < trail.length - 1 ? `<a href="${t.url}">${esc(t.name)}</a>` : `<span aria-current="page">${esc(t.name)}</span>`).join(" › ")}</nav>`;
   const top_ = `<section class="pagehead">${crumbHtml}<h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p></section>`;
-  const bottom = relatedHtml(url, p) + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
+  let altHtml = "";
+  if (!n) {
+    const alt = alternativesOf(p, pg.t || KNOWN_PAGES[url]?.t);
+    if (alt) {
+      const what = Object.keys(alt.q).length ? labelOf(alt.q) : "";
+      const head2 = !what ? "Wel in de aanbieding: andere koffie" : p.shop && !alt.q.shop ? `Wel in de aanbieding: ${what} bij andere supermarkten` : `Wel in de aanbieding: ${(alt.q.brand || alt.q.sys) ? what : low(what)}`;
+      altHtml = `<section class="hubsec alt"><h2>${esc(head2)}</h2>${listHtml(alt.list, { limit: 6 })}<p><a href="${alt.u}">${alt.u === "/" ? "Bekijk alle koffie-aanbiedingen" : `Bekijk alle ${alt.list.length} aanbiedingen voor ${esc(what ? ((alt.q.brand || alt.q.sys) ? what : low(what)) : "koffie")}`} ›</a></p></section>`;
+    }
+  }
+  const bottom = altHtml + relatedHtml(url, p) + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
   const preset = { brand: p.brand ? [p.brand] : [], sys: p.sys ? [p.sys] : [], type: p.type ? [p.type] : [], shop: p.shop ? [p.shop] : [] };
   const presetJs = `<script>window.PRESET=${JSON.stringify(preset)};window.PLABEL=${home ? "null" : JSON.stringify(Label)};window.STATIC=${n ? "true" : "false"};</script>`;
-  const body = n ? listHtml(list) : `<div class="empty">Aanbiedingen laden…</div>`;
+  const body = n ? listHtml(list) : `<div class="empty"><strong>Nu geen aanbiedingen</strong> voor ${esc(sl)}.<br>Zodra er weer een is, staat die hier. Hieronder vind je vergelijkbare aanbiedingen.</div>`;
   const html = tpl
     .replace("{{HEAD}}", () => head)
     .replace("{{PRESETJS}}", () => presetJs)
@@ -380,6 +449,20 @@ function renderHub() {
     .replace("{{BOTTOM}}", () => bottom);
 }
 
+// ---------- wat is er echt veranderd? (voor de sitemap-datum en IndexNow) ----------
+const hashOf = list => { const t = list.map(d => [d.id, d.deal, d.pct, d.end, d.pp, d.shop].join("~")).sort().join("|"); let h = 5381; for (let i = 0; i < t.length; i++) h = (h * 33 ^ t.charCodeAt(i)) >>> 0; return h.toString(36); };
+const memo = {}; const changed = [];
+function track(url, list, p, indexable) {
+  const prev = KNOWN_PAGES[url] || {};
+  const h = hashOf(list);
+  const mod = prev.h === h && prev.mod ? prev.mod : updated;
+  const seen = list.length ? updated : (prev.seen || updated);
+  let t = prev.t;
+  if (list.length) { const c = {}; list.forEach(d => { c[d.type] = (c[d.type] || 0) + 1; }); t = Object.entries(c).sort((a, b) => b[1] - a[1])[0][0]; }
+  memo[url] = { p: p ?? null, seen, h, mod, ...(t ? { t } : {}) };
+  if (indexable && mod === updated && prev.mod !== updated) changed.push(SITE + url);
+  return mod;
+}
 // ---------- schrijven ----------
 fs.mkdirSync(OUT, { recursive: true });
 const sitemap = [];
@@ -388,21 +471,26 @@ for (const [url, pg] of pages) {
   const dir = path.join(OUT, url);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "index.html"), html);
-  if (pg.indexable) sitemap.push(`  <url><loc>${SITE}${url}</loc><lastmod>${updated}</lastmod></url>`);
+  const mod = track(url, pg.list, Object.keys(pg.p).length ? pg.p : null, pg.indexable);
+  if (pg.indexable) sitemap.push(`  <url><loc>${SITE}${url}</loc><lastmod>${mod}</lastmod></url>`);
 }
 for (const [url, pg] of cheapPages) {
   const dir = path.join(OUT, url);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "index.html"), renderCheap(url, pg));
-  if (pg.indexable) sitemap.push(`  <url><loc>${SITE}${url}</loc><lastmod>${updated}</lastmod></url>`);
+  const mod = track(url, pg.ranked.length ? pg.ranked : pg.list, null, pg.indexable);
+  if (pg.indexable) sitemap.push(`  <url><loc>${SITE}${url}</loc><lastmod>${mod}</lastmod></url>`);
 }
 if (hubSections.length) {
   fs.mkdirSync(path.join(OUT, HUB_URL), { recursive: true });
   fs.writeFileSync(path.join(OUT, HUB_URL, "index.html"), renderHub());
-  if (hubIndexable) sitemap.push(`  <url><loc>${SITE}${HUB_URL}</loc><lastmod>${updated}</lastmod></url>`);
+  const mod = track(HUB_URL, hubSections.flatMap(g => g.ranked.slice(0, 3)), null, hubIndexable);
+  if (hubIndexable) sitemap.push(`  <url><loc>${SITE}${HUB_URL}</loc><lastmod>${mod}</lastmod></url>`);
 }
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
 // Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)
 const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : [])];
 fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}}</style></head><body><h1>Hier is nu geen aanbieding</h1><p>Deze pagina bestaat op dit moment niet: er zijn te weinig aanbiedingen voor deze combinatie, of de aanbieding is afgelopen.</p><p id="near"></p><p><a href="/">Bekijk alle koffie-aanbiedingen</a></p><script>const K=${JSON.stringify(known)};let p=location.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);while(p.length){const u="/"+p.join("/")+"/";if(K.includes(u)){document.getElementById("near").innerHTML='Misschien zoek je <a href="'+u+'">een bredere pagina</a>.';break}p.pop()}</script></body></html>`);
-console.log(`Pagina's gebouwd: ${pages.size} (in sitemap: ${sitemap.length}), aanbiedingen: ${deals.length}`);
+fs.writeFileSync(path.join(OUT, "paginas.json"), JSON.stringify(memo));
+fs.writeFileSync("gewijzigd.json", JSON.stringify(changed)); // voor indexnow.mjs (staat niet op de site)
+console.log(`Pagina's gebouwd: ${pages.size} (in sitemap: ${sitemap.length}, vaste adressen zonder genoeg aanbiedingen: ${keptN}, verlopen na ${KEEP_DAYS} dagen: ${expiredN}, gewijzigd: ${changed.length}), aanbiedingen: ${deals.length}`);
