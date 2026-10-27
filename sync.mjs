@@ -4,8 +4,8 @@ const BASE="https://www.prijsprofeet.nl/api/v1/search";
 const KEY=process.env.PRIJSPROFEET_API_KEY||"";
 const SHOPS={albert_heijn:"Albert Heijn",jumbo:"Jumbo",plus:"PLUS",dirk:"Dirk",dekamarkt:"DekaMarkt",hoogvliet:"Hoogvliet",poiesz:"Poiesz",vomar:"Vomar",aldi:"Aldi",lidl:"Lidl",ekoplaza:"Ekoplaza",coop:"Coop",gewoon_coop:"Coop",dagwinkel:"Dagwinkel",spar:"SPAR",boons_markt:"Boon's Markt",mcd:"MCD",nettorama:"Nettorama"};
 const COFFEE=/koffie|coffee|espresso|cappuccino|latte|macchiato|lungo|ristretto|nespresso|dolce gusto|senseo|mocca|mokka|decaf|café|cafe\b|starbucks|lavazza|illy|segafredo|l'or\b|nescafé?|douwe egberts|bialetti|melitta|kanis/i;
-const BLOCK=/^(absolut|smirnoff|bacardi|baileys|pickwick|pukka|lipton|twinings|teekanne|ariel|dreft|glade|lenor|sun|lucovitaal|persil|robijn|ajax|finish|calgon|vanish|febreze|ambi pur|bref|domestos|andrelon|andrélon)$/i;
-const SKIP=/\b(earl grey|thee|tea|rooibos|koffiemelk|creamer|koffiefilters?|filterzakjes|koek(je|jes)?|broodje|wasmiddel|wasverzachter|vaatwas\w*|afwas\w*|allesreiniger|luchtverfrisser|toiletreiniger|tabletten|vitamine\w*|supplement\w*|ontkalk\w*|reiniger|mokken?|glazen?|servies|apparaat|machine|bonbons?|snoep|chocolade|repen|reep|kaas|yoghurt|kwark|vla|pudding|cake|taart|likeur|bier|wijn|roomijs|stroopwafels?)\b/i;
+const BLOCK=/^(absolut|smirnoff|bacardi|baileys|pickwick|pukka|lipton|twinings|teekanne|ariel|dreft|glade|lenor|sun|lucovitaal|persil|robijn|ajax|finish|calgon|vanish|febreze|ambi pur|bref|domestos|andrelon|andrélon|nivea|nivea for men|nivea men|dove|axe|rexona|sanex|becel|hg|rio mare)$/i;
+const SKIP=/\b(earl grey|thee|tea|rooibos|koffiemelk|koffiecreamer|creamer|voor in de koffie|matcha|chai|deodorant|deo|anti-?transpirant|douche\w*|shampoo|bodylotion|bodywash|parfum|eau de \w+|geurkaars\w*|kaars(en)?|reinig\w*|koffiefilters?|filterzakjes|koek(je|jes)?|broodje|wasmiddel|wasverzachter|vaatwas\w*|afwas\w*|allesreiniger|luchtverfrisser|toiletreiniger|tabletten|vitamine\w*|supplement\w*|ontkalk\w*|reiniger|mokken?|glazen?|servies|apparaat|machine|bonbons?|snoep|chocolade|repen|reep|kaas|yoghurt|kwark|vla|pudding|cake|taart|likeur|bier|wijn|roomijs|stroopwafels?)\b/i;
 const DAYS=["zo","ma","di","wo","do","vr","za"],MON=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
 const E=n=>"€"+Number(n).toFixed(2).replace(".",",");
 const safeUrl=u=>{try{const x=new URL(u);return x.protocol==="https:"?x.href:""}catch{return ""}};
@@ -229,6 +229,10 @@ async function main(){
   console.log("Alle merken:",[...new Set(deals.map(d=>d.brand))].sort().join(" | "));
   console.log(`Opgehaald: ${raw} rijen, bruikbaar: ${deals.length} (waarvan volgende week: ${deals.filter(d=>d.next).length})`);
   const by={};deals.forEach(d=>{by[d.shop]=(by[d.shop]||0)+1});console.log("Per winkel:",JSON.stringify(by));
+  // Waarschuwing als een supermarkt helemaal geen aanbiedingen heeft (zichtbaar bovenaan de run in GitHub).
+  const skippedBy={};for(const x of skipped){const r=x.split(":")[0];const n=SHOPS[r]||r;skippedBy[n]=(skippedBy[n]||0)+1}
+  const missing=[...new Set(Object.values(SHOPS))].filter(n=>!by[n]);
+  if(missing.length){const msg="Geen aanbiedingen van: "+missing.map(n=>`${n} (overgeslagen koffieproducten: ${skippedBy[n]||0})`).join(", ");console.log(msg);if(process.env.GITHUB_ACTIONS)console.log("::warning title=Supermarkt ontbreekt::"+msg)}
   console.log("Overgeslagen (eerste 30):\n"+[...skipped].slice(0,30).join("\n"));
   if(deals.filter(d=>!d.next).length<30)throw new Error("Te weinig aanbiedingen; deals.json blijft ongewijzigd.");
   let prev=null;try{prev=JSON.parse(fs.readFileSync("deals.json","utf8"))}catch{}
