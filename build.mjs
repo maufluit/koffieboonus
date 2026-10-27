@@ -24,7 +24,7 @@ const MIN_COMBO_DEALS = 2; // combinaties pas vanaf zoveel aanbiedingen
 
 const slug = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/&/g, "en").replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const cap = s => /^ij/i.test(s) ? "IJ" + s.slice(2) : s.charAt(0).toUpperCase() + s.slice(1);
 const low = s => s.charAt(0).toLowerCase() + s.slice(1);
 const nl = n => String(n);
 const dateNL = iso => new Date(iso + "T12:00:00Z").toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
@@ -328,7 +328,7 @@ function render(url, pg) {
   const top_ = `<section class="pagehead">${crumbHtml}<h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p></section>`;
   let altHtml = "";
   if (!n) {
-    const alt = alternativesOf(p, pg.t || KNOWN_PAGES[url]?.t);
+    const alt = alternativesOf(p, pg.t || KNOWN_PAGES[url]?.t || (p.sys ? { "Dolce Gusto": "Cups", Nespresso: "Cups", Senseo: "Pads", Tassimo: "Cups" }[p.sys] : null));
     if (alt) {
       const what = Object.keys(alt.q).length ? labelOf(alt.q) : "";
       const head2 = !what ? "Wel in de aanbieding: andere koffie" : p.shop && !alt.q.shop ? `Wel in de aanbieding: ${what} bij andere supermarkten` : `Wel in de aanbieding: ${(alt.q.brand || alt.q.sys) ? what : low(what)}`;
