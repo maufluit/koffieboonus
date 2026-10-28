@@ -1,0 +1,16 @@
+{
+  "_uitleg": [
+    "Verbeteringen voor meer bezoekers (sessie 4 van de voorbereiding, 23 okt 2026). Uitleg in gewone taal: groei/GROEIPLAN.md.",
+    "Elke verbetering heeft een eigen schakelaar. true = aan, false = uit. Staan ze ALLEMAAL op false, dan is de site letter voor letter gelijk aan vóór deze sessie.",
+    "titels: betere titels en beschrijvingen in Google (bijv. 'Koffie aanbieding Albert Heijn' i.p.v. 'Koffie bij Albert Heijn aanbieding', vermelding van prijs per kilo, AH Bonus en koffiecapsules).",
+    "meerkoop: nieuwe pagina /koffie-1-plus-1-gratis/ met alle koffie in 1+1 gratis, 2+1 gratis, 2e halve prijs en 'N voor €x'.",
+    "uitleg: drie extra vragen op de startpagina (Wat is Koffieboonus? Welke supermarkten? Kost het iets?) plus een korte beschrijving voor Google en AI-assistenten.",
+    "voetregel: de datum 'Laatst bijgewerkt' en de bronvermelding PrijsProfeet staan meteen in de pagina (ook zonder JavaScript zichtbaar, dus ook voor Google en AI-assistenten).",
+    "links: links naar de 'Goedkoopste ...'-pagina's ook op de pagina's per supermarkt en per merk, en (als de Black Friday-pagina aan staat) de Black Friday-link in november ook op de pagina's per soort en de 'Goedkoopste'-pagina's."
+  ],
+  "titels": true,
+  "meerkoop": true,
+  "uitleg": true,
+  "voetregel": true,
+  "links": true
+}
