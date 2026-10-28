@@ -29,6 +29,9 @@ const low = s => s.charAt(0).toLowerCase() + s.slice(1);
 const nl = n => String(n);
 const dateNL = iso => new Date(iso + "T12:00:00Z").toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+// Merknaam gelijk aan de vaste lijst, ongeacht hoofdletters (sync.mjs levert "illy", de lijst en de filters op de site gebruiken "Illy").
+// Zonder dit kreeg "illy" geen eigen adres en overschreef de pagina de startpagina. De filters in index.html doen hetzelfde (canon/bkey).
+{ const bk = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, ""), cn = new Map(MAIN_BRANDS.map(b => [bk(b), b])); deals.forEach(d => { if (d.brand && cn.has(bk(d.brand))) d.brand = cn.get(bk(d.brand)); }); }
 
 // ---------- waardes en slugs (zonder botsingen) ----------
 const brandCount = {};
@@ -60,6 +63,8 @@ const pages = new Map(); // url -> {p, list}
 const seenSets = new Map(); // welke aanbiedingen staan al op een pagina? (tegen bijna-dubbele pagina's)
 const setKey = p => deals.map((d, i) => match(d, p) ? i : -1).filter(i => i >= 0).join(",");
 function add(p) {
+  // Waarde zonder slug (bijv. na een slug-botsing): geen pagina maken, anders zou hij een andere pagina (zelfs de startpagina) overschrijven.
+  if ((p.brand && !slugOf("brand", p.brand)) || (p.sys && !slugOf("sys", p.sys)) || (p.type && !slugOf("type", p.type)) || (p.shop && !slugOf("shop", p.shop))) return;
   const list = dealsFor(p);
   const dims = Object.keys(p).length;
   const u = urlOf(p);
