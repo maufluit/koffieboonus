@@ -32,11 +32,16 @@ const cap = s => /^ij/i.test(s) ? "IJ" + s.slice(2) : s.charAt(0).toUpperCase() 
 const low = s => s.charAt(0).toLowerCase() + s.slice(1);
 const nl = n => String(n);
 const dateNL = iso => new Date(iso + "T12:00:00Z").toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+const js = v => JSON.stringify(v).replace(/</g, "\\u003c"); // JSON veilig binnen <script>
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 tpl = footerStatic(tpl, dateNL(updated)); // groei.json "voetregel": datum en bronvermelding direct in de HTML
 // Merknaam gelijk aan de vaste lijst, ongeacht hoofdletters (sync.mjs levert "illy", de lijst en de filters op de site gebruiken "Illy").
 // Zonder dit kreeg "illy" geen eigen adres en overschreef de pagina de startpagina. De filters in index.html doen hetzelfde (canon/bkey).
-{ const bk = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, ""), cn = new Map(MAIN_BRANDS.map(b => [bk(b), b])); deals.forEach(d => { if (d.brand && cn.has(bk(d.brand))) d.brand = cn.get(bk(d.brand)); }); }
+// Ook andere merken met twee schrijfwijzen ("Cafe Nova"/"Café Nova") worden één merk: de vaste lijst, anders de meest gebruikte schrijfwijze met een hoofdletter.
+{ const bk = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, ""), cn = new Map(MAIN_BRANDS.map(b => [bk(b), b]));
+  const cnt = {}; deals.forEach(d => { if (d.brand && !cn.has(bk(d.brand))) { const k = bk(d.brand); (cnt[k] = cnt[k] || {})[d.brand] = (cnt[k][d.brand] || 0) + 1; } });
+  for (const [k, v] of Object.entries(cnt)) { const e = Object.entries(v).sort((a, b) => b[1] - a[1]); cn.set(k, (e.find(([n]) => n !== n.toLowerCase()) || e[0])[0]); }
+  deals.forEach(d => { if (d.brand && cn.has(bk(d.brand))) d.brand = cn.get(bk(d.brand)); }); }
 
 // ---------- waardes en slugs (zonder botsingen) ----------
 const brandCount = {};
@@ -45,10 +50,12 @@ const BRANDS = [...MAIN_BRANDS, ...Object.keys(brandCount).filter(b => !MAIN_BRA
   .filter(b => b !== "Senseo"); // Senseo is een systeem-pagina (/senseo/)
 const taken = new Map(); // slug -> dim
 const dict = { brand: new Map(), sys: new Map(), type: new Map(), shop: new Map() };
+// Vaste adressen van de site zelf ("Goedkoopste ..."-pagina's, Black Friday): die mag een merk nooit innemen.
+const RESERVED = s => /^goedkoopste-/.test(s) || ["black-friday-koffie", "koffie-1-plus-1-gratis", "go"].includes(s);
 function reg(dim, values, slugFn = slug) {
   for (const v of values) {
     const s = slugFn(v);
-    if (!s || taken.has(s)) { console.warn(`Slug-botsing overgeslagen: ${dim} ${v} -> ${s}`); continue; }
+    if (!s || taken.has(s) || RESERVED(s)) { console.warn(`Slug-botsing overgeslagen: ${dim} ${v} -> ${s}`); continue; }
     taken.set(s, dim); dict[dim].set(s, v);
   }
 }
@@ -129,7 +136,7 @@ for (const [u, k] of Object.entries(KNOWN_PAGES)) {
   const p = {};
   for (const key of ["brand", "sys", "type", "shop"]) if (typeof p0[key] === "string" && p0[key]) p[key] = p0[key];
   if (!Object.keys(p).length) continue;
-  if (p.brand && !slugOf("brand", p.brand)) { const s = slug(p.brand); if (s && !taken.has(s)) { taken.set(s, "brand"); dict.brand.set(s, p.brand); } }
+  if (p.brand && !slugOf("brand", p.brand)) { const s = slug(p.brand); if (s && !taken.has(s) && !RESERVED(s)) { taken.set(s, "brand"); dict.brand.set(s, p.brand); } }
   if (urlOf(p) !== u) { console.warn(`Vast adres overgeslagen (klopt niet meer): ${u}`); continue; }
   const list = dealsFor(p);
   if (!list.length && k.seen && daysBetween(k.seen, updated) > KEEP_DAYS) { expiredN++; continue; }
@@ -364,7 +371,7 @@ function render(url, pg) {
   }
   const bottom = altHtml + relatedHtml(url, p) + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
   const preset = { brand: p.brand ? [p.brand] : [], sys: p.sys ? [p.sys] : [], type: p.type ? [p.type] : [], shop: p.shop ? [p.shop] : [] };
-  const presetJs = `<script>window.PRESET=${JSON.stringify(preset)};window.PLABEL=${home ? "null" : JSON.stringify(Label)};window.STATIC=${n ? "true" : "false"};</script>`;
+  const presetJs = `<script>window.PRESET=${js(preset)};window.PLABEL=${home ? "null" : js(Label)};window.STATIC=${n ? "true" : "false"};</script>`;
   const body = n ? listHtml(list) : `<div class="empty"><strong>Nu geen aanbiedingen</strong> voor ${esc(sl)}.<br>Zodra er weer een is, staat die hier. Hieronder vind je vergelijkbare aanbiedingen.</div>`;
   const html = tpl
     .replace("{{HEAD}}", () => head)
@@ -423,7 +430,7 @@ function renderCheap(url, { c, list, ranked, indexable }) {
   const more = `<section class="more"><h2>Ook bekijken</h2>${bfg}<div class="grp"><ul class="links">${items.join("")}</ul></div></section>`;
   const bottom = more + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
   const preset = { brand: [], sys: c.f.sys ? [c.f.sys] : [], type: c.f.type ? [c.f.type] : [], shop: [] };
-  const presetJs = `<script>window.PRESET=${JSON.stringify(preset)};window.PLABEL=${JSON.stringify(`Goedkoopste ${c.word}`)};window.SORT="pp";window.STATIC=${list.length ? "true" : "false"};</script>`;
+  const presetJs = `<script>window.PRESET=${js(preset)};window.PLABEL=${js(`Goedkoopste ${c.word}`)};window.SORT="pp";window.STATIC=${list.length ? "true" : "false"};</script>`;
   const body = n ? listHtml(ranked, { sort: (a, b) => a.pp - b.pp || b.pct - a.pct, limit: 15, rank: true }) : list.length ? listHtml(list) : `<div class="empty">Aanbiedingen laden…</div>`;
   return tpl
     .replace("{{HEAD}}", () => head)
@@ -524,7 +531,7 @@ if (hubSections.length) {
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
 // Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)
 const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : []), ...(BF_ON ? [BF_URL] : []), ...(G.meerkoop ? [MK_URL] : [])];
-fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}}</style></head><body><h1>Hier is nu geen aanbieding</h1><p>Deze pagina bestaat op dit moment niet: er zijn te weinig aanbiedingen voor deze combinatie, of de aanbieding is afgelopen.</p><p id="near"></p><p><a href="/">Bekijk alle koffie-aanbiedingen</a></p><script>const K=${JSON.stringify(known)};let p=location.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);while(p.length){const u="/"+p.join("/")+"/";if(K.includes(u)){document.getElementById("near").innerHTML='Misschien zoek je <a href="'+u+'">een bredere pagina</a>.';break}p.pop()}</script></body></html>`);
+fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}}</style></head><body><h1>Hier is nu geen aanbieding</h1><p>Deze pagina bestaat op dit moment niet: er zijn te weinig aanbiedingen voor deze combinatie, of de aanbieding is afgelopen.</p><p id="near"></p><p><a href="/">Bekijk alle koffie-aanbiedingen</a></p><script>const K=${js(known)};let p=location.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);while(p.length){const u="/"+p.join("/")+"/";if(K.includes(u)){document.getElementById("near").innerHTML='Misschien zoek je <a href="'+u+'">een bredere pagina</a>.';break}p.pop()}</script></body></html>`);
 fs.writeFileSync(path.join(OUT, "paginas.json"), JSON.stringify(memo));
 fs.writeFileSync("gewijzigd.json", JSON.stringify(changed)); // voor indexnow.mjs (staat niet op de site)
 console.log(`Pagina's gebouwd: ${pages.size} (in sitemap: ${sitemap.length}, vaste adressen zonder genoeg aanbiedingen: ${keptN}, verlopen na ${KEEP_DAYS} dagen: ${expiredN}, gewijzigd: ${changed.length}), aanbiedingen: ${deals.length}`);

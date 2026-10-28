@@ -152,7 +152,7 @@ const alive=()=>DEALS.filter(d=>!d.end||d.end>=today);
 const live=()=>alive().filter(d=>tab==="next"?isNext(d):!isNext(d));
 const num=v=>parseFloat(String(v).replace("€","").replace(",","."));
 const isNow=d=>/^(Nu voor|Volume)/.test(d.deal);
-const nowP=d=>isNow(d)?num(d.deal.match(/€[\d,]+/)[0]):num(d.reg);
+const nowP=d=>isNow(d)?num((d.deal.match(/€[\d,]+/)||[d.reg])[0]):num(d.reg);
 const mech=d=>d.deal.startsWith("Volume")?"Volume voordeel":/^Nu voor/.test(d.deal)?"Actieprijs":d.deal;
 const fmt=n=>"€"+n.toFixed(2).replace(".",",");
 // Meerkoop (1+1, 2+1, 2e halve prijs, "3 voor €10"): wat je werkelijk betaalt voor q stuks, zodat de prijs niet voor één stuk lijkt te gelden.
@@ -326,7 +326,8 @@ document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.cl
 document.getElementById("reset").onclick=()=>{document.querySelectorAll(".chips input").forEach(i=>i.checked=false);for(const k in sel)sel[k].clear();render()};
 
 function setDeals(list){
-  DEALS=list.map(d=>({...d,brand:d.brand&&canon[bkey(d.brand)]?canon[bkey(d.brand)]:d.brand}));
+  // Een onvolledige aanbieding (zonder winkel, naam, soort of actie) slaan we over, zodat één fout product nooit de hele lijst stopt.
+  DEALS=list.filter(d=>d&&typeof d.shop==="string"&&typeof d.name==="string"&&typeof d.type==="string"&&typeof d.deal==="string").map(d=>({...d,brand:d.brand&&canon[bkey(d.brand)]?canon[bkey(d.brand)]:d.brand}));
   buildChips();render();
 }
 /* Aanbiedingen komen uit het bestand bij de site (wordt elke nacht ververst). Lukt dat niet, dan proberen we GitHub zelf. */
