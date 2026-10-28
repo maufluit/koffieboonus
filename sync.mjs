@@ -230,9 +230,10 @@ async function main(){
   console.log(`Opgehaald: ${raw} rijen, bruikbaar: ${deals.length} (waarvan volgende week: ${deals.filter(d=>d.next).length})`);
   const by={};deals.forEach(d=>{by[d.shop]=(by[d.shop]||0)+1});console.log("Per winkel:",JSON.stringify(by));
   // Waarschuwing als een supermarkt helemaal geen aanbiedingen heeft (zichtbaar bovenaan de run in GitHub).
-  const skippedBy={};for(const x of skipped){const r=x.split(":")[0];const n=SHOPS[r]||r;skippedBy[n]=(skippedBy[n]||0)+1}
+  const skippedBy={};for(const x of skipped){const i=x.indexOf(": ");const r=x.slice(0,i);const n=SHOPS[r]||r;(skippedBy[n]=skippedBy[n]||[]).push(x.slice(i+2))}
   const missing=[...new Set(Object.values(SHOPS))].filter(n=>!by[n]);
-  if(missing.length){const msg="Geen aanbiedingen van: "+missing.map(n=>`${n} (overgeslagen koffieproducten: ${skippedBy[n]||0})`).join(", ");console.log(msg);if(process.env.GITHUB_ACTIONS)console.log("::warning title=Supermarkt ontbreekt::"+msg)}
+  // Met de namen van de overgeslagen producten (max 5 per winkel), zodat te zien is of het filter te streng is of de korting te klein.
+  if(missing.length){const msg="Geen aanbiedingen van: "+missing.map(n=>{const l=skippedBy[n]||[];return `${n} (overgeslagen koffieproducten: ${l.length}${l.length?": "+l.slice(0,5).join("; "):""})`}).join(" | ");console.log(msg);if(process.env.GITHUB_ACTIONS)console.log("::warning title=Supermarkt ontbreekt::"+msg)}
   console.log("Overgeslagen (eerste 30):\n"+[...skipped].slice(0,30).join("\n"));
   if(deals.filter(d=>!d.next).length<30)throw new Error("Te weinig aanbiedingen; deals.json blijft ongewijzigd.");
   let prev=null;try{prev=JSON.parse(fs.readFileSync("deals.json","utf8"))}catch{}
