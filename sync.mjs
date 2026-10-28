@@ -5,7 +5,7 @@ const KEY=process.env.PRIJSPROFEET_API_KEY||"";
 const SHOPS={albert_heijn:"Albert Heijn",jumbo:"Jumbo",plus:"PLUS",dirk:"Dirk",dekamarkt:"DekaMarkt",hoogvliet:"Hoogvliet",poiesz:"Poiesz",vomar:"Vomar",aldi:"Aldi",lidl:"Lidl",ekoplaza:"Ekoplaza",coop:"Coop",gewoon_coop:"Coop",dagwinkel:"Dagwinkel",spar:"SPAR",boons_markt:"Boon's Markt",mcd:"MCD",nettorama:"Nettorama",boni:"Boni"};
 const COFFEE=/koffie|coffee|espresso|cappuccino|latte|macchiato|lungo|ristretto|nespresso|dolce gusto|senseo|mocca|mokka|decaf|café|cafe\b|starbucks|lavazza|illy|segafredo|l'or\b|nescafé?|douwe egberts|bialetti|melitta|kanis|perla|snelfilter|filtermaling/i;
 const BLOCK=/^(absolut|smirnoff|bacardi|baileys|pickwick|pukka|lipton|twinings|teekanne|ariel|dreft|glade|lenor|sun|lucovitaal|persil|robijn|ajax|finish|calgon|vanish|febreze|ambi pur|bref|domestos|andrelon|andrélon|nivea|nivea for men|nivea men|dove|axe|rexona|sanex|becel|hg|rio mare)$/i;
-const SKIP=/\b(earl grey|thee|tea|rooibos|koffiemelk|koffiecreamer|creamer|voor in de koffie|matcha|chai|deodorant|deo|anti-?transpirant|douche\w*|shampoo|bodylotion|bodywash|parfum|eau de \w+|geurkaars\w*|kaars(en)?|reinig\w*|koffiefilters?|filterzakjes|koek(je|jes)?|broodje|wasmiddel|wasverzachter|vaatwas\w*|afwas\w*|allesreiniger|luchtverfrisser|toiletreiniger|tabletten|vitamine\w*|supplement\w*|ontkalk\w*|reiniger|mokken?|glazen?|servies|apparaat|machine|bonbons?|snoep|chocolade|repen|reep|kaas|yoghurt|kwark|vla|pudding|cake|taart|likeur|bier|wijn|roomijs|stroopwafels?)\b/i;
+const SKIP=/\b(earl grey|thee|tea|rooibos|koffiemelk|koffiecreamer|creamer|voor in de koffie|matcha|chai|deodorant|deo|anti-?transpirant|douche\w*|shampoo|bodylotion|bodywash|parfum|eau de \w+|geurkaars\w*|kaars(en)?|reinig\w*|koffiefilters?|filterzakjes|koek(je|jes)?|broodje|wasmiddel|wasverzachter|vaatwas\w*|afwas\w*|allesreiniger|luchtverfrisser|toiletreiniger|tabletten|vitamine\w*|supplement\w*|ontkalk\w*|reiniger|mokken?|glazen?|servies|apparaat|machine|bonbons?|snoep|chocolade|repen|reep|kaas|yoghurt|kwark|vla|pudding|cake|taart|likeur|bier|wijn|roomijs|ijsjes?|ice ?bars?|stroopwafels?)\b/i;
 const DAYS=["zo","ma","di","wo","do","vr","za"],MON=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
 const E=n=>"€"+Number(n).toFixed(2).replace(".",",");
 const safeUrl=u=>{try{const x=new URL(u);return x.protocol==="https:"?x.href:""}catch{return ""}};
@@ -114,11 +114,15 @@ export function unitPrice(o){
   if(v==null||!(v>=lo&&v<=hi))return null;
   return {pp:Math.round(v*1000)/1000,pu};
 }
+// Alleen supermarkten uit de lijst SHOPS. Een nieuwe winkel bij PrijsProfeet (bijv. "amazing_oriental") komt niet vanzelf op de site,
+// maar wel in een waarschuwing, zodat Maurits kan kiezen of hij erbij moet (dan hier aan SHOPS toevoegen, met een nette naam).
+export const unknownShops=new Map();
 function mapOne(p,today){
   const up=p.promotion_status==="upcoming";
   if(!p.is_promotional||!(p.promotion_status==="active"||up)||!p.valid_until||p.valid_until<today)return null;
   if(up){const lim=new Date(today+"T12:00:00Z");lim.setUTCDate(lim.getUTCDate()+9);if(!p.valid_from||p.valid_from>lim.toISOString().slice(0,10))return null}
   const raw=p.name||"";
+  if(!SHOPS[p.retailer]){if(p.is_promotional&&COFFEE.test(raw+" "+(p.brand||""))&&!SKIP.test(raw))unknownShops.set(p.retailer,(unknownShops.get(p.retailer)||0)+1);return null}
   if(BLOCK.test((p.brand||"").trim())||!COFFEE.test(raw+" "+(p.brand||""))||SKIP.test(raw))return null;
   const orig=p.original_price,price=p.price;
   // Geen normale prijs bekend (bijv. Lidl-eigenmerk, sommige folderketens): we tonen de actieprijs zonder percentage.
@@ -235,6 +239,7 @@ async function main(){
   const missing=[...new Set(Object.values(SHOPS))].filter(n=>!by[n]);
   // Met de namen van de overgeslagen producten (max 5 per winkel), zodat te zien is of het filter te streng is of de korting te klein.
   if(missing.length){const msg="Geen aanbiedingen van: "+missing.map(n=>{const l=skippedBy[n]||[];return `${n} (overgeslagen koffieproducten: ${l.length}${l.length?": "+l.slice(0,5).join("; "):""})`}).join(" | ");console.log(msg);if(process.env.GITHUB_ACTIONS)console.log("::warning title=Supermarkt ontbreekt::"+msg)}
+  if(unknownShops.size){const msg="Onbekende winkel overgeslagen (niet op de site): "+[...unknownShops].map(([r,n])=>`${r} (${n} koffieproduct${n===1?"":"en"})`).join(", ");console.log(msg);if(process.env.GITHUB_ACTIONS)console.log("::warning title=Onbekende winkel::"+msg)}
   console.log("Overgeslagen (eerste 30):\n"+[...skipped].slice(0,30).join("\n"));
   if(deals.filter(d=>!d.next).length<30)throw new Error("Te weinig aanbiedingen; deals.json blijft ongewijzigd.");
   let prev=null;try{prev=JSON.parse(fs.readFileSync("deals.json","utf8"))}catch{}
