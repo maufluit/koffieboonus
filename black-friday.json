@@ -1,0 +1,13 @@
+{
+  "_uitleg": [
+    "Instellingen voor de Black Friday-pagina koffieboonus.nl/black-friday-koffie/ (live sinds 28 okt 2026, akkoord Maurits).",
+    "aan = false: er verandert NIETS aan de site. Geen pagina, geen link op de startpagina, geen regel in de sitemap.",
+    "aan = true: build.mjs bouwt de pagina elke nacht opnieuw. De pagina past zich vanzelf aan de datum aan: 'binnenkort', 'actief' (Black Friday-periode) of 'voorbij'. Black Friday wordt elk jaar zelf uitgerekend.",
+    "start_dagen_voor: hoeveel dagen vóór Black Friday de 'actief'-versie begint (11 = maandag van de week ervoor). eind_dagen_na: tot hoeveel dagen erna (3 = Cyber Monday). homelink_dagen_voor: vanaf hoeveel dagen vóór Black Friday er een link op de startpagina staat (26 = rond 1 november).",
+    "Geen advertentielinks: die komen pas als er een affiliateprogramma is, na akkoord van Maurits."
+  ],
+  "aan": true,
+  "start_dagen_voor": 11,
+  "eind_dagen_na": 3,
+  "homelink_dagen_voor": 26
+}

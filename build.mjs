@@ -2,6 +2,8 @@
 // Gebruik: node build.mjs [uitmap]   (leest deals.json en index.html, schrijft sitemap.xml en alle pagina's)
 import fs from "node:fs";
 import path from "node:path";
+import { BF_ON, BF_URL, bfHomeLink, writeBlackFriday } from "./black-friday.mjs";
+// Black Friday-pagina /black-friday-koffie/: aan/uit en instellingen in black-friday.json (zie black-friday.mjs).
 
 const SITE = "https://koffieboonus.nl";
 const OUT = process.argv[2] || "_site";
@@ -270,6 +272,7 @@ function relatedHtml(url, p) {
   if (wider.length) groups.push(`<div class="grp"><h3>Breder zoeken</h3><ul class="links">${wider.join("")}</ul></div>`);
   const cg = cheapLinks(p);
   if (cg) groups.unshift(cg);
+  if (!Object.keys(p).length) { const bf = bfHomeLink(); if (bf) groups.unshift(bf); } // alleen op de startpagina, kort voor en tijdens Black Friday
   return groups.length ? `<section class="more"><h2>Ook bekijken</h2>${groups.join("")}</section>` : "";
 }
 
@@ -492,9 +495,11 @@ if (hubSections.length) {
   const mod = track(HUB_URL, hubSections.flatMap(g => g.ranked.slice(0, 3)), null, hubIndexable);
   if (hubIndexable) sitemap.push(`  <url><loc>${SITE}${HUB_URL}</loc><lastmod>${mod}</lastmod></url>`);
 }
+{ const bfList = writeBlackFriday(OUT, tpl, { deals, updated, listHtml, eur, nameOf, mech, hubSections, cheapPages, HUB_URL, hubIndexable, pages, urlOf, labelOf });
+  if (bfList) sitemap.push(`  <url><loc>${SITE}${BF_URL}</loc><lastmod>${track(BF_URL, bfList, null, true)}</lastmod></url>`); }
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
 // Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)
-const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : [])];
+const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : []), ...(BF_ON ? [BF_URL] : [])];
 fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}}</style></head><body><h1>Hier is nu geen aanbieding</h1><p>Deze pagina bestaat op dit moment niet: er zijn te weinig aanbiedingen voor deze combinatie, of de aanbieding is afgelopen.</p><p id="near"></p><p><a href="/">Bekijk alle koffie-aanbiedingen</a></p><script>const K=${JSON.stringify(known)};let p=location.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);while(p.length){const u="/"+p.join("/")+"/";if(K.includes(u)){document.getElementById("near").innerHTML='Misschien zoek je <a href="'+u+'">een bredere pagina</a>.';break}p.pop()}</script></body></html>`);
 fs.writeFileSync(path.join(OUT, "paginas.json"), JSON.stringify(memo));
 fs.writeFileSync("gewijzigd.json", JSON.stringify(changed)); // voor indexnow.mjs (staat niet op de site)
