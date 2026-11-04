@@ -325,9 +325,12 @@ function render(url, pg) {
     if (G.dealtitels && n && top && max >= 10) {
       // De beste deal van dat moment in de titel: valt op in Google en wisselt mee met elke folderwissel.
       const t = p.shop ? `${labelOf({ ...p, shop: undefined })} aanbieding ${p.shop}` : `${Label} aanbieding`;
+      // Volgorde van voorkeur: zoekwoord + korting + merk; past dat niet, dan zoekwoord + korting (Google toont de sitenaam zelf al);
+      // daarna zoekwoord + aantal deals; als laatste alleen het zoekwoord. Het zoekwoord staat altijd vooraan.
       const A = `${t}: tot ${max}% korting | Koffieboonus`;
+      const A2 = `${t}: tot ${max}% korting`;
       const B = `${t}: ${n} ${n === 1 ? "deal" : "deals"} nu | Koffieboonus`;
-      title = A.length <= 62 ? A : B.length <= 62 ? B : `${t} | Koffieboonus`;
+      title = A.length <= 62 ? A : A2.length <= 58 ? A2 : B.length <= 62 ? B : `${t} | Koffieboonus`;
     }
     h1 = `${Label} in de aanbieding`;
     desc = n
