@@ -11,6 +11,7 @@ export const G = {
   uitleg: CFG.uitleg === true,
   voetregel: CFG.voetregel === true,
   links: CFG.links === true,
+  dealtitels: CFG.dealtitels === true,
 };
 
 const SITE = "https://koffieboonus.nl";

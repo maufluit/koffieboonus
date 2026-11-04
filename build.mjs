@@ -322,6 +322,13 @@ function render(url, pg) {
       title = n ? `${t}: ${n} ${n === 1 ? "deal" : "deals"} nu | Koffieboonus` : `${t} | Koffieboonus`;
       if (title.length > 62) title = `${t} | Koffieboonus`;
     }
+    if (G.dealtitels && n && top && max >= 10) {
+      // De beste deal van dat moment in de titel: valt op in Google en wisselt mee met elke folderwissel.
+      const t = p.shop ? `${labelOf({ ...p, shop: undefined })} aanbieding ${p.shop}` : `${Label} aanbieding`;
+      const A = `${t}: tot ${max}% korting | Koffieboonus`;
+      const B = `${t}: ${n} ${n === 1 ? "deal" : "deals"} nu | Koffieboonus`;
+      title = A.length <= 62 ? A : B.length <= 62 ? B : `${t} | Koffieboonus`;
+    }
     h1 = `${Label} in de aanbieding`;
     desc = n
       ? `Nu ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}${max ? `, tot ${max}% korting` : ""}. Dagelijks bijgewerkt op Koffieboonus.`
@@ -331,6 +338,15 @@ function render(url, pg) {
       const shopTxt = p.shop ? (p.shop === "Albert Heijn" ? " (AH Bonus en andere acties)" : "") : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`;
       const what = p.type === "Cups" ? sl.replace("koffiecups", "koffiecups (capsules)") : sl;
       desc = `${cap(what)} in de aanbieding: nu ${plural(n, "aanbieding", "aanbiedingen")}${shopTxt}${max ? `, tot ${max}% korting` : ""}.${units.length ? ` Met prijs per ${units.join(" en ")}.` : ""} Elke nacht bijgewerkt.`;
+      if (G.dealtitels && top && max >= 10) {
+        // Beste deal concreet noemen (product, winkel, korting, einddatum); past het niet in ±155 tekens, dan vallen onderdelen af.
+        const nm = nameOf(top).length > 46 ? nameOf(top).slice(0, 46).replace(/\s+\S*$/, "").replace(/(\s+\d+([.,]\d+)?)+$/, "") : nameOf(top); // kort af bij een woord, zonder losse getallen aan het eind
+        const best = `Beste deal: ${nm}${p.shop ? "" : ` bij ${top.shop}`}, ${mech(top)}${top.until ? ` (${top.until})` : ""}.`;
+        const count = ` Nu ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${shopTxt}.`;
+        const unitTxt = units.length ? ` Met prijs per ${units.join(" en ")}.` : "";
+        const lead = `${cap(what)} in de aanbieding.`;
+        desc = [lead + " " + best + count + unitTxt, lead + " " + best + count, lead + " " + best, best].find(x => x.length <= 158) || desc;
+      }
     }
   }
   if (n) {
