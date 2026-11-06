@@ -124,7 +124,7 @@ for (let i = 1; i <= 3 && !memoryOk; i++) {
     for (const [u, v] of Object.entries(await r.json())) KNOWN_PAGES[u] = { ...(KNOWN_PAGES[u] || {}), ...norm(v) };
     memoryOk = true;
   } catch (e) {
-    if (i === 3) { const msg = `Geheugen (/paginas.json) niet opgehaald na 3 pogingen (${e.message}); alleen vaste-paginas.json gebruikt.`; console.warn(msg); if (process.env.GITHUB_ACTIONS) console.log("::warning title=Vaste adressen::" + msg); }
+    if (i === 3) { const msg = `Geheugen (/paginas.json) niet opgehaald na 3 pogingen (${e.message}); alleen vaste-paginas.json gebruikt.`; console.warn(msg); if (process.env.GITHUB_ACTIONS) { console.log("::error title=Vaste adressen::" + msg + " Build gestopt, de huidige site blijft staan."); process.exit(1); } }
     else await new Promise(r => setTimeout(r, 3000 * i));
   }
 }
@@ -354,7 +354,7 @@ function render(url, pg) {
   }
   if (n) {
     intro = home
-      ? `Op ${dateNL(updated)} zijn er ${n} koffie-aanbiedingen bij ${shopsN} supermarkten.${top ? ` De grootste korting is ${max}%: ${nameOf(top)} bij ${top.shop}.` : ""} Kies hieronder je supermarkt, merk of soort koffie.`
+      ? `Op ${dateNL(updated)} zijn er ${n} koffie-aanbiedingen bij ${shopsN} supermarkten. Kies hieronder je supermarkt, merk of soort koffie, of bekijk de goedkoopste koffiebonen, cups en pads.`
       : `Op ${dateNL(updated)} zijn er ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}.${top ? ` De grootste korting is ${max}%: ${nameOf(top)}${p.shop ? "" : ` bij ${top.shop}`}.` : ""} Hieronder staan alle aanbiedingen, de filters kun je zelf aanpassen.`;
   } else intro = `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Zodra er weer een is, staat die hier. Bekijk intussen de andere aanbiedingen.`;
 
@@ -378,7 +378,7 @@ function render(url, pg) {
     ...ld.map(o => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`),
   ].join("\n");
   const crumbHtml = home ? "" : `<nav class="crumbs" aria-label="Kruimelpad">${trail.map((t, i) => i < trail.length - 1 ? `<a href="${t.url}">${esc(t.name)}</a>` : `<span aria-current="page">${esc(t.name)}</span>`).join(" › ")}</nav>`;
-  const top_ = `<section class="pagehead">${crumbHtml}<h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p></section>`;
+  const top_ = `<section class="pagehead">${crumbHtml}<h1>${esc(h1)}</h1><p class="intro">${home && n ? esc(intro).replace("goedkoopste koffiebonen, cups en pads", `<a href="${HUB_URL}">goedkoopste koffiebonen, cups en pads</a>`) : esc(intro)}</p></section>`;
   let altHtml = "";
   if (!n) {
     const alt = alternativesOf(p, pg.t || KNOWN_PAGES[url]?.t || (p.sys ? { "Dolce Gusto": "Cups", Nespresso: "Cups", Senseo: "Pads", Tassimo: "Cups" }[p.sys] : null));

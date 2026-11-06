@@ -33,6 +33,13 @@ jobs:
           cp deals.json robots.txt f9653690eb8d828652b2a85679de7801.txt _site/
           cp *.svg *.png _site/
           node build.mjs _site
+      - name: Bewaar het geheugen van de vaste adressen (reservekopie, 90 dagen)
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: paginas-geheugen
+          path: _site/paginas.json
+          retention-days: 90
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
