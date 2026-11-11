@@ -5,6 +5,6 @@
     "aan: false = de site is letter voor letter gelijk aan daarvoor.",
     "url: het adres van het eigen Cloudflare-tellertje (Worker 'koffieboonus-feedback'). Geen cookies, geen IP-adres, geen naam; alleen pagina, datum en wat er gekozen of getypt is."
   ],
-  "aan": false,
-  "url": ""
+  "aan": true,
+  "url": "https://koffieboonus-feedback.koffieboonus.workers.dev/e"
 }
