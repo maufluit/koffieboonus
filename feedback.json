@@ -1,0 +1,10 @@
+{
+  "_uitleg": [
+    "Feedback van bezoekers (akkoord Maurits 11 nov 2026, laag 1 en 2 van het voorstel).",
+    "aan: true = onder de aanbiedingen staat 'Vond je wat je zocht?' met duimpjes, en bij een duim omlaag een vakje 'Wat miste je?'. Ook klikken op 'Bekijk bij [winkel]' en gekozen filters worden anoniem geteld.",
+    "aan: false = de site is letter voor letter gelijk aan daarvoor.",
+    "url: het adres van het eigen Cloudflare-tellertje (Worker 'koffieboonus-feedback'). Geen cookies, geen IP-adres, geen naam; alleen pagina, datum en wat er gekozen of getypt is."
+  ],
+  "aan": false,
+  "url": ""
+}
