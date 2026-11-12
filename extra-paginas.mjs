@@ -5,6 +5,7 @@
 // Staat alles uit, dan is de uitvoer van build.mjs precies gelijk aan die van vóór deze module.
 // Alleen voor testen en previews: KB_GEGEVENS=<pad> en KB_GO=<pad> gebruiken een ander instellingenbestand.
 import fs from "node:fs";
+import { GM } from "./gemak.mjs";
 import path from "node:path";
 
 const SITE = "https://koffieboonus.nl";
@@ -154,7 +155,7 @@ function privacyBody() {
     `<p>Koffieboonus plaatst geen cookies en je hebt geen account nodig. Persoonsgegevens krijgen we alleen als je ons mailt.</p>`,
     `<h2>Wie is verantwoordelijk?</h2><p>${esc(INFO.naam)}${INFO.kvk ? ` (KvK ${esc(INFO.kvk)})` : ""}, bereikbaar via ${mail()}.</p>`,
     `<h2>Als je ons mailt</h2><p>We gebruiken je e-mailadres en bericht alleen om je te antwoorden (grondslag: gerechtvaardigd belang). Je mail staat bij onze mailprovider Mijndomein en in ons afgeschermde archief bij GitHub. Om mail te sorteren en een antwoord voor te bereiden gebruiken we de AI-assistent Claude van Anthropic; een mens beslist altijd over het antwoord. We bewaren je mail tot uiterlijk een jaar na ons laatste contact.</p>`,
-    `<h2>Als je de site bezoekt</h2><p>De site staat bij GitHub Pages. Zoals bij elke website ziet de server je IP-adres; GitHub gebruikt dat voor de beveiliging en wij krijgen het niet. Voor bezoekersaantallen en de duimpjes onder de aanbiedingen gebruiken we Cloudflare, zonder cookies en zonder je IP-adres op te slaan. Wij zien alleen totalen, niet wie je bent. Typ je een e-mailadres of telefoonnummer in het feedbackvakje, dan halen we dat weg voordat het wordt opgeslagen.</p><p>Kies je voor licht of donker, dan onthoudt alleen je eigen browser die keuze.</p>`,
+    `<h2>Als je de site bezoekt</h2><p>De site staat bij GitHub Pages. Zoals bij elke website ziet de server je IP-adres; GitHub gebruikt dat voor de beveiliging en wij krijgen het niet. Voor bezoekersaantallen en de duimpjes onder de aanbiedingen gebruiken we Cloudflare, zonder cookies en zonder je IP-adres op te slaan. Wij zien alleen totalen, niet wie je bent. Typ je een e-mailadres of telefoonnummer in het feedbackvakje, dan halen we dat weg voordat het wordt opgeslagen.</p>${GM.favoriet ? "<p>Kies je voor licht of donker, of laat je je supermarkt onthouden, dan bewaart alleen je eigen browser die keuze. Wij zien die niet.</p>" : "<p>Kies je voor licht of donker, dan onthoudt alleen je eigen browser die keuze.</p>"}${GM.delen ? "<p>Deel je een pagina of aanbieding, dan tellen we alleen dát er iets gedeeld is en wat (de pagina of de aanbieding), niet met wie.</p>" : ""}`,
     `<h2>De aanbiedingen</h2><p>De aanbiedingen komen van <a href="https://www.prijsprofeet.nl">PrijsProfeet</a>. Wij halen ze één keer per nacht op en zetten ze op onze eigen site. Je browser maakt daarvoor geen contact met PrijsProfeet, en we geven geen gegevens over bezoekers aan PrijsProfeet.</p>`,
     `<h2>Links naar winkels</h2><p>Klik je op ‘Bekijk bij …’, dan ga je naar de website van de winkel. Daar gelden het privacy- en cookiebeleid van die winkel.</p>`,
     `<h2>Buiten Europa</h2><p>GitHub, Cloudflare en Anthropic zijn Amerikaanse bedrijven en kunnen gegevens buiten de Europese Unie verwerken. In hun eigen privacyverklaringen staat hoe zij die gegevens beschermen.</p>`,

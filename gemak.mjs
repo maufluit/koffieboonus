@@ -7,18 +7,23 @@
 // Er wordt niets naar een server gestuurd en er worden geen scripts van anderen geladen.
 import fs from "node:fs";
 import path from "node:path";
+import { FB_ON } from "./feedback.mjs";
 
 let C = { aan: false, favoriet: false, beginscherm: false, delen: false };
 try { C = { ...C, ...JSON.parse(fs.readFileSync(process.env.KB_GEMAK || "gemak.json", "utf8")) }; } catch { /* geen bestand = uit */ }
 const ON = C.aan === true;
 export const GM = { favoriet: ON && C.favoriet === true, beginscherm: ON && C.beginscherm === true, delen: ON && C.delen === true };
+// Tellen (alleen als het feedback-tellertje aan staat): wat er gedeeld wordt, en hoe vaak iemand binnenkomt via een gedeelde link of het beginscherm.
+let FBURL = "";
+try { const f = JSON.parse(fs.readFileSync("feedback.json", "utf8")); if (FB_ON) FBURL = f.url; } catch { /* geen teller */ }
 
 const ICON = `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 const CSS = `.kb-share{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;font:inherit;font-size:14px;font-weight:600;padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);cursor:pointer}
 .kb-share:hover{border-color:var(--ink)}
-.kb-rs{display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:2px 0;border:0;background:none;font:inherit;font-size:12px;color:var(--mute);cursor:pointer}
-.kb-rs:hover span{text-decoration:underline}
+.gocell{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.kb-rs{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--mute);cursor:pointer;flex:none}
+.kb-rs:hover{color:var(--ink);border-color:var(--ink)}
 .kb-share:focus-visible,.kb-rs:focus-visible,.kb-fav button:focus-visible,.kb-a2hs:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
 .kb-fav{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:10px 0 0;padding:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:14px}
 .kb-fav[hidden]{display:none}
@@ -28,28 +33,32 @@ const CSS = `.kb-share{display:inline-flex;align-items:center;gap:6px;margin:10p
 
 const HEAD = `<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#FFF9E9" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#16110C" media="(prefers-color-scheme: dark)">`;
 
-const JS = f => `<script>(function(){var F=${JSON.stringify(f)},ICON=${JSON.stringify(ICON)};
+const JS = f => `<script>(function(){var F=${JSON.stringify(f)},ICON=${JSON.stringify(ICON)},U=${JSON.stringify(FBURL)};
+function tel(t,v){if(!U)return;try{var b=JSON.stringify({t:t,v:String(v).slice(0,120),p:location.pathname});if(navigator.sendBeacon&&navigator.sendBeacon(U,b))return;fetch(U,{method:"POST",body:b,keepalive:true,mode:"no-cors"})}catch(e){}}
+/* Binnengekomen via een gedeelde link of het beginscherm: één keer tellen en ?ref=… uit de adresbalk halen. */
+try{var q=new URLSearchParams(location.search),rf=q.get("ref");if(rf==="deel"||rf==="app"){tel("via",rf);q.delete("ref");history.replaceState(null,"",location.pathname+(q.toString()?"?"+q:"")+location.hash)}}catch(e){}
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSet(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){}}
 function h(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 var main=typeof sel!=="undefined"&&typeof render==="function"&&typeof pick==="function"&&document.getElementById("list");
 function toast(t){var el=document.getElementById("kb-toast");if(!el){el=document.createElement("div");el.id="kb-toast";el.className="kb-toast";el.setAttribute("role","status");document.body.appendChild(el)}el.textContent=t;el.hidden=false;clearTimeout(el._t);el._t=setTimeout(function(){el.hidden=true},3000)}
 function link(){try{var u=new URL(location.href);u.search="";u.hash="";u.searchParams.set("ref","deel");return u.toString()}catch(e){return location.href}}
-function share(text){var url=link(),all=text+" "+url;
- if(navigator.share){navigator.share({title:document.title,text:text,url:url}).catch(function(){});return}
- if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(all).then(function(){toast("Link gekopieerd. Plak hem in WhatsApp, een mail of waar je maar wilt.")},function(){window.open("https://wa.me/?text="+encodeURIComponent(all),"_blank","noopener")});return}
- window.open("https://wa.me/?text="+encodeURIComponent(all),"_blank","noopener")}
+function share(text,wat){var url=link(),all=text+" "+url;
+ if(navigator.share){navigator.share({title:document.title,text:text,url:url}).then(function(){tel("deel",wat)},function(){});return}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(all).then(function(){tel("deel",wat);toast("Link gekopieerd. Plak hem in WhatsApp, een mail of waar je maar wilt.")},function(){tel("deel",wat);window.open("https://wa.me/?text="+encodeURIComponent(all),"_blank","noopener")});return}
+ tel("deel",wat);window.open("https://wa.me/?text="+encodeURIComponent(all),"_blank","noopener")}
 /* Delen */
 if(F.delen){
  var intro=document.querySelector(".pagehead .intro");
  if(intro){var b=document.createElement("button");b.type="button";b.className="kb-share";b.innerHTML=ICON+"<span>Deel deze pagina</span>";
-  b.addEventListener("click",function(){var t=document.querySelector("h1");share((t?t.textContent:"Koffie in de aanbieding")+", gevonden op Koffieboonus:")});intro.insertAdjacentElement("afterend",b)}
+  b.addEventListener("click",function(){var t=document.querySelector("h1");share((t?t.textContent:"Koffie in de aanbieding")+", gevonden op Koffieboonus:","pagina")});intro.insertAdjacentElement("afterend",b)}
  var list=document.getElementById("list");
- var addRow=function(){if(!list)return;list.querySelectorAll(".row").forEach(function(r){if(r.querySelector(".kb-rs"))return;var a=r.querySelector(".act");if(!a)return;var x=document.createElement("button");x.type="button";x.className="kb-rs";x.setAttribute("aria-label","Deel deze aanbieding");x.innerHTML=ICON+"<span>Deel</span>";a.appendChild(x)})};
+ var addRow=function(){if(!list)return;list.querySelectorAll(".row").forEach(function(r){if(r.querySelector(".kb-rs"))return;var a=r.querySelector(".gocell");if(!a)return;var x=document.createElement("button");x.type="button";x.className="kb-rs";x.setAttribute("aria-label","Deel deze aanbieding");x.title="Deel deze aanbieding";x.innerHTML=ICON;a.insertBefore(x,a.firstChild)})};
  if(list){addRow();new MutationObserver(addRow).observe(list,{childList:true});
   list.addEventListener("click",function(e){var x=e.target.closest(".kb-rs");if(!x)return;var r=x.closest(".row"),n=r.querySelector(".name"),q=function(s){var el=r.querySelector(s);return el?el.textContent.trim():""};
    var name=n?n.cloneNode(true):null;if(name){name.querySelectorAll(".meta,.rk").forEach(function(m){m.remove()})}
-   var until=r.querySelector(".act .meta");share((name?name.textContent.trim():"Koffie")+" bij "+q(".shop")+": "+q(".deal")+(until?" ("+until.textContent.trim()+")":"")+". Gevonden op Koffieboonus:")})}
+   var until=r.querySelector(".act .meta"),nm=name?name.textContent.trim():"Koffie",sh=q(".shop .sname")||q(".shop").split(" · ")[0];
+   share(nm+" bij "+sh+": "+q(".deal")+(until?" ("+until.textContent.trim()+")":"")+". Gevonden op Koffieboonus:","aanbieding: "+sh+" | "+nm)})}
 }
 /* Favoriete supermarkt */
 if(F.favoriet&&main){

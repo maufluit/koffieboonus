@@ -11,6 +11,9 @@ assert.equal(await st(req(JSON.stringify({ t: "tekst", v: "Mail me op jan@voorbe
 assert.equal(await st(req(JSON.stringify({ t: "klik", v: "PLUS", p: "/cups/" }))), 204);
 assert.equal(await st(req(JSON.stringify({ t: "filter", v: "shop:Albert Heijn", p: "/" }))), 204);
 assert.equal(await st(req(JSON.stringify({ t: "duim", v: "misschien" }))), 400, "onbekende duim");
+assert.equal(controleer({ t: "deel", v: "aanbieding: Jumbo | Segafredo cups", p: "/cups/" }).v, "aanbieding: Jumbo | Segafredo cups");
+assert.equal(controleer({ t: "via", v: "deel", p: "/" }).v, "deel");
+assert.equal(controleer({ t: "via", v: "iets", p: "/" }), null, "onbekende via");
 assert.equal(await st(req(JSON.stringify({ t: "hack", v: "x" }))), 400, "onbekende soort");
 assert.equal(await st(req("geen json")), 400);
 assert.equal(await st(req("x".repeat(3000))), 413);

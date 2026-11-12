@@ -94,7 +94,9 @@ button{font:inherit}
 .empty{padding:28px 20px;text-align:center;color:var(--mute);background:var(--card);border:1px dashed var(--line);border-radius:12px}
 .empty strong{color:var(--ink)}
 .empty .link{color:var(--ink);font-weight:600}
-.tog{grid-column:1/-1;justify-self:start;font-size:14px;padding:0;background:none;border:0;color:var(--ink);text-decoration:underline;cursor:pointer}
+.tog{grid-column:1/-1;justify-self:start;font:inherit;font-size:14px;font-weight:600;padding:2px 0;background:none;border:0;color:var(--ink);cursor:pointer}
+.tog::before{content:"▸";display:inline-block;margin-right:6px}.tog[aria-expanded=true]::before{content:"▾"}
+.wd{display:none}
 .items{grid-column:1/-1;display:grid;gap:6px;border-top:1px solid var(--line);padding-top:10px}.items[hidden]{display:none}
 .it{display:flex;justify-content:space-between;gap:12px;font-size:14px}
 .it a{color:inherit}
@@ -105,7 +107,7 @@ footer a{color:inherit}
 @media (max-width:860px){
 .row{grid-template-columns:1fr auto;grid-template-areas:"name act" "who act" "pr go";gap:6px 12px;padding:12px 14px}
 .name{grid-area:name}.who{grid-area:who}.act{grid-area:act;justify-items:end;text-align:right;align-self:start}
-.pr{grid-area:pr;align-self:end}.gocell{grid-area:go;align-self:end}
+.pr{grid-area:pr;align-self:end}.act .meta,.act .deal{white-space:nowrap}.shop{flex-wrap:wrap}.wd{display:inline;font-weight:400;color:var(--mute);font-size:14px;white-space:nowrap;margin-left:4px}.act .meta{display:none}.sub.red{display:none}.pr{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px}.pr .ppu,.pr .sub{margin:0}.gocell{grid-area:go;align-self:end}
 .bt,.gs{display:none}.logo{height:56px}header .wrap{gap:12px}.site{font-size:26px}.theme{width:52px;height:28px}.theme i{width:20px;height:20px}.theme[aria-checked=true] i{transform:translateX(24px)}.theme svg{width:14px;height:14px;top:6px}.theme .sun{left:6px}.theme .moon{left:30px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.theme i{transition:none}}
 </style>
@@ -131,7 +133,7 @@ fetch("https://koffieboonus-feedback.koffieboonus.workers.dev/thuis",{cache:"no-
 <p class="meta" id="ppnote" hidden>Prijs per kilo, cup, pad of liter is berekend uit de verpakkingsgrootte in de productnaam en laat alleen producten zien waarbij dat zeker is. Controleer de prijs altijd bij de winkel.</p>{{FEEDBACK}}
 {{BOTTOM}}
 </div></main>
-<footer><div class="wrap">Koffieboonus.nl · <span id="upd"></span><span id="upd-sep"> · </span>Prijzen en acties kunnen per winkel verschillen: controleer de actuele prijs altijd bij de winkel.<span id="attr" hidden> · Aanbiedingen via <a href="https://www.prijsprofeet.nl">PrijsProfeet</a></span> · Deze site gebruikt geen cookies.</div></footer>
+<footer><div class="wrap">Koffieboonus.nl · <span id="upd"></span><span id="upd-sep"> · </span>Prijzen en acties kunnen per winkel verschillen: controleer de actuele prijs altijd bij de winkel.<span id="attr" hidden> · Aanbiedingen via <a href="https://www.prijsprofeet.nl">PrijsProfeet</a></span></div></footer>
 {{PRESETJS}}
 <script>
 const PREVIEW=false;
@@ -274,8 +276,8 @@ function card(g,best){
   const isBest=allPP&&best&&best[pu]&&best[pu].n>=3&&lowest===best[pu].v;
   const badge=isBest?`<div><span class="best">Laagste prijs per ${pu}</span></div>`:"";
   const grey=np?"Prijs onbekend, controleer de prijs in de winkel":nd?"Normale prijs onbekend":priceType?"":(!sameDeal&&mech(d)==="Actieprijs"&&same(pc)?"Per product, zie de lijst":`${pr} korting${cond}`);
-  const sub=n>1?`<div class="meta">${n} producten</div>`:`<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div>`;
-  return `<div class="row"><div class="name">${title}${sub}</div><div class="who"><div class="shop">${shopChip(d.shop)}${tag}</div></div><div class="act"><span class="deal">${esc(badgeTxt)}</span><div class="meta">${d.next?`<span class="soon">${esc(d.fromTxt)}</span> · `:""}${esc(d.until)}</div></div><div class="pr">${price}${ppLine}${badge}${grey?`<div class="meta sub">${grey}</div>`:""}</div>${go}${n>1?`<button class="tog" type="button" aria-expanded="false" data-n="${n}">Toon alle ${n} producten</button><div class="items" hidden>${items}</div>`:""}</div>`;
+  const sub=n>1?"":`<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div>`;
+  return `<div class="row"><div class="name">${title}${sub}</div><div class="who"><div class="shop">${shopChip(d.shop)}<span class="wd">${d.next?" · "+esc(d.fromTxt):""} · ${esc(d.until)}</span>${tag}</div></div><div class="act"><span class="deal">${esc(badgeTxt)}</span><div class="meta">${d.next?`<span class="soon">${esc(d.fromTxt)}</span> · `:""}${esc(d.until)}</div></div><div class="pr">${price}${ppLine}${badge}${grey?`<div class="meta sub${allMulti&&!np&&!nd&&!cond.includes("multipack")?" red":""}">${grey}</div>`:""}</div>${go}${n>1?`<button class="tog" type="button" aria-expanded="false" data-n="${n}">${n} producten</button><div class="items" hidden>${items}</div>`:""}</div>`;
 }
 const pick=pool=>pool.filter(d=>Object.keys(sel).every(k=>!sel[k].size||sel[k].has(d[k])));
 function render(){
@@ -321,7 +323,7 @@ document.getElementById("pnote").addEventListener("click",e=>{if(!e.target.close
 document.getElementById("list").addEventListener("click",e=>{
   const go=e.target.closest("[data-go]");if(go){tab=go.dataset.go;render();return}
   const b=e.target.closest(".tog");if(!b)return;
-  const it=b.nextElementSibling,open=it.hidden;it.hidden=!open;b.setAttribute("aria-expanded",open);b.textContent=open?"Verberg producten":"Toon alle "+b.dataset.n+" producten";
+  const it=b.nextElementSibling,open=it.hidden;it.hidden=!open;b.setAttribute("aria-expanded",open);b.textContent=b.dataset.n+" producten";
 });
 document.addEventListener("change",e=>{const i=e.target;if(i.dataset&&i.dataset.k){i.checked?sel[i.dataset.k].add(i.value):sel[i.dataset.k].delete(i.value);render()}});
 document.getElementById("sort").addEventListener("change",e=>{sortBy=e.target.value;render()});

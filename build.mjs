@@ -240,7 +240,7 @@ function listHtml(list, o = {}) {
     const price = d.noprice || d.nodisc ? "" : mm ? `<div class="pnow">${mm.q} voor ${eur(mm.t)} <s class="reg">${eur(mm.q * mm.r)}</s></div>` : priceType ? `<div class="pnow">${esc(nowS(d))} <s class="reg">${esc(d.reg)}</s></div>` : `<span class="reg">${esc(d.reg)}</span>`;
     const badge = d.noprice ? d.deal : d.nodisc ? d.deal.replace(/^Nu voor/, "Actieprijs") : priceType ? `${d.pct}% korting` : mech(d);
     const note = d.noprice ? `<div class="meta sub">Prijs onbekend, check de winkel</div>` : d.nodisc ? `<div class="meta sub">Normale prijs onbekend</div>` : "";
-    return `<div class="row"><div class="name">${o.rank ? `<span class="rk">${i + 1}.</span> ` : ""}${esc(d.name)}<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div></div><div class="who"><div class="shop">${chip(d.shop)}</div></div><div class="act"><span class="deal">${esc(badge)}</span><div class="meta">${esc(d.until)}</div></div><div class="pr">${price}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}${note}</div>${d.url ? `<div class="gocell"><a class="go" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>` : `<div class="gocell"></div>`}</div>`;
+    return `<div class="row"><div class="name">${o.rank ? `<span class="rk">${i + 1}.</span> ` : ""}${esc(d.name)}<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div></div><div class="who"><div class="shop">${chip(d.shop)}<span class="wd"> · ${esc(d.until)}</span></div></div><div class="act"><span class="deal">${esc(badge)}</span><div class="meta">${esc(d.until)}</div></div><div class="pr">${price}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}${note}</div>${d.url ? `<div class="gocell"><a class="go" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>` : `<div class="gocell"></div>`}</div>`;
   }).join("");
 }
 
@@ -292,15 +292,18 @@ function relatedHtml(url, p) {
   if (wider.length) groups.push(`<div class="grp"><h3>Breder zoeken</h3><ul class="links">${wider.join("")}</ul></div>`);
   const cg = cheapLinks(p);
   if (cg) groups.unshift(cg);
-  { const pop = ztPopular(url); if (pop) groups.push(pop); } // zoektermen.json "populair"
+  { const pop = ztPopular(url, p); if (pop) groups.push(pop); } // zoektermen.json "populair"
   if (!Object.keys(p).length || (G.links && p.type && Object.keys(p).length === 1)) { const bf = bfHomeLink(); if (bf) groups.unshift(bf); } // alleen op de startpagina, kort voor en tijdens Black Friday
   return groups.length ? `<section class="more"><h2>Ook bekijken</h2>${groups.join("")}</section>` : "";
 }
 
 // ---------- grote zoektermen (zoektermen.json) ----------
 // "Populair": links met de zoekterm als linktekst naar de pagina's voor de grote zoektermen (niet naar de pagina zelf).
-function ztPopular(url) {
+// Alleen op de startpagina, de 8 zoektermpagina's zelf, de pagina's per supermarkt en de speciale pagina's (Goedkoopste, Black Friday).
+// Niet op de ±190 combinatiepagina's (bijv. /lavazza/koffiebonen/jumbo/): daar is het te veel en voegt het weinig toe.
+function ztPopular(url, p) {
   if (!ZT.populair) return "";
+  if (p && Object.keys(p).length && !headOf(p) && !(p.shop && Object.keys(p).length === 1)) return "";
   const li = HEAD_TERMS.map(h => { const u = urlOf(h.p), pg = pages.get(u); return u !== url && pg && pg.indexable && pg.list.length ? `<li><a href="${u}">${esc(h.term)}</a></li>` : ""; }).filter(Boolean);
   return li.length ? `<div class="grp"><h3>Populair</h3><ul class="links">${li.join("")}</ul></div>` : "";
 }
