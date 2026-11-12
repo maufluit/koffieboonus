@@ -1,0 +1,12 @@
+{
+  "_uitleg": [
+    "Pagina's voor de grote zoektermen (groeiplan 12 nov 2026), zie zoektermen.mjs.",
+    "aan = false: de site is letter voor letter gelijk aan daarvoor.",
+    "paginas: op /koffiebonen/, /dolce-gusto/, /nespresso/, /senseo/, /pads/, /cups/, /gemalen-koffie/ en /douwe-egberts/ een kop met de zoekterm ('Koffiebonen aanbieding deze week'), een overzicht per supermarkt en een korte uitleg 'Waar let je op?'.",
+    "populair: op elke pagina een blokje 'Populair' met links naar die pagina's.",
+    "De titels in Google veranderen niet."
+  ],
+  "aan": true,
+  "paginas": true,
+  "populair": true
+}

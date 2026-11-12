@@ -6,6 +6,8 @@ import { BF_ON, BF_URL, bfHomeLink, writeBlackFriday } from "./black-friday.mjs"
 import { feedbackInject } from "./feedback.mjs";
 import { INFO_ON, INFO_URLS, footerLinks, writeInfoPages } from "./extra-paginas.mjs"; // Over ons, Contact, Privacy, Hoe verdienen we geld (site-gegevens.json)
 import { G, footerStatic, homeFaqExtra, SITE_DESC, MK_URL, mkLinkItem, writeMeerkoop } from "./groei.mjs";
+import { ZT, HEAD_TERMS, headOf } from "./zoektermen.mjs"; // grote zoektermen (zoektermen.json). Uit = site ongewijzigd.
+import { gemakInject, writeManifest } from "./gemak.mjs"; // favoriete supermarkt, beginscherm, delen (gemak.json). Uit = site ongewijzigd.
 // Verbeteringen voor meer bezoekers (groeiplan): elk met een schakelaar in groei.json. Alles uit = site zoals daarvoor.
 // Black Friday-pagina /black-friday-koffie/: aan/uit en instellingen in black-friday.json (zie black-friday.mjs).
 
@@ -13,8 +15,10 @@ const SITE = "https://koffieboonus.nl";
 const OUT = process.argv[2] || "_site";
 const raw = JSON.parse(fs.readFileSync("deals.json", "utf8"));
 let tpl = fs.readFileSync("index.html", "utf8");
+tpl = gemakInject(tpl); // gemak.json: favoriete supermarkt, op beginscherm zetten, delen
 tpl = feedbackInject(tpl); // feedback.json: duimpjes + "Wat miste je?" + anonieme kliktelling. Uit = pagina's ongewijzigd.
 tpl = tpl.replace("</div></footer>", () => footerLinks() + "</div></footer>"); // links naar de informatiepagina's onderaan elke pagina (alleen als ze bestaan)
+if (ZT.paginas) tpl = tpl.replace("</style>", () => ".zt{margin:28px 0 0}.zt h2{font-size:20px;color:var(--title);margin:0 0 8px}.zt h3{font-size:16px;color:var(--title);margin:16px 0 4px}.zt p{margin:0 0 8px;max-width:70ch}.ztwrap{overflow-x:auto}.zttab{border-collapse:separate;border-spacing:0;width:100%;max-width:720px;background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:15px}.zttab th,.zttab td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}.zttab th:first-child{text-align:left;white-space:normal}.zttab thead th{font-size:13px;color:var(--mute);font-weight:600}.zttab tbody tr:last-child th,.zttab tbody tr:last-child td{border-bottom:0}.zttab a{color:var(--ink);font-weight:600}</style>");
 const today = new Date().toISOString().slice(0, 10);
 const updated = (raw.updated || today).slice(0, 10);
 const deals = raw.deals.filter(d => (!d.end || d.end >= today) && !(d.next && d.from > today));
@@ -288,8 +292,33 @@ function relatedHtml(url, p) {
   if (wider.length) groups.push(`<div class="grp"><h3>Breder zoeken</h3><ul class="links">${wider.join("")}</ul></div>`);
   const cg = cheapLinks(p);
   if (cg) groups.unshift(cg);
+  { const pop = ztPopular(url); if (pop) groups.push(pop); } // zoektermen.json "populair"
   if (!Object.keys(p).length || (G.links && p.type && Object.keys(p).length === 1)) { const bf = bfHomeLink(); if (bf) groups.unshift(bf); } // alleen op de startpagina, kort voor en tijdens Black Friday
   return groups.length ? `<section class="more"><h2>Ook bekijken</h2>${groups.join("")}</section>` : "";
+}
+
+// ---------- grote zoektermen (zoektermen.json) ----------
+// "Populair": links met de zoekterm als linktekst naar de pagina's voor de grote zoektermen (niet naar de pagina zelf).
+function ztPopular(url) {
+  if (!ZT.populair) return "";
+  const li = HEAD_TERMS.map(h => { const u = urlOf(h.p), pg = pages.get(u); return u !== url && pg && pg.indexable && pg.list.length ? `<li><a href="${u}">${esc(h.term)}</a></li>` : ""; }).filter(Boolean);
+  return li.length ? `<div class="grp"><h3>Populair</h3><ul class="links">${li.join("")}</ul></div>` : "";
+}
+// Overzicht per supermarkt + korte uitleg, alleen op de pagina's voor de grote zoektermen.
+function ztBlocks(p, list) {
+  const h = ZT.paginas ? headOf(p) : null;
+  if (!h || !list.length) return "";
+  const rows = counts(list, "shop").map(([s, c]) => {
+    const ls = list.filter(d => d.shop === s), disc = ls.filter(d => !d.nodisc && d.pct > 0);
+    const max = disc.length ? Math.max(...disc.map(d => d.pct)) : 0;
+    const pp = h.unit ? ls.filter(d => d.pp != null && d.pu === h.unit).map(d => d.pp) : [];
+    const u = urlOf({ ...p, shop: s }), pg = pages.get(u);
+    const name = pg && pg.indexable && pg.list.length ? `<a href="${u}">${esc(s)}</a>` : esc(s);
+    return `<tr><th scope="row">${name}</th><td>${c}</td><td>${max ? max + "%" : "–"}</td>${h.unit ? `<td>${pp.length ? eur(Math.min(...pp)) : "–"}</td>` : ""}</tr>`;
+  });
+  const table = `<section class="zt"><h2>${esc(h.term)} per supermarkt</h2><p>Op ${dateNL(updated)} bij ${plural(rows.length, "supermarkt", "supermarkten")}. Klik op een supermarkt voor alle aanbiedingen daar.</p><div class="ztwrap"><table class="zttab"><thead><tr><th scope="col">Supermarkt</th><th scope="col">Aanbiedingen</th><th scope="col">Hoogste korting</th>${h.unit ? `<th scope="col">Laagste prijs per ${h.unit}</th>` : ""}</tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
+  const gids = `<section class="zt"><h2>Waar let je op bij ${esc(sentLabel(p))} in de aanbieding?</h2>${h.gids.map(([t, x]) => `<h3>${esc(t)}</h3><p>${esc(x)}</p>`).join("")}</section>`;
+  return table + gids;
 }
 
 function crumbs(p) {
@@ -337,6 +366,7 @@ function render(url, pg) {
       title = A.length <= 62 ? A : A2.length <= 58 ? A2 : B.length <= 62 ? B : `${t} | Koffieboonus`;
     }
     h1 = `${Label} in de aanbieding`;
+    { const h = ZT.paginas ? headOf(p) : null; if (h && n) h1 = `${h.term} deze week`; } // zoektermen.json "paginas"
     desc = n
       ? `Nu ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}${max ? `, tot ${max}% korting` : ""}. Dagelijks bijgewerkt op Koffieboonus.`
       : `Op dit moment is er geen aanbieding voor ${sl}. Bekijk alle koffie-aanbiedingen van Nederlandse supermarkten op Koffieboonus.`;
@@ -392,7 +422,7 @@ function render(url, pg) {
       altHtml = `<section class="hubsec alt"><h2>${esc(head2)}</h2>${listHtml(alt.list, { limit: 6 })}<p><a href="${alt.u}">${alt.u === "/" ? "Bekijk alle koffie-aanbiedingen" : `Bekijk alle ${alt.list.length} aanbiedingen voor ${esc(what ? ((alt.q.brand || alt.q.sys) ? what : low(what)) : "koffie")}`} ›</a></p></section>`;
     }
   }
-  const bottom = altHtml + relatedHtml(url, p) + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
+  const bottom = altHtml + ztBlocks(p, list) + relatedHtml(url, p) + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
   const preset = { brand: p.brand ? [p.brand] : [], sys: p.sys ? [p.sys] : [], type: p.type ? [p.type] : [], shop: p.shop ? [p.shop] : [] };
   const presetJs = `<script>window.PRESET=${js(preset)};window.PLABEL=${home ? "null" : js(Label)};window.STATIC=${n ? "true" : "false"};</script>`;
   const body = n ? listHtml(list) : `<div class="empty"><strong>Nu geen aanbiedingen</strong> voor ${esc(sl)}.<br>Zodra er weer een is, staat die hier. Hieronder vind je vergelijkbare aanbiedingen.</div>`;
@@ -450,7 +480,7 @@ function renderCheap(url, { c, list, ranked, indexable }) {
   { const mk = mkLinkItem(deals); if (mk) items.push(mk); } // groei.json "meerkoop"
   items.push(`<li><a href="/">Alle koffie-aanbiedingen</a></li>`);
   const bfg = G.links ? bfHomeLink() : ""; // groei.json "links": Black Friday-link in november
-  const more = `<section class="more"><h2>Ook bekijken</h2>${bfg}<div class="grp"><ul class="links">${items.join("")}</ul></div></section>`;
+  const more = `<section class="more"><h2>Ook bekijken</h2>${bfg}<div class="grp"><ul class="links">${items.join("")}</ul></div>${ztPopular(url)}</section>`;
   const bottom = more + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
   const preset = { brand: [], sys: c.f.sys ? [c.f.sys] : [], type: c.f.type ? [c.f.type] : [], shop: [] };
   const presetJs = `<script>window.PRESET=${js(preset)};window.PLABEL=${js(`Goedkoopste ${c.word}`)};window.SORT="pp";window.STATIC=${list.length ? "true" : "false"};</script>`;
@@ -498,7 +528,7 @@ function renderHub() {
   const items = [...cheapPages].filter(([, g]) => g.indexable).map(([u, g]) => `<li><a href="${u}">Goedkoopste ${esc(g.c.word)}</a></li>`);
   { const mk = mkLinkItem(deals); if (mk) items.push(mk); } // groei.json "meerkoop"
   items.push(`<li><a href="/">Alle koffie-aanbiedingen</a></li>`);
-  const bottom = `<section class="more"><h2>Ook bekijken</h2><div class="grp"><ul class="links">${items.join("")}</ul></div></section><section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
+  const bottom = `<section class="more"><h2>Ook bekijken</h2><div class="grp"><ul class="links">${items.join("")}</ul></div>${ztPopular(HUB_URL)}</section><section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
   const presetJs = `<script>window.PRESET=null;window.PLABEL=null;window.HUB=true;window.STATIC=true;</script>`;
   return tpl
     .replace("<body>", '<body class="hub">')
@@ -549,12 +579,13 @@ if (hubSections.length) {
 }
 { const mk = writeMeerkoop(OUT, tpl, { deals, updated, dateNL, listHtml, nameOf, cheapPages, hubIndexable, HUB_URL });
   if (mk) { const mod = track(MK_URL, mk.list, null, mk.indexable); if (mk.indexable) sitemap.push(`  <url><loc>${SITE}${MK_URL}</loc><lastmod>${mod}</lastmod></url>`); } }
-{ const bfList = writeBlackFriday(OUT, tpl, { deals, updated, listHtml, eur, nameOf, mech, hubSections, cheapPages, HUB_URL, hubIndexable, pages, urlOf, labelOf });
+{ const bfList = writeBlackFriday(OUT, tpl, { deals, updated, listHtml, eur, nameOf, mech, hubSections, cheapPages, HUB_URL, hubIndexable, pages, urlOf, labelOf, popular: ztPopular("/black-friday-koffie/") });
   if (bfList) sitemap.push(`  <url><loc>${SITE}${BF_URL}</loc><lastmod>${track(BF_URL, bfList, null, true)}</lastmod></url>`); }
 sitemap.push(...writeInfoPages(OUT, tpl)); // informatiepagina's: vaste datum (privacy_datum), niet in het geheugen van de vaste adressen
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
 // Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)
 const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : []), ...(BF_ON ? [BF_URL] : []), ...(G.meerkoop ? [MK_URL] : []), ...(INFO_ON ? INFO_URLS : [])];
+writeManifest(OUT); // gemak.json "beginscherm": manifest.webmanifest (naam, kleuren, pictogrammen)
 fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}}</style></head><body><h1>Hier is nu geen aanbieding</h1><p>Deze pagina bestaat op dit moment niet: er zijn te weinig aanbiedingen voor deze combinatie, of de aanbieding is afgelopen.</p><p id="near"></p><p><a href="/">Bekijk alle koffie-aanbiedingen</a></p><script>const K=${js(known)};let p=location.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);while(p.length){const u="/"+p.join("/")+"/";if(K.includes(u)){document.getElementById("near").innerHTML='Misschien zoek je <a href="'+u+'">een bredere pagina</a>.';break}p.pop()}</script></body></html>`);
 fs.writeFileSync(path.join(OUT, "paginas.json"), JSON.stringify(memo));
 fs.writeFileSync("gewijzigd.json", JSON.stringify(changed)); // voor indexnow.mjs (staat niet op de site)

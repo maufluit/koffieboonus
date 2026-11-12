@@ -21,6 +21,7 @@ const num = (v, d) => (Number.isInteger(v) && v >= 0 && v <= 60 ? v : d);
 const START_VOOR = num(CFG.start_dagen_voor, 11);   // 11 = maandag van de week vóór Black Friday
 const EIND_NA = num(CFG.eind_dagen_na, 3);          // 3 = Cyber Monday
 const LINK_VOOR = num(CFG.homelink_dagen_voor, 26); // link op de startpagina vanaf ~1 november
+const PER_SOORT = CFG.per_soort === true; // groeiplan 12 nov: aparte stukken voor koffiebonen, Nespresso, Dolce Gusto en Senseo + stuk over koffiemachines
 
 // ---------- datums ----------
 const iso = ms => new Date(ms).toISOString().slice(0, 10);
@@ -73,7 +74,7 @@ const BF_CSS = ".bfsec{display:grid;gap:10px;margin:28px 0 0}.bfsec h2{margin:0;
 // Geeft de getoonde aanbiedingen terug (voor de sitemap-datum en IndexNow), of null als de pagina uit staat.
 export function writeBlackFriday(out, tpl, h) {
   if (!BF_ON) return null;
-  const { deals, updated, listHtml, eur, nameOf, mech, hubSections, cheapPages, HUB_URL, hubIndexable, pages, urlOf, labelOf } = h;
+  const { deals, updated, listHtml, eur, nameOf, mech, hubSections, cheapPages, HUB_URL, hubIndexable, pages, urlOf, labelOf, popular = "" } = h;
   const P = BF, Y = P.year;
   const n = deals.length, shopsN = new Set(deals.map(d => d.shop)).size;
   const disc = deals.filter(d => !d.nodisc && d.pct > 0);
@@ -85,7 +86,7 @@ export function writeBlackFriday(out, tpl, h) {
   const nowLine = n ? `Op ${dateNL(updated)} zijn er ${n} koffieaanbiedingen bij ${shopsN} supermarkten.` : `Op ${dateNL(updated)} is er geen koffieaanbieding bij de supermarkten die we volgen.`;
 
   // Teksten per fase
-  const title = `Black Friday koffie ${Y}: aanbiedingen | Koffieboonus`;
+  const title = PER_SOORT ? `Black Friday koffie ${Y}: bonen, cups en pads | Koffieboonus` : `Black Friday koffie ${Y}: aanbiedingen | Koffieboonus`;
   const h1 = `Black Friday ${Y}: koffie in de aanbieding`;
   let intro, desc;
   if (active) {
@@ -113,9 +114,28 @@ export function writeBlackFriday(out, tpl, h) {
       + hubSections.map(g => `<section class="bfsec"><h3 style="margin:0;font-size:17px">Goedkoopste ${esc(g.c.word)}</h3><div class="list">${listHtml(g.ranked, { sort: byPP, limit: 3, rank: true })}</div>${g.indexable ? `<p><a href="/${g.c.slug}/">Alle goedkoopste ${esc(g.c.word)} ›</a></p>` : ""}</section>`).join(""));
   }
 
+  // Per soort: zo zoeken mensen ("koffiebonen black friday", "nespresso black friday"). Steeds de 3 grootste kortingen + link naar alle aanbiedingen.
+  const SOORTEN = [
+    { f: { type: "Bonen" }, kop: "Koffiebonen met Black Friday", wat: "koffiebonen" },
+    { f: { sys: "Nespresso" }, kop: "Nespresso-cups met Black Friday", wat: "Nespresso-cups" },
+    { f: { sys: "Dolce Gusto" }, kop: "Dolce Gusto-cups met Black Friday", wat: "Dolce Gusto-cups" },
+    { f: { sys: "Senseo" }, kop: "Senseo-pads met Black Friday", wat: "Senseo-pads" },
+  ];
+  const soortInfo = [];
+  if (PER_SOORT) for (const z of SOORTEN) {
+    const all = deals.filter(d => Object.entries(z.f).every(([k, v]) => d[k] === v));
+    const dz = all.filter(d => !d.nodisc && d.pct > 0);
+    const u = urlOf(z.f), pg = pages.get(u), lnk = pg && pg.indexable && pg.list.length ? u : null;
+    soortInfo.push({ ...z, all, dz });
+    secs.push(dz.length
+      ? `<section class="bfsec"><h2>${esc(z.kop)}</h2><p>Nu ${all.length === 1 ? "is er 1 aanbieding" : `zijn er ${all.length} aanbiedingen`} voor ${esc(z.wat)}. Dit zijn de grootste kortingen.</p><div class="list">${listHtml(dz, { limit: 3 })}</div>${lnk ? `<p><a href="${lnk}">Alle ${all.length} aanbiedingen voor ${esc(z.wat)} ›</a></p>` : ""}</section>`
+      : `<section class="bfsec"><h2>${esc(z.kop)}</h2><p>Op ${dateNL(updated)} zijn ${esc(z.wat)} bij de supermarkten die we volgen niet in de aanbieding. Deze pagina wordt elke nacht bijgewerkt.</p></section>`);
+  }
+
   // Webshops: alleen een eerlijke tekst, geen links. Advertentielinks komen pas als Koffieboonus een affiliateprogramma heeft (en na akkoord van Maurits).
   const shopSec = `<section class="bfsec"><h2>Koffiemachines en cups bij webshops</h2><p>Zoek je een koffiemachine of een grote voorraad cups? Webshops en merken met een eigen webwinkel hebben rond Black Friday vaak acties. Koffieboonus vergelijkt die prijzen niet. Let bij een ‘van … voor …’-prijs goed op: bij een prijsverlaging moet de ‘van’-prijs de laagste prijs van de afgelopen 30 dagen zijn.</p></section>`;
-  secs.push(shopSec);
+  const machineSec = `<section class="bfsec prose"><h2>Koffiemachine kopen met Black Friday: waar let je op?</h2><p>Koffieboonus vergelijkt (nog) geen koffiemachines. Wel deze tips:</p><ul><li><strong>Reken met de prijs per kop.</strong> Een machine voor cups is vaak goedkoop, maar per kop is koffie van bonen of filterkoffie meestal goedkoper dan een cup.</li><li><strong>Nespresso Original of Vertuo?</strong> Voor de Original liggen er in de supermarkt capsules van veel merken, ook in de aanbieding. Voor de Vertuo bijna niet.</li><li><strong>Kijk of er een cashbackactie is.</strong> Merken als De'Longhi en Philips hebben rond Black Friday vaak een actie die je zelf bij het merk aanvraagt.</li><li><strong>Controleer de ‘van’-prijs.</strong> Bij een prijsverlaging moet de ‘van’-prijs de laagste prijs van de afgelopen 30 dagen zijn.</li></ul></section>`;
+  secs.push(PER_SOORT ? machineSec : shopSec);
 
   // Tips
   secs.push(`<section class="bfsec prose"><h2>Zo herken je een echte koffieaanbieding</h2><ul><li><strong>Kijk naar de prijs per kilo, cup of pad</strong>, niet alleen naar het kortingspercentage. Een groot pak met korting kan per kilo duurder zijn dan een ander merk zonder korting.</li><li><strong>Check de ‘van’-prijs.</strong> Bij een prijsverlaging moet de winkel de laagste prijs van de afgelopen 30 dagen als ‘van’-prijs gebruiken. Een ‘adviesprijs’ zegt weinig.</li><li><strong>1+1 gratis is pas 50% korting als je ze allebei gebruikt.</strong> Sla je voorraad in, kijk dan naar de houdbaarheidsdatum.</li><li><strong>Je hoeft niet op Black Friday te wachten.</strong> Koffie is bijna elke week wel ergens in de aanbieding. Een goede aanbieding nu is net zo goed.</li></ul></section>`);
@@ -125,6 +145,7 @@ export function writeBlackFriday(out, tpl, h) {
     [`Wanneer is Black Friday ${Y}?`, `Black Friday is op ${dayNL(P.bf)}. Cyber Monday is op ${dayNL(P.cm)}. Veel webshops beginnen al eerder met hun acties, soms een week of langer van tevoren.`],
     ["Doen supermarkten mee met Black Friday?", "Sommige supermarkten hebben Black Friday-acties, maar koffie staat rond Black Friday meestal gewoon in de weekaanbiedingen. Op deze pagina zie je de koffieaanbiedingen van alle supermarkten die we volgen, met de grootste korting en de laagste prijs per kilo, cup of pad."],
     ["Wat is nu de beste koffieaanbieding?", n && (topPct || loBonen) ? `Op ${dateNL(updated)}: ${[topPct ? `de grootste korting is ${topPct.pct}% op ${nameOf(topPct)} bij ${topPct.shop} (${topPct.until})` : "", loBonen ? `de goedkoopste koffiebonen zijn ${nameOf(loBonen)} bij ${loBonen.shop}, ${eur(loBonen.pp)} per kilo (${mech(loBonen)}, ${loBonen.until})` : ""].filter(Boolean).join("; ")}. Controleer de prijs altijd bij de winkel.` : "Op dit moment is er geen koffieaanbieding die we kunnen vergelijken. Deze pagina wordt elke nacht bijgewerkt."],
+    ...(PER_SOORT ? soortInfo.filter(z => z.f.type === "Bonen" || z.f.sys === "Nespresso").map(z => [z.f.type ? "Welke koffiebonen zijn in de aanbieding met Black Friday?" : "Zijn Nespresso-cups in de aanbieding met Black Friday?", z.dz.length ? (() => { const t = [...z.dz].sort((a, b) => b.pct - a.pct)[0]; return `Op ${dateNL(updated)} zijn er ${z.all.length} aanbiedingen voor ${z.wat}. De grootste korting is ${t.pct}% op ${nameOf(t)} bij ${t.shop} (${t.until}). Controleer de prijs altijd bij de winkel.`; })() : `Op ${dateNL(updated)} zijn ${z.wat} bij de supermarkten die we volgen niet in de aanbieding. Deze pagina wordt elke nacht bijgewerkt.`]) : []),
     ["Is een Black Friday-korting altijd echt?", "Niet altijd. De Autoriteit Consument & Markt (ACM) vond in november 2025 bij 18 van de 24 grote winkels misleidende prijsinformatie, meestal over de ‘van’-prijs. Die moet de laagste prijs van de afgelopen 30 dagen zijn. Vergelijk daarom zelf, bijvoorbeeld op prijs per kilo."],
     ["Is koffie rond Black Friday goedkoper dan normaal?", "Dat weten we niet zeker. We vergelijken alleen de aanbiedingen van nu, niet de prijzen van vorige maanden. Koffie is het hele jaar door regelmatig in de aanbieding."],
     ["Hoe vaak wordt deze pagina bijgewerkt?", `Elke nacht. Deze pagina is voor het laatst bijgewerkt op ${dateNL(updated)}. De aanbiedingen komen van PrijsProfeet.`],
@@ -139,7 +160,7 @@ export function writeBlackFriday(out, tpl, h) {
   for (const [u, g] of cheapPages) if (g.indexable) items.push(`<li><a href="${u}">Goedkoopste ${esc(g.c.word)}</a></li>`);
   for (const t of ["Bonen", "Gemalen koffie", "Cups", "Pads"]) { const u = urlOf({ type: t }); const pg = pages.get(u); if (pg && pg.indexable && pg.list.length) items.push(`<li><a href="${u}">${esc(labelOf({ type: t }))} in de aanbieding</a> <span class="meta">(${pg.list.length})</span></li>`); }
   items.push(`<li><a href="/">Alle koffieaanbiedingen</a></li>`);
-  const more = `<section class="more"><h2>Ook bekijken</h2><div class="grp"><ul class="links">${items.join("")}</ul></div></section>`;
+  const more = `<section class="more"><h2>Ook bekijken</h2><div class="grp"><ul class="links">${items.join("")}</ul></div>${popular}</section>`;
   const faqHtml = `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${a.includes("<a ") ? a : esc(a)}</p></details>`).join("")}</section>`;
 
   // Kop

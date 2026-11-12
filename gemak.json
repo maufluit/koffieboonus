@@ -1,0 +1,13 @@
+{
+  "_uitleg": [
+    "Kleine gemakken voor bezoekers (groeiplan 12 nov 2026), zie gemak.mjs.",
+    "aan = false: de site is letter voor letter gelijk aan daarvoor.",
+    "favoriet: 'Onthoud Jumbo als mijn supermarkt' (bewaard in de browser, geen cookie).",
+    "beginscherm: Koffieboonus als icoontje op het beginscherm van de telefoon.",
+    "delen: knop 'Deel deze pagina' en 'Deel' bij elke aanbieding."
+  ],
+  "aan": true,
+  "favoriet": true,
+  "beginscherm": true,
+  "delen": true
+}
