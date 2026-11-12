@@ -141,6 +141,7 @@ function mapOne(p,today){
   }
   if(brand&&brand!=="Huismerk"&&name.toLowerCase().startsWith(brand.toLowerCase()))name=name.slice(brand.length).trim();
   name=name.charAt(0).toUpperCase()+name.slice(1);
+  name=name.replace(/\bIjs/g,"IJs"); // Nederlandse spelling: IJskoffie, niet Ijskoffie
   const qt=(p.quantity||"").trim();
   if(qt&&!name.toLowerCase().replace(/\s/g,"").includes(qt.toLowerCase().replace(/\s/g,"")))name+=" "+qt;
   const [deal,qty]=dealOf(p);

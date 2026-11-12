@@ -266,7 +266,7 @@ function faqOf(p, list) {
     ppFaq.push([`Wat is nu de laagste prijs per ${word} voor ${sl}?`, `Op ${dateNL(updated)} is dat ${eur(lo.pp)} per ${word}: ${nameOf(lo)} bij ${lo.shop} (${mech(lo)}, ${lo.until}). De prijs is berekend uit de verpakkingsgrootte; controleer hem altijd bij de winkel.`]);
   }
   return [
-    [`Waar is ${sl} nu in de aanbieding?`, a1],
+    [p.shop ? `Wat is er nu bij ${p.shop} in de aanbieding${Object.keys(p).length > 1 ? ` voor ${sl.replace(` bij ${p.shop}`, "")}` : ""}?` : `Waar vind je nu ${sl} in de aanbieding?`, a1],
     ...ppFaq,
     ["Hoe vaak worden de aanbiedingen bijgewerkt?", `Elke nacht. Deze pagina is voor het laatst bijgewerkt op ${dateNL(updated)}. De aanbiedingen komen van PrijsProfeet.`],
     ["Zijn de prijzen en acties altijd actueel?", "Prijzen en acties kunnen per winkel verschillen. Controleer de actuele prijs daarom altijd bij de winkel zelf voordat je koopt."],
@@ -319,7 +319,7 @@ function ztBlocks(p, list) {
     const name = pg && pg.indexable && pg.list.length ? `<a href="${u}">${esc(s)}</a>` : esc(s);
     return `<tr><th scope="row">${name}</th><td>${c}</td><td>${max ? max + "%" : "–"}</td>${h.unit ? `<td>${pp.length ? eur(Math.min(...pp)) : "–"}</td>` : ""}</tr>`;
   });
-  const table = `<section class="zt"><h2>${esc(h.term)} per supermarkt</h2><p>Op ${dateNL(updated)} bij ${plural(rows.length, "supermarkt", "supermarkten")}. Klik op een supermarkt voor alle aanbiedingen daar.</p><div class="ztwrap"><table class="zttab"><thead><tr><th scope="col">Supermarkt</th><th scope="col">Aanbiedingen</th><th scope="col">Hoogste korting</th>${h.unit ? `<th scope="col">Laagste prijs per ${h.unit}</th>` : ""}</tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
+  const table = `<section class="zt"><h2>${esc(h.term)} per supermarkt</h2><p>Op ${dateNL(updated)} zijn er aanbiedingen bij ${plural(rows.length, "supermarkt", "supermarkten")}. Klik op een supermarkt voor alle aanbiedingen daar.</p><div class="ztwrap"><table class="zttab"><thead><tr><th scope="col">Supermarkt</th><th scope="col">Aanbiedingen</th><th scope="col">Hoogste korting</th>${h.unit ? `<th scope="col">Laagste prijs per ${h.unit}</th>` : ""}</tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
   const gids = `<section class="zt"><h2>Waar let je op bij ${esc(sentLabel(p))} in de aanbieding?</h2>${h.gids.map(([t, x]) => `<h3>${esc(t)}</h3><p>${esc(x)}</p>`).join("")}</section>`;
   return table + gids;
 }
@@ -451,9 +451,9 @@ function renderCheap(url, { c, list, ranked, indexable }) {
     ? `Op ${dateNL(updated)} is de goedkoopste aanbieding voor ${c.word} ${eur(lo.pp)} per ${u}: ${nameOf(lo)} bij ${lo.shop} (${mech(lo)}, ${lo.until}). Hieronder staan de goedkoopste aanbiedingen op een rij. We rekenen de prijs om naar een prijs per ${u}, zodat je verschillende verpakkingen eerlijk kunt vergelijken.`
     : `Op ${dateNL(updated)} kunnen we voor ${c.word} geen prijzen per ${u} vergelijken. Zodra dat weer kan, staat de lijst hier.`;
   const faq = [
-    [`Wat is nu de goedkoopste ${c.word}?`, n ? `Op ${dateNL(updated)} is dat ${nameOf(lo)} bij ${lo.shop}: ${eur(lo.pp)} per ${u} (${mech(lo)}, ${lo.until}). Controleer de prijs altijd bij de winkel.` : `Op dit moment is er geen aanbieding waarvan we de prijs per ${u} kunnen berekenen.`],
+    [`Wat ${/(bonen|cups|pads)$/.test(c.word) ? "zijn" : "is"} nu de goedkoopste ${c.word}?`, n ? `Op ${dateNL(updated)} is dat ${nameOf(lo)} bij ${lo.shop}: ${eur(lo.pp)} per ${u} (${mech(lo)}, ${lo.until}). Controleer de prijs altijd bij de winkel.` : `Op dit moment is er geen aanbieding waarvan we de prijs per ${u} kunnen berekenen.`],
     ["Hoe vergelijken jullie de prijzen?", `We rekenen de aanbiedingsprijs om naar een prijs per ${u}, op basis van de verpakkingsgrootte in de productnaam. Alleen producten waarvan die grootte zeker is, doen mee.`],
-    [`Is dit ook de goedkoopste ${c.word} buiten de aanbieding?`, "Niet per se. We vergelijken alleen producten die nu in de aanbieding zijn. Een product met een lage vaste prijs staat hier alleen tussen als de winkel het als aanbieding aanmerkt."],
+    [`${/(bonen|cups|pads)$/.test(c.word) ? "Zijn dit ook de goedkoopste" : "Is dit ook de goedkoopste"} ${c.word} buiten de aanbieding?`, "Niet per se. We vergelijken alleen producten die nu in de aanbieding zijn. Een product met een lage vaste prijs staat hier alleen tussen als de winkel het als aanbieding aanmerkt."],
     ["Hoe vaak worden deze prijzen bijgewerkt?", `Elke nacht. Deze pagina is voor het laatst bijgewerkt op ${dateNL(updated)}. De aanbiedingen komen van PrijsProfeet.`],
   ];
   const canon = SITE + url;

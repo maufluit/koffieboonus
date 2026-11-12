@@ -73,7 +73,7 @@ export function writeMeerkoop(out, tpl, h) {
     ? `Op ${dateNL(updated)} ${n === 1 ? "is" : "zijn"} er ${plural(n, "aanbieding", "aanbiedingen")} waarbij je meer koopt voor minder: ${parts.join(", ")}. Per aanbieding zie je wat je in totaal betaalt en, waar dat kan, de prijs per kilo, cup of pad. Zo zie je of de actie echt voordelig is.`
     : `Op ${dateNL(updated)} is er geen koffie 1+1 gratis, 2+1 gratis of 2e halve prijs. Zodra er weer een is, staat die hier.`;
   const faq = [
-    ["Welke koffie is nu 1+1 gratis of 2e halve prijs?", n ? `Op ${dateNL(updated)} bij ${byShop.map(([s, c]) => `${s} (${c})`).join(", ")}.` : "Op dit moment bij geen enkele supermarkt. Deze pagina wordt elke nacht bijgewerkt."],
+    ["Welke koffie is nu 1+1 gratis of 2e halve prijs?", n ? `Op ${dateNL(updated)} zijn er zulke aanbiedingen bij ${byShop.map(([s, c]) => `${s} (${c})`).join(", ")}.` : "Op dit moment bij geen enkele supermarkt. Deze pagina wordt elke nacht bijgewerkt."],
     ["Hoeveel korting is 1+1 gratis eigenlijk?", "Bij 1+1 gratis betaal je voor twee pakken de prijs van één: dat is 50% korting per pak. Bij 2+1 gratis is het ongeveer 33%, bij 2e halve prijs 25%. Je krijgt die korting alleen als je ook echt meerdere pakken koopt."],
     ["Is 1+1 gratis altijd de goedkoopste koffie?", "Niet altijd. Een duur merk met 1+1 gratis kan per kilo nog steeds duurder zijn dan een ander merk zonder actie. Vergelijk daarom de prijs per kilo, cup of pad. Op de pagina's 'Goedkoopste ...' staan de aanbiedingen op volgorde van die prijs."],
     ["Hoe vaak wordt deze pagina bijgewerkt?", `Elke nacht. Deze pagina is voor het laatst bijgewerkt op ${dateNL(updated)}. De aanbiedingen komen van PrijsProfeet. Controleer de actuele prijs altijd bij de winkel.`],
