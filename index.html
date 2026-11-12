@@ -107,7 +107,7 @@ footer a{color:inherit}
 @media (max-width:860px){
 .row{grid-template-columns:1fr auto;grid-template-areas:"name act" "who act" "pr go";gap:6px 12px;padding:12px 14px}
 .name{grid-area:name}.who{grid-area:who}.act{grid-area:act;justify-items:end;text-align:right;align-self:start}
-.pr{grid-area:pr;align-self:end}.act .meta,.act .deal{white-space:nowrap}.shop{flex-wrap:wrap}.wd{display:inline;font-weight:400;color:var(--mute);font-size:14px;white-space:nowrap;margin-left:4px}.act .meta{display:none}.sub.red{display:none}.pr{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px}.pr .ppu,.pr .sub{margin:0}.gocell{grid-area:go;align-self:end}
+.pr{grid-area:pr;align-self:end}.act .meta,.act .deal{white-space:nowrap}.shop{flex-wrap:wrap}.wd{display:inline;font-weight:400;color:var(--mute);font-size:14px;white-space:nowrap;margin-left:4px}.act .meta{display:none}.sub.red{display:none}.pnow.mk .reg{display:none}.pr{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px}.pr .ppu,.pr .sub{margin:0}.gocell{grid-area:go;align-self:end}
 .bt,.gs{display:none}.logo{height:56px}header .wrap{gap:12px}.site{font-size:26px}.theme{width:52px;height:28px}.theme i{width:20px;height:20px}.theme[aria-checked=true] i{transform:translateX(24px)}.theme svg{width:14px;height:14px;top:6px}.theme .sun{left:6px}.theme .moon{left:30px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.theme i{transition:none}}
 </style>
@@ -262,7 +262,7 @@ function card(g,best){
   const ms=g.map(multi),allMulti=!np&&!nd&&ms.every(Boolean)&&new Set(ms.map(x=>x.q)).size===1;
   const anyMulti=!np&&!nd&&ms.some(Boolean);
   const lowEff=fmt(Math.min(...g.map(effP)));
-  const multiPrice=allMulti?(n>1?`<div class="pnow">vanaf ${ms[0].q} voor ${fmt(Math.min(...ms.map(x=>x.t)))}</div>`:`<div class="pnow">${multiTxt(d)} <s class="reg">${fmt(ms[0].q*num(d.reg))}</s></div>`):anyMulti?`<div class="pnow">vanaf ${lowEff} per stuk</div>`:null;
+  const multiPrice=allMulti?(n>1?`<div class="pnow">vanaf ${ms[0].q} voor ${fmt(Math.min(...ms.map(x=>x.t)))}</div>`:`<div class="pnow mk">${multiTxt(d)} <s class="reg">${fmt(ms[0].q*num(d.reg))}</s></div>`):anyMulti?`<div class="pnow">vanaf ${lowEff} per stuk</div>`:null;
   const price=(np||nd)?"":multiPrice!==null?multiPrice:priceType?`<div class="pnow">${n>1?"vanaf "+lowNow:fmt(nowP(d))}${n===1?` <s class="reg">${esc(d.reg)}</s>`:""}</div>`:(n>1?`<div class="pnow">vanaf ${lowNow}</div>`:`<span class="reg">${esc(d.reg)}</span>`);
   const lnk=x=>x.url?`<a href="${esc(x.url)}" target="_blank" rel="sponsored nofollow noopener">${esc(x.name)}</a>`:esc(x.name);
   const urls=[...new Set(g.map(x=>x.url).filter(Boolean))];

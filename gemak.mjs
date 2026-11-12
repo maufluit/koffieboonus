@@ -21,6 +21,10 @@ const ICON = `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"
 
 const CSS = `.kb-share{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;font:inherit;font-size:14px;font-weight:600;padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);cursor:pointer}
 .kb-share:hover{border-color:var(--ink)}
+.kb-share.inbar{margin:0 0 0 auto;padding:4px 12px;font-size:13px}
+.kb-tipbar{position:fixed;left:12px;right:12px;bottom:12px;z-index:40;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.18);font-size:14px}
+.kb-tipbar[hidden]{display:none}.kb-tipbar img{width:32px;height:32px;border-radius:8px;flex:none}.kb-tipbar span{flex:1}
+.kb-tipbar .x{border:0;background:none;font-size:20px;line-height:1;color:var(--mute);cursor:pointer;padding:4px}
 .gocell{display:flex;align-items:center;justify-content:flex-end;gap:8px}
 .kb-rs{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--mute);cursor:pointer;flex:none}
 .kb-rs:hover{color:var(--ink);border-color:var(--ink)}
@@ -52,7 +56,8 @@ function share(text,wat,k){var url=link(k),all=text+" "+url;
 if(F.delen){
  var intro=document.querySelector(".pagehead .intro");
  if(intro){var b=document.createElement("button");b.type="button";b.className="kb-share";b.innerHTML=ICON+"<span>Deel deze pagina</span>";
-  b.addEventListener("click",function(){var t=document.querySelector("h1");share((t?t.textContent:"Koffie in de aanbieding")+", gevonden op Koffieboonus:","pagina")});intro.insertAdjacentElement("afterend",b)}
+  b.addEventListener("click",function(){var t=document.querySelector("h1");share((t?t.textContent:"Koffie in de aanbieding")+", gevonden op Koffieboonus:","pagina")});
+  var bar0=document.querySelector(".bar"),rs=document.getElementById("reset");if(bar0&&rs&&getComputedStyle(bar0).display!=="none"){b.classList.add("inbar");b.querySelector("span").textContent="Deel";b.setAttribute("aria-label","Deel deze pagina");bar0.insertBefore(b,rs)}else intro.insertAdjacentElement("afterend",b)}
  var list=document.getElementById("list");
  var addRow=function(){if(!list)return;list.querySelectorAll(".row").forEach(function(r){if(r.querySelector(".kb-rs"))return;var a=r.querySelector(".gocell");if(!a)return;var x=document.createElement("button");x.type="button";x.className="kb-rs";x.setAttribute("aria-label","Deel deze aanbieding");x.title="Deel deze aanbieding";x.innerHTML=ICON;a.insertBefore(x,a.firstChild)})};
  if(list){addRow();new MutationObserver(addRow).observe(list,{childList:true});
@@ -93,11 +98,22 @@ if(F.beginscherm){
  if(!standalone&&ft){var dp=null;window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();dp=e});
   var w=document.createElement("div");w.className="kb-a2hsw";var a=document.createElement("button");a.type="button";a.className="link kb-a2hs";a.textContent="Zet Koffieboonus op je beginscherm";
   var tip=document.createElement("p");tip.className="kb-tip";tip.hidden=true;
-  a.addEventListener("click",function(){if(dp){dp.prompt();dp=null;return}
+  window.addEventListener("appinstalled",function(){tel("app","geinstalleerd")});
+  var uitleg=function(){if(dp){dp.prompt();dp=null;return}
    var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
    tip.textContent=ios?"Op een iPhone of iPad: tik in Safari op de deelknop (het vierkantje met de pijl) en kies ‘Zet op beginscherm’.":"Op een Android-telefoon: tik in Chrome rechtsboven op ⋮ en kies ‘Toevoegen aan startscherm’. Op een computer: kies in het menu van je browser ‘Installeren’, of maak een bladwijzer.";
-   tip.hidden=!tip.hidden});
-  w.appendChild(a);w.appendChild(tip);ft.appendChild(w)}
+   tip.hidden=!tip.hidden;if(!tip.hidden)tip.scrollIntoView({block:"center",behavior:"smooth"})};
+  a.addEventListener("click",function(){tel("app","knop");uitleg()});
+  w.appendChild(a);w.appendChild(tip);ft.appendChild(w);
+  /* Terugkerende bezoeker op een telefoon: bij het 3e bezoek (op verschillende dagen) één keer een kleine melding. Alleen in de eigen browser bijgehouden. */
+  try{var mob=window.matchMedia&&matchMedia("(max-width:860px) and (pointer:coarse)").matches,d0=new Date().toISOString().slice(0,10),v=JSON.parse(lsGet("kb-bezoek")||"{}");
+   if(v.d!==d0){v.n=(v.n||0)+1;v.d=d0;lsSet("kb-bezoek",JSON.stringify(v))}
+   if(mob&&v.n>=3&&!v.tip){v.tip=1;lsSet("kb-bezoek",JSON.stringify(v));
+    var tb=document.createElement("div");tb.className="kb-tipbar";tb.setAttribute("role","dialog");tb.setAttribute("aria-label","Tip");
+    tb.innerHTML='<img src="/icon-192.png" alt=""><span>Vaker hier? Zet Koffieboonus op je beginscherm.</span><button type="button" class="link">Hoe?</button><button type="button" class="x" aria-label="Sluiten">×</button>';
+    tb.querySelector(".link").addEventListener("click",function(){tel("app","melding");tb.hidden=true;uitleg()});
+    tb.querySelector(".x").addEventListener("click",function(){tb.hidden=true});
+    setTimeout(function(){document.body.appendChild(tb)},2500)}}catch(e){}}
 }
 })();</script>`;
 

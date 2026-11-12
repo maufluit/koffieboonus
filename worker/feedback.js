@@ -1,9 +1,9 @@
 // Koffieboonus feedback-tellertje (Cloudflare Worker "koffieboonus-feedback").
 // Ontvangt van koffieboonus.nl alleen: soort (duim/tekst/klik/filter/sort/deel/via), waarde en pagina.
-// deel = er is iets gedeeld ("pagina" of "aanbieding: winkel | product"); via = iemand kwam binnen via een gedeelde link ("deel") of het beginscherm ("app").
+// deel = er is iets gedeeld ("pagina" of "aanbieding: winkel | product"); via = iemand kwam binnen via een gedeelde link ("deel") of het beginscherm ("app"); app = klik op "Zet op beginscherm" ("knop"), op de melding ("melding") of echt geïnstalleerd ("geinstalleerd", alleen Android).
 // Bewaart GEEN IP-adres (het adres wordt alleen vergeleken met de thuis-wifi van Maurits, zie isThuis), cookie, browsergegevens of tijdstip: alleen de datum.
 // E-mailadressen en telefoonnummers in getypte tekst worden weggehaald voordat iets wordt opgeslagen.
-const SOORTEN = { duim: 10, tekst: 500, klik: 80, filter: 120, sort: 40, deel: 120, via: 10 };
+const SOORTEN = { duim: 10, tekst: 500, klik: 80, filter: 120, sort: 40, deel: 120, via: 10, app: 20 };
 const HERKOMST = ["https://koffieboonus.nl", "https://www.koffieboonus.nl"];
 
 export function schoon(t) {
@@ -24,6 +24,7 @@ export function controleer(o) {
   let v = typeof o.v === "string" ? o.v.slice(0, max) : "";
   if (o.t === "duim" && v !== "ja" && v !== "nee") return null;
   if (o.t === "via" && v !== "deel" && v !== "app") return null;
+  if (o.t === "app" && !["knop", "melding", "geinstalleerd"].includes(v)) return null;
   if (o.t === "tekst") { v = schoon(v); if (!v) return null; }
   else v = v.replace(/[\u0000-\u001f\u007f<>]/g, "").trim();
   return { t: o.t, p, v };
