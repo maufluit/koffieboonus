@@ -29,6 +29,7 @@ const CSS = `.kb-share{display:inline-flex;align-items:center;gap:6px;margin:10p
 .kb-fav[hidden]{display:none}
 .kb-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--banner);color:var(--bannerink);padding:10px 16px;border-radius:10px;font-size:14px;z-index:50;max-width:90vw;text-align:center}
 .kb-toast[hidden]{display:none}
+.row.kb-hl{outline:3px solid var(--orange);outline-offset:2px;transition:outline-color .4s}
 .kb-a2hsw{margin-top:10px}.kb-tip{margin:6px auto 0;max-width:46ch}`;
 
 const HEAD = `<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#FFF9E9" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#16110C" media="(prefers-color-scheme: dark)">`;
@@ -36,14 +37,14 @@ const HEAD = `<link rel="manifest" href="/manifest.webmanifest"><meta name="them
 const JS = f => `<script>(function(){var F=${JSON.stringify(f)},ICON=${JSON.stringify(ICON)},U=${JSON.stringify(FBURL)};
 function tel(t,v){if(!U)return;try{var b=JSON.stringify({t:t,v:String(v).slice(0,120),p:location.pathname});if(navigator.sendBeacon&&navigator.sendBeacon(U,b))return;fetch(U,{method:"POST",body:b,keepalive:true,mode:"no-cors"})}catch(e){}}
 /* Binnengekomen via een gedeelde link of het beginscherm: één keer tellen en ?ref=… uit de adresbalk halen. */
-try{var q=new URLSearchParams(location.search),rf=q.get("ref");if(rf==="deel"||rf==="app"){tel("via",rf);q.delete("ref");history.replaceState(null,"",location.pathname+(q.toString()?"?"+q:"")+location.hash)}}catch(e){}
+var AK=null;try{var q=new URLSearchParams(location.search),rf=q.get("ref");AK=q.get("a");if(rf==="deel"||rf==="app"||AK){if(rf==="deel"||rf==="app")tel("via",rf);q.delete("ref");q.delete("a");history.replaceState(null,"",location.pathname+(q.toString()?"?"+q:"")+location.hash)}}catch(e){}
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSet(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){}}
 function h(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 var main=typeof sel!=="undefined"&&typeof render==="function"&&typeof pick==="function"&&document.getElementById("list");
 function toast(t){var el=document.getElementById("kb-toast");if(!el){el=document.createElement("div");el.id="kb-toast";el.className="kb-toast";el.setAttribute("role","status");document.body.appendChild(el)}el.textContent=t;el.hidden=false;clearTimeout(el._t);el._t=setTimeout(function(){el.hidden=true},3000)}
-function link(){try{var u=new URL(location.href);u.search="";u.hash="";u.searchParams.set("ref","deel");return u.toString()}catch(e){return location.href}}
-function share(text,wat){var url=link(),all=text+" "+url;
+function link(k){try{var u=new URL(location.href);u.search="";u.hash="";u.searchParams.set("ref","deel");if(k)u.searchParams.set("a",k);return u.toString()}catch(e){return location.href}}
+function share(text,wat,k){var url=link(k),all=text+" "+url;
  if(navigator.share){navigator.share({title:document.title,text:text,url:url}).then(function(){tel("deel",wat)},function(){});return}
  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(all).then(function(){tel("deel",wat);toast("Link gekopieerd. Plak hem in WhatsApp, een mail of waar je maar wilt.")},function(){tel("deel",wat);window.open("https://wa.me/?text="+encodeURIComponent(all),"_blank","noopener")});return}
  tel("deel",wat);window.open("https://wa.me/?text="+encodeURIComponent(all),"_blank","noopener")}
@@ -58,8 +59,14 @@ if(F.delen){
   list.addEventListener("click",function(e){var x=e.target.closest(".kb-rs");if(!x)return;var r=x.closest(".row"),n=r.querySelector(".name"),q=function(s){var el=r.querySelector(s);return el?el.textContent.trim():""};
    var name=n?n.cloneNode(true):null;if(name){name.querySelectorAll(".meta,.rk").forEach(function(m){m.remove()})}
    var until=r.querySelector(".act .meta"),nm=name?name.textContent.trim():"Koffie",sh=q(".shop .sname")||q(".shop").split(" · ")[0];
-   share(nm+" bij "+sh+": "+q(".deal")+(until?" ("+until.textContent.trim()+")":"")+". Gevonden op Koffieboonus:","aanbieding: "+sh+" | "+nm)})}
+   share(nm+" bij "+sh+": "+q(".deal")+(until?" ("+until.textContent.trim()+")":"")+". Gevonden op Koffieboonus:","aanbieding: "+sh+" | "+nm,(r.getAttribute("data-k")||"").split("|")[0])})}
 }
+/* Gedeelde aanbieding: spring ernaartoe en laat hem even oplichten. Bestaat hij niet meer, dan een korte melding. */
+if(AK){var L=document.getElementById("list"),done=false,t0=Date.now();
+ var zoek=function(){if(done||!L)return;var rows=L.querySelectorAll(".row"),hit=null;for(var i=0;i<rows.length;i++){var k=(rows[i].getAttribute("data-k")||"").split("|");if(k.indexOf(AK)>=0){hit=rows[i];break}}
+  if(hit){done=true;var tg=hit.querySelector(".tog");if(tg&&tg.getAttribute("aria-expanded")!=="true"&&hit.getAttribute("data-k").split("|")[0]!==AK)tg.click();hit.classList.add("kb-hl");hit.scrollIntoView({block:"center",behavior:"smooth"});setTimeout(function(){hit.classList.remove("kb-hl")},3500);return}
+  if(typeof DEALS!=="undefined"&&DEALS.length&&Date.now()-t0>1500){done=true;toast("Deze aanbieding is afgelopen. Hieronder zie je de aanbiedingen van nu.")}};
+ if(L){new MutationObserver(zoek).observe(L,{childList:true});setTimeout(zoek,1600);setTimeout(zoek,4000)}}
 /* Favoriete supermarkt */
 if(F.favoriet&&main){
  var K="kb-winkel",box=document.createElement("div");box.className="kb-fav";box.id="kb-fav";box.hidden=true;

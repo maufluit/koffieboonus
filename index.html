@@ -277,7 +277,7 @@ function card(g,best){
   const badge=isBest?`<div><span class="best">Laagste prijs per ${pu}</span></div>`:"";
   const grey=np?"Prijs onbekend, controleer de prijs in de winkel":nd?"Normale prijs onbekend":priceType?"":(!sameDeal&&mech(d)==="Actieprijs"&&same(pc)?"Per product, zie de lijst":`${pr} korting${cond}`);
   const sub=n>1?"":`<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div>`;
-  return `<div class="row"><div class="name">${title}${sub}</div><div class="who"><div class="shop">${shopChip(d.shop)}<span class="wd">${d.next?" · "+esc(d.fromTxt):""} · ${esc(d.until)}</span>${tag}</div></div><div class="act"><span class="deal">${esc(badgeTxt)}</span><div class="meta">${d.next?`<span class="soon">${esc(d.fromTxt)}</span> · `:""}${esc(d.until)}</div></div><div class="pr">${price}${ppLine}${badge}${grey?`<div class="meta sub${allMulti&&!np&&!nd&&!cond.includes("multipack")?" red":""}">${grey}</div>`:""}</div>${go}${n>1?`<button class="tog" type="button" aria-expanded="false" data-n="${n}">${n} producten</button><div class="items" hidden>${items}</div>`:""}</div>`;
+  return `<div class="row" data-k="${esc(g.map(x=>x.id+"~"+x.shop).join("|"))}"><div class="name">${title}${sub}</div><div class="who"><div class="shop">${shopChip(d.shop)}<span class="wd">${d.next?" · "+esc(d.fromTxt):""} · ${esc(d.until)}</span>${tag}</div></div><div class="act"><span class="deal">${esc(badgeTxt)}</span><div class="meta">${d.next?`<span class="soon">${esc(d.fromTxt)}</span> · `:""}${esc(d.until)}</div></div><div class="pr">${price}${ppLine}${badge}${grey?`<div class="meta sub${allMulti&&!np&&!nd&&!cond.includes("multipack")?" red":""}">${grey}</div>`:""}</div>${go}${n>1?`<button class="tog" type="button" aria-expanded="false" data-n="${n}">${n} producten in deze actie</button><div class="items" hidden>${items}</div>`:""}</div>`;
 }
 const pick=pool=>pool.filter(d=>Object.keys(sel).every(k=>!sel[k].size||sel[k].has(d[k])));
 function render(){
@@ -323,7 +323,7 @@ document.getElementById("pnote").addEventListener("click",e=>{if(!e.target.close
 document.getElementById("list").addEventListener("click",e=>{
   const go=e.target.closest("[data-go]");if(go){tab=go.dataset.go;render();return}
   const b=e.target.closest(".tog");if(!b)return;
-  const it=b.nextElementSibling,open=it.hidden;it.hidden=!open;b.setAttribute("aria-expanded",open);b.textContent=b.dataset.n+" producten";
+  const it=b.nextElementSibling,open=it.hidden;it.hidden=!open;b.setAttribute("aria-expanded",open);b.textContent=b.dataset.n+" producten in deze actie";
 });
 document.addEventListener("change",e=>{const i=e.target;if(i.dataset&&i.dataset.k){i.checked?sel[i.dataset.k].add(i.value):sel[i.dataset.k].delete(i.value);render()}});
 document.getElementById("sort").addEventListener("change",e=>{sortBy=e.target.value;render()});
