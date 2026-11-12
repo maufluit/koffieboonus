@@ -58,11 +58,11 @@ export const AD_CSS = ".adlabel{display:inline-block;margin-left:6px;padding:1px
 
 // ---------- pagina-adressen ----------
 const OVER_URL = "/over/", CONTACT_URL = "/contact/", PRIVACY_URL = "/privacy/", GELD_URL = "/hoe-verdienen-we-geld/";
-export const INFO_URLS = [OVER_URL, GELD_URL, PRIVACY_URL, CONTACT_URL];
+export const INFO_URLS = [OVER_URL, PRIVACY_URL, CONTACT_URL]; // "Hoe verdienen we geld?" pas als er advertentielinks zijn (12 nov: Maurits)
 
 // Links onderaan elke pagina (alleen als de informatiepagina's bestaan).
 export const footerLinks = () => INFO_ON
-  ? `<nav style="margin-top:8px" aria-label="Over Koffieboonus"><a href="${OVER_URL}">Over ons</a> · <a href="${GELD_URL}">Hoe verdienen we geld?</a> · <a href="${PRIVACY_URL}">Privacy</a> · <a href="${CONTACT_URL}">Contact</a></nav>`
+  ? `<nav style="margin-top:8px" aria-label="Over Koffieboonus"><a href="${OVER_URL}">Over ons</a> · ${GO_ON ? `<a href="${GELD_URL}">Hoe verdienen we geld?</a> · ` : ""}<a href="${PRIVACY_URL}">Privacy</a> · <a href="${CONTACT_URL}">Contact</a></nav>`
   : "";
 
 // ---------- opmaak van een informatiepagina, op basis van het sjabloon index.html ----------
@@ -103,7 +103,7 @@ const mail = () => `<a href="mailto:${esc(INFO.email)}">${esc(INFO.email)}</a>`;
 const dateNL = iso => new Date(iso + "T12:00:00Z").toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const activeShops = () => [...GO_LINKS.values()];
 const usedNetworks = () => [...new Set(activeShops().map(l => l.netwerk).filter(Boolean))];
-const ORDER = `<ul><li>Standaard staan de aanbiedingen op <strong>hoogste korting</strong>.</li><li>Op de pagina's ‘Goedkoopste …’ staan ze op <strong>laagste prijs per kilo, cup of pad</strong>.</li><li>We tonen aanbiedingen vanaf 10% korting, en aanbiedingen waarvan de normale prijs onbekend is.</li><li>Niemand kan betalen voor een hogere plek in de lijst.</li></ul>`;
+const ORDER = `<ul><li>Standaard staan de aanbiedingen op <strong>hoogste korting</strong>.</li><li>Op de pagina's ‘Goedkoopste …’ staan ze op <strong>laagste prijs per kilo, cup of pad</strong>.</li><li>We tonen aanbiedingen vanaf 10% korting, en aanbiedingen waarvan de normale prijs onbekend is.</li></ul>`;
 
 function overBody() {
   const wie = INFO.over ? esc(INFO.over) : `Koffieboonus is gemaakt door ${esc(INFO.naam)}${INFO.plaats ? ` uit ${esc(INFO.plaats)}` : ""}.`;
@@ -112,7 +112,6 @@ function overBody() {
     `<h2>Wie zit erachter?</h2><p>${wie}</p><p>Koffieboonus is geen winkel en verkoopt zelf niets. Ik ben niet verbonden aan de supermarkten of koffiemerken op de site.</p><p>Vragen of ideeën? Mail naar ${mail()}.</p>`,
     `<h2>Waar komen de aanbiedingen vandaan?</h2><p>Elke nacht halen we de aanbiedingen op bij <a href="https://www.prijsprofeet.nl">PrijsProfeet</a>. Waar dat zeker kan, rekenen we de prijs om naar een prijs per kilo, cup of pad, zodat je verschillende verpakkingen eerlijk kunt vergelijken.</p><p>Er kan altijd iets mis zijn met een prijs of actie. Controleer de prijs daarom bij de winkel. Zie je een fout? <a href="${CONTACT_URL}">Laat het ons weten</a>.</p>`,
     `<h2>Hoe bepalen we de volgorde?</h2>${ORDER}`,
-    `<h2>Wat verdienen we eraan?</h2><p>${GO_ON ? "Koffieboonus verdient geld met een paar advertentielinks naar webshops. Die zijn altijd herkenbaar aan het label ‘Advertentie’." : "Op dit moment niets: er staan geen advertenties en geen advertentielinks op de site."} <a href="${GELD_URL}">Lees hoe dat werkt</a>.</p>`,
     `<h2>Merken en namen</h2><p>De namen van supermarkten en merken zijn van hun eigenaars. We gebruiken ze alleen om te laten zien waar welke aanbieding is.</p>`,
   ].join("\n");
 }
@@ -150,26 +149,15 @@ function geldBody() {
 }
 
 function privacyBody() {
-  const nets = usedNetworks().map(n => `<li>${esc(n)}${NETWERKEN[n]?.privacy ? `: <a href="${esc(NETWERKEN[n].privacy)}">privacyverklaring van ${esc(n)}</a>` : ""}</li>`);
-  const daisy = usedNetworks().some(n => NETWERKEN[n]?.melding)
-    ? `<p>Koffieboonus gebruikt de diensten van Daisycon voor advertentielinks. Daisycon gebruikt een cookie en vergelijkbare gegevens om een aankoop aan Koffieboonus te koppelen, zodat we een vergoeding krijgen. Wij krijgen daarna alleen anonieme gegevens over de aankoop te zien. Volgens Daisycon zijn deze cookies niet schadelijk voor je privacy.</p>`
-    : "";
-  const ads = GO_ON
-    ? `<h2>Advertentielinks</h2><p>Sommige links naar webshops zijn advertentielinks, herkenbaar aan het label ‘Advertentie’ (<a href="${GELD_URL}">uitleg</a>). Zo werkt het als je erop klikt:</p><ul><li>Je gaat eerst naar een korte doorstuurpagina op koffieboonus.nl (een adres dat begint met /go/). Cloudflare Web Analytics telt dat bezoek, net als een gewoon paginabezoek: zonder cookies.</li><li>Daarna stuurt de doorstuurpagina je via het advertentienetwerk door naar de webshop. Het netwerk of de webshop plaatst dan <strong>op hun eigen website</strong> een cookie of gebruikt vergelijkbare techniek. Daarmee kunnen ze zien dat je via Koffieboonus kwam als je iets koopt.</li><li>Koffieboonus krijgt van het netwerk alleen totalen te zien: hoeveel klikken, hoeveel aankopen en welke vergoeding. Wij zien niet wie je bent, wat je naam of adres is of wat je precies koopt.</li></ul>${nets.length ? `<p>We werken met deze netwerken. Hun privacyverklaring legt uit wat zij met gegevens doen:</p><ul>${nets.join("")}</ul>` : ""}${daisy}`
-    : `<h2>Advertentielinks</h2><p>Koffieboonus gebruikt nu geen advertentielinks. Gaan we dat wel doen, dan passen we deze privacyverklaring eerst aan.</p>`;
+  // Alleen wat de AVG (art. 13) vraagt: wie, welke gegevens, waarvoor en op welke grond, wie ze krijgt, buiten de EU, hoe lang, je rechten en klachten.
   return [
-    `<p>Kort gezegd: Koffieboonus plaatst geen cookies, je hebt geen account nodig en we weten niet wie je bent. Hieronder staat precies welke gegevens er wel gebruikt worden, en door wie.</p>`,
-    `<h2>Wie is verantwoordelijk?</h2><p>${esc(INFO.naam)}${INFO.plaats ? `, ${esc(INFO.plaats)}` : ""}${INFO.kvk ? ` (KvK ${esc(INFO.kvk)})` : ""}. Vragen over je privacy? Mail naar ${mail()}.</p>`,
-    `<h2>Bezoekersstatistieken: Cloudflare Web Analytics</h2><p>We willen weten welke pagina's bezocht worden, zodat we de site kunnen verbeteren. Daarvoor gebruiken we Cloudflare Web Analytics. Dat werkt <strong>zonder cookies</strong> en zonder opslag in je browser. Volgens Cloudflare worden bezoekers niet herkend of gevolgd via hun IP-adres of browsergegevens.</p><p>Wij zien alleen totalen, zoals: hoeveel bezoeken een pagina had, van welke website bezoekers kwamen, het soort apparaat en browser, het land en hoe snel de pagina laadde. We zien niet wie je bent. We doen dit op basis van ons gerechtvaardigd belang: een site die goed werkt. Meer informatie: <a href="https://www.cloudflare.com/nl-nl/privacypolicy/">privacybeleid van Cloudflare</a>.</p>`,
-    `<h2>Hosting: GitHub Pages</h2><p>De website staat op GitHub Pages van GitHub (onderdeel van Microsoft). Zoals bij elke website ziet de server bij een bezoek je IP-adres. GitHub bewaart dat voor de beveiliging. Koffieboonus heeft geen toegang tot die gegevens. Meer informatie: <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">privacyverklaring van GitHub</a> (Engels).</p><p>Cloudflare en GitHub zijn Amerikaanse bedrijven en kunnen gegevens ook buiten Europa verwerken. In hun privacyverklaringen staat hoe ze die gegevens beschermen.</p>`,
-    `<h2>Feedback en klikken</h2><p>Onder de aanbiedingen kun je laten weten of je vond wat je zocht (duim omhoog of omlaag), en bij een duim omlaag in een vakje typen wat je miste. Ook tellen we anoniem hoe vaak er op ‘Bekijk bij …’ wordt geklikt en welke filters gekozen worden. Zo weten we wat we kunnen verbeteren.</p><p>Daarvoor bewaren we alleen de datum, de pagina en wat er gekozen of getypt is. Geen cookies, geen IP-adres, geen tijdstip en niets waarmee we jou kunnen herkennen. Typ je een e-mailadres of telefoonnummer in het vakje, dan halen we dat weg voordat het wordt opgeslagen. Dit draait op een eigen tellertje bij Cloudflare (Cloudflare Workers en D1).</p>`,
-    `<h2>Licht of donker thema</h2><p>Kies je met de schakelaar bovenaan voor licht of donker, dan onthoudt je browser die keuze op je eigen apparaat. Dat is geen cookie, het wordt niet naar ons gestuurd, en je kunt het wissen door je browsergegevens te verwijderen.</p>`,
-    `<h2>De aanbiedingen</h2><p>De aanbiedingen komen van <a href="https://www.prijsprofeet.nl">PrijsProfeet</a>. Wij halen ze één keer per nacht op en zetten ze op onze eigen site. Je browser maakt daarvoor geen contact met PrijsProfeet, en we geven geen gegevens over bezoekers aan PrijsProfeet.</p>`,
-    `<h2>Links naar winkels</h2><p>Klik je op ‘Bekijk bij …’, dan ga je naar de website van de winkel. Daar gelden het privacy- en cookiebeleid van die winkel.</p>`,
-    ads,
-    `<h2>Als je ons mailt</h2><p>Mail je naar ${mail()}, dan gebruiken we je e-mailadres en bericht alleen om je te antwoorden. De mailbox staat bij Mijndomein (Soverin, in Europa).</p><p>Om mail te sorteren en een antwoord voor te bereiden, gebruiken we de AI-assistent Claude van Anthropic. Een kopie van de mail staat daarvoor in ons eigen, afgeschermde archief bij GitHub. Er gaat nooit een antwoord weg dat Maurits niet zelf heeft goedgekeurd. Anthropic en GitHub zijn Amerikaanse bedrijven en kunnen gegevens ook buiten Europa verwerken.</p><p>We bewaren je mail niet langer dan nodig, en uiterlijk een jaar na ons laatste contact verwijderen we hem. We verkopen je gegevens niet en gebruiken ze niet voor reclame.</p>`,
-    `<h2>Je rechten</h2><p>Je mag vragen welke gegevens we van je hebben, en vragen om ze te verbeteren of te verwijderen. Mail daarvoor naar ${mail()}. Ben je het niet eens met hoe we met je gegevens omgaan, dan kun je een klacht indienen bij de <a href="https://www.autoriteitpersoonsgegevens.nl">Autoriteit Persoonsgegevens</a>.</p>`,
-    `<h2>Wijzigingen</h2><p>Verandert er iets aan de site dat met privacy te maken heeft, dan passen we deze verklaring aan. Laatst bijgewerkt: ${dateNL(INFO.datum)}.</p>`,
+    `<p>Koffieboonus plaatst geen cookies en je hebt geen account nodig. Persoonsgegevens krijgen we alleen als je ons mailt.</p>`,
+    `<h2>Wie is verantwoordelijk?</h2><p>${esc(INFO.naam)}${INFO.kvk ? ` (KvK ${esc(INFO.kvk)})` : ""}, bereikbaar via ${mail()}.</p>`,
+    `<h2>Als je ons mailt</h2><p>We gebruiken je e-mailadres en bericht alleen om je te antwoorden (grondslag: gerechtvaardigd belang). Je mail staat bij onze mailprovider Mijndomein en in ons afgeschermde archief bij GitHub. Om mail te sorteren en een antwoord voor te bereiden gebruiken we de AI-assistent Claude van Anthropic; een mens beslist altijd over het antwoord. We bewaren je mail tot uiterlijk een jaar na ons laatste contact.</p>`,
+    `<h2>Als je de site bezoekt</h2><p>De site staat bij GitHub Pages. Zoals bij elke website ziet de server je IP-adres; GitHub gebruikt dat voor de beveiliging en wij krijgen het niet. Voor bezoekersaantallen en de duimpjes onder de aanbiedingen gebruiken we Cloudflare, zonder cookies en zonder je IP-adres op te slaan. Wij zien alleen totalen, niet wie je bent. Typ je een e-mailadres of telefoonnummer in het feedbackvakje, dan halen we dat weg voordat het wordt opgeslagen.</p><p>Kies je voor licht of donker, dan onthoudt alleen je eigen browser die keuze.</p>`,
+    `<h2>Buiten Europa</h2><p>GitHub, Cloudflare en Anthropic zijn Amerikaanse bedrijven en kunnen gegevens buiten de Europese Unie verwerken. In hun eigen privacyverklaringen staat hoe zij die gegevens beschermen.</p>`,
+    `<h2>Je rechten</h2><p>Je mag vragen welke gegevens we van je hebben, en vragen om ze te verbeteren, te verwijderen of over te dragen. Je mag ook bezwaar maken tegen het gebruik ervan. Mail daarvoor naar ${mail()}. Ben je het niet eens met hoe we met je gegevens omgaan, dan kun je een klacht indienen bij de <a href="https://www.autoriteitpersoonsgegevens.nl">Autoriteit Persoonsgegevens</a>.</p>`,
+    `<p class="meta">Laatst bijgewerkt: ${dateNL(INFO.datum)}.</p>`,
   ].join("\n");
 }
 
@@ -181,10 +169,10 @@ export function writeInfoPages(out, tpl) {
     { url: OVER_URL, crumb: "Over ons", h1: "Over Koffieboonus", title: "Over Koffieboonus | Koffieboonus", desc: "Wie zit er achter Koffieboonus, waar komen de koffieaanbiedingen vandaan en hoe bepalen we de volgorde?", body: overBody() },
     { url: CONTACT_URL, crumb: "Contact", h1: "Contact", title: "Contact | Koffieboonus", desc: "Een vraag, een idee of een fout gezien op Koffieboonus? Zo neem je contact op.", body: contactBody() },
     { url: PRIVACY_URL, crumb: "Privacy", h1: "Privacyverklaring", title: "Privacyverklaring | Koffieboonus", desc: "Koffieboonus plaatst geen cookies. Lees welke gegevens er wel gebruikt worden, door wie en waarom.", body: privacyBody() },
-    { url: GELD_URL, crumb: "Hoe verdienen we geld?", h1: "Hoe verdient Koffieboonus geld?", title: "Hoe verdient Koffieboonus geld? | Koffieboonus", desc: "Koffieboonus is gratis. Lees hoe de site geld verdient en waarom dat nooit de volgorde van de aanbiedingen bepaalt.", body: geldBody() },
+    GO_ON && { url: GELD_URL, crumb: "Hoe verdienen we geld?", h1: "Hoe verdient Koffieboonus geld?", title: "Hoe verdient Koffieboonus geld? | Koffieboonus", desc: "Koffieboonus is gratis. Lees hoe de site geld verdient en waarom dat nooit de volgorde van de aanbiedingen bepaalt.", body: geldBody() },
   ];
   const lines = [];
-  for (const d of defs) {
+  for (const d of defs.filter(Boolean)) {
     const dir = path.join(out, d.url);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "index.html"), page(tpl, d));
