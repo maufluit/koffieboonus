@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { BF_ON, BF_URL, bfHomeLink, writeBlackFriday } from "./black-friday.mjs";
 import { feedbackInject } from "./feedback.mjs";
+import { INFO_ON, INFO_URLS, footerLinks, writeInfoPages } from "./extra-paginas.mjs"; // Over ons, Contact, Privacy, Hoe verdienen we geld (site-gegevens.json)
 import { G, footerStatic, homeFaqExtra, SITE_DESC, MK_URL, mkLinkItem, writeMeerkoop } from "./groei.mjs";
 // Verbeteringen voor meer bezoekers (groeiplan): elk met een schakelaar in groei.json. Alles uit = site zoals daarvoor.
 // Black Friday-pagina /black-friday-koffie/: aan/uit en instellingen in black-friday.json (zie black-friday.mjs).
@@ -13,6 +14,7 @@ const OUT = process.argv[2] || "_site";
 const raw = JSON.parse(fs.readFileSync("deals.json", "utf8"));
 let tpl = fs.readFileSync("index.html", "utf8");
 tpl = feedbackInject(tpl); // feedback.json: duimpjes + "Wat miste je?" + anonieme kliktelling. Uit = pagina's ongewijzigd.
+tpl = tpl.replace("</div></footer>", () => footerLinks() + "</div></footer>"); // links naar de informatiepagina's onderaan elke pagina (alleen als ze bestaan)
 const today = new Date().toISOString().slice(0, 10);
 const updated = (raw.updated || today).slice(0, 10);
 const deals = raw.deals.filter(d => (!d.end || d.end >= today) && !(d.next && d.from > today));
@@ -53,7 +55,7 @@ const BRANDS = [...MAIN_BRANDS, ...Object.keys(brandCount).filter(b => !MAIN_BRA
 const taken = new Map(); // slug -> dim
 const dict = { brand: new Map(), sys: new Map(), type: new Map(), shop: new Map() };
 // Vaste adressen van de site zelf ("Goedkoopste ..."-pagina's, Black Friday): die mag een merk nooit innemen.
-const RESERVED = s => /^goedkoopste-/.test(s) || ["black-friday-koffie", "koffie-1-plus-1-gratis", "go"].includes(s);
+const RESERVED = s => /^goedkoopste-/.test(s) || ["black-friday-koffie", "koffie-1-plus-1-gratis", "go", "over", "contact", "privacy", "hoe-verdienen-we-geld"].includes(s);
 function reg(dim, values, slugFn = slug) {
   for (const v of values) {
     const s = slugFn(v);
@@ -362,7 +364,7 @@ function render(url, pg) {
 
   const canon = SITE + url;
   const faq = faqOf(p, list);
-  if (home) faq.unshift(...homeFaqExtra(deals)); // groei.json "uitleg"
+  if (home) faq.unshift(...homeFaqExtra(deals).filter(([q]) => !(INFO_ON && q === "Wie zit er achter Koffieboonus?"))); // groei.json "uitleg"; "Wie zit er achter" staat op /over/ zodra die bestaat
   const trail = crumbs(p);
   const ld = [
     { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: trail.map((t, i) => ({ "@type": "ListItem", position: i + 1, name: t.name, item: SITE + t.url })) },
@@ -549,9 +551,10 @@ if (hubSections.length) {
   if (mk) { const mod = track(MK_URL, mk.list, null, mk.indexable); if (mk.indexable) sitemap.push(`  <url><loc>${SITE}${MK_URL}</loc><lastmod>${mod}</lastmod></url>`); } }
 { const bfList = writeBlackFriday(OUT, tpl, { deals, updated, listHtml, eur, nameOf, mech, hubSections, cheapPages, HUB_URL, hubIndexable, pages, urlOf, labelOf });
   if (bfList) sitemap.push(`  <url><loc>${SITE}${BF_URL}</loc><lastmod>${track(BF_URL, bfList, null, true)}</lastmod></url>`); }
+sitemap.push(...writeInfoPages(OUT, tpl)); // informatiepagina's: vaste datum (privacy_datum), niet in het geheugen van de vaste adressen
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
 // Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)
-const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : []), ...(BF_ON ? [BF_URL] : []), ...(G.meerkoop ? [MK_URL] : [])];
+const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : []), ...(BF_ON ? [BF_URL] : []), ...(G.meerkoop ? [MK_URL] : []), ...(INFO_ON ? INFO_URLS : [])];
 fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}}</style></head><body><h1>Hier is nu geen aanbieding</h1><p>Deze pagina bestaat op dit moment niet: er zijn te weinig aanbiedingen voor deze combinatie, of de aanbieding is afgelopen.</p><p id="near"></p><p><a href="/">Bekijk alle koffie-aanbiedingen</a></p><script>const K=${js(known)};let p=location.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);while(p.length){const u="/"+p.join("/")+"/";if(K.includes(u)){document.getElementById("near").innerHTML='Misschien zoek je <a href="'+u+'">een bredere pagina</a>.';break}p.pop()}</script></body></html>`);
 fs.writeFileSync(path.join(OUT, "paginas.json"), JSON.stringify(memo));
 fs.writeFileSync("gewijzigd.json", JSON.stringify(changed)); // voor indexnow.mjs (staat niet op de site)

@@ -1,0 +1,14 @@
+{
+  "_uitleg": [
+    "Gegevens voor de pagina's Over ons, Contact, Privacy en 'Hoe verdienen we geld?'.",
+    "Zolang naam of e-mail nog een plaatshouder tussen [ ] is, maakt build.mjs deze pagina's NIET.",
+    "Plaats, KvK-nummer en over_mij zijn optioneel: laat de plaatshouder staan of maak het leeg, dan komt die regel niet op de site.",
+    "Alles hier komt OPENBAAR op de site en op GitHub. Zet hier geen wachtwoorden, BSN, bankgegevens of privéadres."
+  ],
+  "naam": "Maurits",
+  "email": "info@koffieboonus.nl",
+  "plaats": "Rotterdam",
+  "kvk": "[KVK-NUMMER]",
+  "over_mij": "Hoi, ik ben Maurits uit Rotterdam. Koffie wordt elk jaar duurder, en eerlijk is eerlijk: ik betaal liever niet de volle prijs voor mijn dagelijkse bakje. Gelukkig is er bijna altijd wel érgens een koffie in de aanbieding. Alleen moest ik daarvoor elke week alle folders doorbladeren, en dat kon slimmer. Zo is Koffieboonus ontstaan: een passieproject waarmee je in een paar tellen ziet waar jouw koffie deze week het voordeligst is. Of je nu bonen, gemalen koffie, pads of cups drinkt. Gemaakt voor mezelf, en voor iedereen die net als ik de beste koffiedeal wil scoren.",
+  "privacy_datum": "2026-11-12"
+}
