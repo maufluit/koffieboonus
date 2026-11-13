@@ -34,7 +34,7 @@ export const HEAD_TERMS = [
     p: { sys: "Nespresso" }, term: "Nespresso cups aanbieding", unit: "cup",
     gids: [
       ["Original of Vertuo?", "Nespresso heeft twee systemen: Original en Vertuo. De capsules passen niet op elkaars machine. Staat er ‘Vertuo’ op de verpakking, dan zijn ze alleen voor een Vertuo-machine."],
-      ["Veel merken maken Original-capsules", "Voor de Original-machines zijn er capsules van veel merken, zoals L'OR, Perla en huismerken. In de supermarkt zijn dat bijna altijd capsules voor de Original."],
+      ["Veel merken maken Original-capsules", "Voor de Original-machines zijn er capsules van veel merken, zoals L'OR, Perla en huismerken. In de supermarkt zijn dat bijna altijd capsules voor de Original. Op deze pagina staan ze erbij, met het label ‘Past in Nespresso’."],
       ["Kijk naar de prijs per cup", "Doosjes hebben verschillende aantallen capsules. Vergelijk daarom op de prijs per cup."],
     ],
   },

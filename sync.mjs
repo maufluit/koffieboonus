@@ -5,7 +5,7 @@ const KEY=process.env.PRIJSPROFEET_API_KEY||"";
 const SHOPS={albert_heijn:"Albert Heijn",jumbo:"Jumbo",plus:"PLUS",dirk:"Dirk",dekamarkt:"DekaMarkt",hoogvliet:"Hoogvliet",poiesz:"Poiesz",vomar:"Vomar",aldi:"Aldi",lidl:"Lidl",ekoplaza:"Ekoplaza",coop:"Coop",gewoon_coop:"Coop",dagwinkel:"Dagwinkel",spar:"SPAR",boons_markt:"Boon's Markt",mcd:"MCD",nettorama:"Nettorama",boni:"Boni"};
 const COFFEE=/koffie|coffee|espresso|cappuccino|latte|macchiato|lungo|ristretto|nespresso|dolce gusto|senseo|mocca|mokka|decaf|café|cafe\b|starbucks|lavazza|illy|segafredo|l'or\b|nescafé?|douwe egberts|bialetti|melitta|kanis|perla|snelfilter|filtermaling/i;
 const BLOCK=/^(absolut|smirnoff|bacardi|baileys|pickwick|pukka|lipton|twinings|teekanne|ariel|dreft|glade|lenor|sun|lucovitaal|persil|robijn|ajax|finish|calgon|vanish|febreze|ambi pur|bref|domestos|andrelon|andrélon|nivea|nivea for men|nivea men|dove|axe|rexona|sanex|becel|hg|rio mare|hertog|ola|de kuyper|chikko not coffee|chikko|streeckgenoten)$/i;
-const SKIP=/\b(earl grey|thee|tea|rooibos|koffiemelk|koffiecreamer|creamer|voor in de koffie|matcha|chai|deodorant|deo|anti-?transpirant|douche\w*|shampoo|bodylotion|bodywash|parfum|eau de \w+|geurkaars\w*|kaars(en)?|reinig\w*|koffiefilters?|filterzakjes|koek(je|jes)?|broodje|wasmiddel|wasverzachter|vaatwas\w*|afwas\w*|allesreiniger|luchtverfrisser|toiletreiniger|tabletten|vitamine\w*|supplement\w*|ontkalk\w*|reiniger|mokken?|glas|glazen?|servies|apparaat|machine|bonbons?|snoep|chocolade|repen|reep|kaas|yoghurt|kwark|vla|pudding|cake|taart|likeur|bier|wijn|roomijs|ijsjes?|ijssalon|ice ?bars?|stroopwafels?|speculaaslatte|sukerlatte|espresso martini|cocktail|golden milk|curcuma|kurkuma|koffievervanger|koffiealternatief|yannoh|cichorei|graankoffie)\b/i;
+const SKIP=/\b(earl grey|thee|tea|rooibos|koffiemelk|koffiecreamer|creamer|voor in de koffie|matcha|chai|deodorant|deo|anti-?transpirant|douche\w*|shampoo|bodylotion|bodywash|parfum|eau de \w+|geurkaars\w*|kaars(en)?|reinig\w*|koffiefilters?|filterzakjes|koek(je|jes)?|broodje|wasmiddel|wasverzachter|vaatwas\w*|afwas\w*|allesreiniger|luchtverfrisser|toiletreiniger|tabletten|vitamine\w*|supplement\w*|ontkalk\w*|reiniger|mokken?|glas|glazen?|servies|apparaat|machine|bonbons?|snoep|chocolade|repen|reep|kaas|yoghurt|kwark|vla|pudding|cake|taart|likeur|bier|wijn|roomijs|ijsjes?|ijssalon|ice ?bars?|stroopwafels?|speculaaslatte|sukerlatte|brownies?|espresso martini|cocktail|golden milk|curcuma|kurkuma|koffievervanger|koffiealternatief|yannoh|cichorei|graankoffie)\b/i;
 const DAYS=["zo","ma","di","wo","do","vr","za"],MON=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
 const E=n=>"€"+Number(n).toFixed(2).replace(".",",");
 const safeUrl=u=>{try{const x=new URL(u);return x.protocol==="https:"?x.href:""}catch{return ""}};
@@ -225,6 +225,22 @@ async function main(){
   const CANON={lor:"L'OR",nescafe:"Nescafé",cafeintencion:"Café Intención",illy:"illy",kanisgunnink:"Kanis & Gunnink",smitdorlas:"Smit & Dorlas",smitendorlas:"Smit & Dorlas",douweegberts:"Douwe Egberts",cafenova:"Café Nova",laplace:"La Place",fairtrade:"Fairtrade",fairtradeoriginal:"Fairtrade Original",bijzonderlekker:"Bijzonder Lekker",byzonderlekker:"Bijzonder Lekker"};
   const cnt={};deals.forEach(d=>{const k=key(d.brand);(cnt[k]=cnt[k]||{})[d.brand]=(cnt[k][d.brand]||0)+1});
   deals.forEach(d=>{const k=key(d.brand);if(!k){d.brand="Overig";return}const v=Object.entries(cnt[k]).sort((a,b)=>b[1]-a[1]);d.brand=CANON[k]||(v.find(([n])=>n!==n.toLowerCase())||v[0])[0]});
+  // Cups die in een Nespresso (Original) passen, ook als "Nespresso" niet op de verpakking staat (wens Maurits, 13 nov).
+  // Alleen als het zeker is: bekende merken met Original-capsules, geen andere systemen, en geen doosjes van 16 of 30 (typisch Dolce Gusto).
+  // Wat twijfelachtig is (bijv. Lavazza: ook A Modo Mio; illy: ook iperEspresso; Starbucks zonder systeem) blijft gewoon onder "Cups".
+  const N_EX=/dolce gusto|tassimo|t-?discs?|vertuo|barista|\bxx?l\b|a modo mio|k-?fee|qbo|cafissimo|combi|senseo|\bpads?\b|iper|espresso point/i;
+  const N_BRANDS=new Set(["L'OR","Douwe Egberts","Segafredo","Nescafé","Café Royal","Perla","Bellarom","Huismerk","AH Excellent","Australian","Vascobelo","Caffè Gondoliere","De Koffiejongens","Fairtrade Original","Biocafe","Kanis & Gunnink","Moyee","Jacobs"]);
+  const nCompat=[];
+  deals.forEach(d=>{
+    const n=d.name||"";
+    if(d.sys==="Nespresso"){if(!/^starbucks$|^nespresso$/i.test(d.brand)&&!/by nespresso/i.test(n)&&/compatib|geschikt/i.test(n))d.compat=1;return}
+    if(d.sys||d.type!=="Cups"||N_EX.test(n)||!N_BRANDS.has(d.brand))return;
+    const st=n.match(/(\d+)\s*(stuks|st\b|capsules)/i);if(st&&(+st[1]===16||+st[1]===30))return;
+    if(!/capsule|cups|\b(espresso|lungo|ristretto|roastery)\b/i.test(n))return;
+    d.sys="Nespresso";d.compat=1;nCompat.push(`${d.shop}: ${d.brand} ${n}`);
+  });
+  console.log(`Past in Nespresso (zonder 'Nespresso' op de verpakking): ${nCompat.length}\n`+nCompat.slice(0,40).join("\n"));
+  console.log("Cups zonder systeem (twijfel, blijven onder Cups):\n"+deals.filter(d=>d.type==="Cups"&&!d.sys).map(d=>`${d.shop}: ${d.brand} ${d.name}`).slice(0,40).join("\n"));
   console.log("Controle twijfelmerken:\n"+deals.filter(d=>/^(Oatly|Pickwick|Roots|Illimani|Overig|The Cup factory|Lazarro)$/.test(d.brand)).map(d=>`${d.brand}: ${d.name} (${d.shop})`).join("\n"));
   console.log("Soort niet herkend (met gegevens, eerste 15):\n"+untyped.slice(0,15).map(u=>JSON.stringify({w:u.retailer,n:u.name,m:u.brand,q:u.quantity,u:u.unit,url:u.url,k:u.savings})).join("\n"));
   console.log("Gecombineerde merken (gesplitst):\n"+combined.slice(0,20).join("\n"));
