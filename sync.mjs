@@ -228,14 +228,15 @@ async function main(){
   // Cups die in een Nespresso (Original) passen, ook als "Nespresso" niet op de verpakking staat (wens Maurits, 13 nov).
   // Alleen als het zeker is: bekende merken met Original-capsules, geen andere systemen, en geen doosjes van 16 of 30 (typisch Dolce Gusto).
   // Wat twijfelachtig is (bijv. Lavazza: ook A Modo Mio; illy: ook iperEspresso; Starbucks zonder systeem) blijft gewoon onder "Cups".
-  const N_EX=/dolce gusto|tassimo|t-?discs?|vertuo|barista|\bxx?l\b|a modo mio|k-?fee|qbo|cafissimo|combi|senseo|\bpads?\b|iper|espresso point/i;
-  const N_BRANDS=new Set(["L'OR","Douwe Egberts","Segafredo","Nescafé","Café Royal","Perla","Bellarom","Huismerk","AH Excellent","Australian","Vascobelo","Caffè Gondoliere","De Koffiejongens","Fairtrade Original","Biocafe","Kanis & Gunnink","Moyee","Jacobs"]);
+  const N_EX=/dolce gusto|tassimo|t-?discs?|vertuo|barista|\bxx?l\b|a modo mio|modo mio|lavazza blue|\bblue\b|k-?fee|qbo|cafissimo|combi|senseo|\bpads?\b|iper|espresso point|\bpoint\b/i;
+  const N_BRANDS=new Set(["L'OR","Douwe Egberts","Segafredo","Nescafé","Café Royal","Perla","Bellarom","Huismerk","AH Excellent","Australian","Vascobelo","Caffè Gondoliere","De Koffiejongens","Fairtrade Original","Biocafe","Kanis & Gunnink","Moyee","Jacobs","illy","Lavazza"]);
+  const N_NO_DG=new Set(["illy","Lavazza"]); // maken geen Dolce Gusto: doosjes van 30 zijn hier gewoon Nespresso-capsules
   const nCompat=[];
   deals.forEach(d=>{
     const n=d.name||"";
     if(d.sys==="Nespresso"){if(!/^starbucks$|^nespresso$/i.test(d.brand)&&!/by nespresso/i.test(n)&&/compatib|geschikt/i.test(n))d.compat=1;return}
     if(d.sys||d.type!=="Cups"||N_EX.test(n)||!N_BRANDS.has(d.brand))return;
-    const st=n.match(/(\d+)\s*(stuks|st\b|capsules)/i);if(st&&(+st[1]===16||+st[1]===30))return;
+    const st=n.match(/(\d+)\s*(stuks|st\b|capsules)/i);if(st&&(+st[1]===16||+st[1]===30)&&!N_NO_DG.has(d.brand))return;
     if(!/capsule|cups|\b(espresso|lungo|ristretto|roastery)\b/i.test(n))return;
     d.sys="Nespresso";d.compat=1;nCompat.push(`${d.shop}: ${d.brand} ${n}`);
   });

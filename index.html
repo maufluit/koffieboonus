@@ -253,7 +253,7 @@ function card(g,best){
   const dealTxt=np?(same(pc)?pc[0]+"% korting":"Tot "+hi+"% korting"):nd?(sameDeal?d.deal.replace(/^Nu voor/,"Actieprijs"):"Actieprijs, zie de lijst"):(sameDeal?d.deal:(mech(d)==="Actieprijs"?discTxt(g):mech(d)));
   const cond=d.qty>1&&g.every(x=>x.qty===d.qty)&&!(!g.some(x=>x.nodisc||x.noprice)&&g.every(multi))?` (bij ${d.qty} stuks)`:mech(d)==="Volume voordeel"?" (bij aankoop van het multipack)":"";
   const allOn=g.every(x=>x.online),allSt=g.every(x=>x.store);
-  const tag=(allOn?tagH("Alleen online"):allSt?tagH("Alleen in de winkel"):"")+(d.compat?tagH("Past in Nespresso"):"");
+  const tag=(allOn?tagH("Alleen online"):allSt?tagH("Alleen in de winkel"):"")+(d.compat&&d.sys?tagH("Past in "+esc(d.sys)):"");
   const title=n>1?esc(d.brand)+" "+(TL[d.type]||d.type.toLowerCase()):esc(d.name);
   const priceType=!nd&&!np&&mech(d)==="Actieprijs";
   const lowNow=fmt(Math.min(...g.map(nowP)));
@@ -309,10 +309,11 @@ function render(){
     const alt=other&&!document.getElementById("tabs").hidden?`<br><button class="link" type="button" data-go="${tab==="next"?"nu":"next"}">${tab==="next"?"Bekijk wat er nu wel in de aanbieding is":"Bekijk volgende week: daar zijn "+other+" producten"}</button>`:"";
     html=names.length?`<div class="empty"><strong>Geen aanbiedingen ${per}</strong> voor ${names.map(esc).join(" · ")}.<br>Op dit moment is dit dus niet in de bonus.${alt}</div>`:`<div class="empty">Er zijn ${per} geen aanbiedingen.${alt}</div>`;
   }
-  // Nespresso gekozen, maar geen cups met "Nespresso" op de verpakking: zeg dat eerlijk en wijs op wat wel past (wens Maurits, 13 nov).
-  if(gs.length&&tab==="nu"&&sel.sys.size===1&&sel.sys.has("Nespresso")&&!out.some(d=>!d.compat)){
+  // Eén systeem gekozen, maar alleen cups/pads die erin passen (niets met de systeemnaam op de verpakking): zeg dat eerlijk en wijs op wat wel past (wens Maurits, 13 nov).
+  const SY=[...sel.sys][0],noun=SY==="Senseo"?"pads":"cups",one=SY==="Senseo"?"pad":"cup";
+  if(gs.length&&tab==="nu"&&sel.sys.size===1&&!out.some(d=>!d.compat)){
     const soon=pick(alive().filter(isNext)).filter(d=>!d.compat).length;
-    html=`<div class="empty nnote">Deze week staan er geen cups met ‘Nespresso’ op de verpakking in de aanbieding. Wel ${out.length} ${out.length===1?"cup die":"cups die"} in je Nespresso ${out.length===1?"past":"passen"}.${soon?`<br><button class="link" type="button" data-go="next">Volgende week: ${soon} ${soon===1?"cup":"cups"} met ‘Nespresso’ op de verpakking</button>`:""}</div>`+html;
+    html=`<div class="empty nnote">Deze week staan er geen ${noun} met ‘${esc(SY)}’ op de verpakking in de aanbieding. Wel ${out.length} ${out.length===1?one+" die":noun+" die"} in je ${esc(SY)} ${out.length===1?"past":"passen"}.${soon?`<br><button class="link" type="button" data-go="next">Volgende week: ${soon} ${soon===1?one:noun} met ‘${esc(SY)}’ op de verpakking</button>`:""}</div>`+html;
   }
   document.getElementById("list").innerHTML=html;
   presetNote();
