@@ -77,6 +77,23 @@ export const HEAD_TERMS = [
       ["Aanbiedingen wisselen per supermarkt", "Douwe Egberts is vaak bij één of twee supermarkten tegelijk in de aanbieding. Hieronder zie je per supermarkt wat er nu is."],
     ],
   },
+  // Supermarktpagina's (besluit Maurits 13 nov: groeifocus). Hier een overzicht per soort koffie in plaats van per supermarkt (by: "type").
+  {
+    p: { shop: "Jumbo" }, term: "Jumbo koffie aanbieding", unit: null, by: "type",
+    gids: [
+      ["Wanneer wisselen de aanbiedingen?", "De weekaanbiedingen van Jumbo lopen van woensdag tot en met dinsdag. Onder ‘Volgende week’ zie je de nieuwe aanbiedingen zodra ze bekend zijn."],
+      ["Vergelijk de prijs per kilo, pad of cup", "Pakken en doosjes hebben verschillende maten. Daarom zetten we de prijs per kilo, pad of cup erbij, als we die zeker weten."],
+      ["Persoonlijke aanbiedingen", "Hier staan de aanbiedingen uit de weekfolder. Persoonlijke aanbiedingen in de app van Jumbo kunnen ontbreken."],
+    ],
+  },
+  {
+    p: { shop: "Albert Heijn" }, term: "Albert Heijn koffie aanbieding", unit: null, by: "type",
+    gids: [
+      ["Wanneer wisselen de aanbiedingen?", "De Bonus-week van Albert Heijn loopt van maandag tot en met zondag. Onder ‘Volgende week’ zie je de nieuwe aanbiedingen zodra ze bekend zijn."],
+      ["Vergelijk de prijs per kilo, pad of cup", "Pakken en doosjes hebben verschillende maten. Daarom zetten we de prijs per kilo, pad of cup erbij, als we die zeker weten."],
+      ["Persoonlijke Bonus", "Hier staan de aanbiedingen uit de Bonusfolder. Persoonlijke Bonus-aanbiedingen in de Appie-app kunnen ontbreken."],
+    ],
+  },
 ];
 
 const key = p => JSON.stringify(Object.keys(p).sort().map(k => [k, p[k]]));

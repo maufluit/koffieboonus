@@ -311,6 +311,7 @@ function ztPopular(url, p) {
 function ztBlocks(p, list) {
   const h = ZT.paginas ? headOf(p) : null;
   if (!h || !list.length) return "";
+  if (h.by === "type") return ztByType(h, p, list);
   const rows = counts(list, "shop").map(([s, c]) => {
     const ls = list.filter(d => d.shop === s), disc = ls.filter(d => !d.nodisc && d.pct > 0);
     const max = disc.length ? Math.max(...disc.map(d => d.pct)) : 0;
@@ -321,6 +322,22 @@ function ztBlocks(p, list) {
   });
   const table = `<section class="zt"><h2>${esc(h.term)} per supermarkt</h2><p>Op ${dateNL(updated)} zijn er aanbiedingen bij ${plural(rows.length, "supermarkt", "supermarkten")}. Klik op een supermarkt voor alle aanbiedingen daar.</p><div class="ztwrap"><table class="zttab"><thead><tr><th scope="col">Supermarkt</th><th scope="col">Aanbiedingen</th><th scope="col">Hoogste korting</th>${h.unit ? `<th scope="col">Laagste prijs per ${h.unit}</th>` : ""}</tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
   const gids = `<section class="zt"><h2>Waar let je op bij ${esc(sentLabel(p))} in de aanbieding?</h2>${h.gids.map(([t, x]) => `<h3>${esc(t)}</h3><p>${esc(x)}</p>`).join("")}</section>`;
+  return table + gids;
+}
+
+// Supermarktpagina's: overzicht per soort koffie (de supermarkt staat al vast).
+const UNIT_OF_TYPE = { "Bonen": "kilo", "Gemalen koffie": "kilo", "Pads": "pad", "Cups": "cup" };
+function ztByType(h, p, list) {
+  const rows = TYPES.map(t => [t, list.filter(d => d.type === t)]).filter(([, ls]) => ls.length).map(([t, ls]) => {
+    const disc = ls.filter(d => !d.nodisc && d.pct > 0), max = disc.length ? Math.max(...disc.map(d => d.pct)) : 0;
+    const unit = UNIT_OF_TYPE[t], pp = unit ? ls.filter(d => d.pp != null && d.pu === unit).map(d => d.pp) : [];
+    const u = urlOf({ ...p, type: t }), pg = pages.get(u), lab = cap(low(labelOf({ type: t })));
+    const name = pg && pg.indexable && pg.list.length ? `<a href="${u}">${esc(lab)}</a>` : esc(lab);
+    return `<tr><th scope="row">${name}</th><td>${ls.length}</td><td>${max ? max + "%" : "–"}</td><td>${pp.length ? `${eur(Math.min(...pp))} per ${unit}` : "–"}</td></tr>`;
+  });
+  if (!rows.length) return "";
+  const table = `<section class="zt"><h2>${esc(h.term)} per soort</h2><p>Op ${dateNL(updated)} heeft ${esc(p.shop)} ${plural(list.length, "koffieaanbieding", "koffieaanbiedingen")}. Klik op een soort voor alle aanbiedingen daarvan.</p><div class="ztwrap"><table class="zttab"><thead><tr><th scope="col">Soort</th><th scope="col">Aanbiedingen</th><th scope="col">Hoogste korting</th><th scope="col">Laagste prijs</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
+  const gids = `<section class="zt"><h2>Waar let je op bij koffie in de aanbieding bij ${esc(p.shop)}?</h2>${h.gids.map(([t, x]) => `<h3>${esc(t)}</h3><p>${esc(x)}</p>`).join("")}</section>`;
   return table + gids;
 }
 
