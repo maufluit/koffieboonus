@@ -240,6 +240,16 @@ async function main(){
     if(!/capsule|cups|\b(espresso|lungo|ristretto|roastery)\b/i.test(n))return;
     d.sys="Nespresso";d.compat=1;nCompat.push(`${d.shop}: ${d.brand} ${n}`);
   });
+  // Zelfde idee voor de andere systemen (13 nov):
+  // Dolce Gusto: "Combi"-cups (een melk- en een koffiecapsule per kopje) zijn het Dolce Gusto-formaat; Nespresso heeft geen melkcapsules.
+  // Senseo: gewone koffiepads uit de supermarkt passen in een Senseo; ESE-/espressopads (44 mm, papier) niet.
+  const oCompat=[];
+  deals.forEach(d=>{
+    const n=d.name||"";if(d.sys)return;
+    if(d.type==="Cups"&&/combi/i.test(n)&&/latte|cappuccino|macchiato|caf[eé] au lait/i.test(n)&&!/tassimo|t-?disc|nespresso/i.test(n)){d.sys="Dolce Gusto";d.compat=1;oCompat.push(`DG ${d.shop}: ${d.brand} ${n}`)}
+    else if(d.type==="Pads"&&!/\bese\b|espresso ?pads|44 ?mm|tassimo|dolce gusto|nespresso/i.test(n)){d.sys="Senseo";d.compat=1;oCompat.push(`Senseo ${d.shop}: ${d.brand} ${n}`)}
+  });
+  console.log(`Past in Dolce Gusto/Senseo (afgeleid): ${oCompat.length}\n`+oCompat.slice(0,30).join("\n"));
   console.log(`Past in Nespresso (zonder 'Nespresso' op de verpakking): ${nCompat.length}\n`+nCompat.slice(0,40).join("\n"));
   console.log("Cups zonder systeem (twijfel, blijven onder Cups):\n"+deals.filter(d=>d.type==="Cups"&&!d.sys).map(d=>`${d.shop}: ${d.brand} ${d.name}`).slice(0,40).join("\n"));
   console.log("Controle twijfelmerken:\n"+deals.filter(d=>/^(Oatly|Pickwick|Roots|Illimani|Overig|The Cup factory|Lazarro)$/.test(d.brand)).map(d=>`${d.brand}: ${d.name} (${d.shop})`).join("\n"));
