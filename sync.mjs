@@ -249,6 +249,8 @@ async function main(){
     if(d.type==="Cups"&&/combi/i.test(n)&&/latte|cappuccino|macchiato|caf[eé] au lait/i.test(n)&&!/tassimo|t-?disc|nespresso/i.test(n)){d.sys="Dolce Gusto";d.compat=1;oCompat.push(`DG ${d.shop}: ${d.brand} ${n}`)}
     else if(d.type==="Pads"&&!/\bese\b|espresso ?pads|44 ?mm|tassimo|dolce gusto|nespresso/i.test(n)){d.sys="Senseo";d.compat=1;oCompat.push(`Senseo ${d.shop}: ${d.brand} ${n}`)}
   });
+  // Nespresso heeft twee systemen: Original en Vertuo (bolle cups). Die passen niet in elkaars machine (ook Starbucks maakt beide). Vertuo krijgt een eigen label.
+  deals.forEach(d=>{if(d.sys==="Nespresso"&&/vertuo/i.test((d.brand||"")+" "+(d.name||""))){d.vertuo=1;delete d.compat}});
   console.log(`Past in Dolce Gusto/Senseo (afgeleid): ${oCompat.length}\n`+oCompat.slice(0,30).join("\n"));
   console.log(`Past in Nespresso (zonder 'Nespresso' op de verpakking): ${nCompat.length}\n`+nCompat.slice(0,40).join("\n"));
   console.log("Cups zonder systeem (twijfel, blijven onder Cups):\n"+deals.filter(d=>d.type==="Cups"&&!d.sys).map(d=>`${d.shop}: ${d.brand} ${d.name}`).slice(0,40).join("\n"));

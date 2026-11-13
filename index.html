@@ -253,7 +253,7 @@ function card(g,best){
   const dealTxt=np?(same(pc)?pc[0]+"% korting":"Tot "+hi+"% korting"):nd?(sameDeal?d.deal.replace(/^Nu voor/,"Actieprijs"):"Actieprijs, zie de lijst"):(sameDeal?d.deal:(mech(d)==="Actieprijs"?discTxt(g):mech(d)));
   const cond=d.qty>1&&g.every(x=>x.qty===d.qty)&&!(!g.some(x=>x.nodisc||x.noprice)&&g.every(multi))?` (bij ${d.qty} stuks)`:mech(d)==="Volume voordeel"?" (bij aankoop van het multipack)":"";
   const allOn=g.every(x=>x.online),allSt=g.every(x=>x.store);
-  const tag=(allOn?tagH("Alleen online"):allSt?tagH("Alleen in de winkel"):"")+(d.compat&&d.sys?tagH("Past in "+esc(d.sys)):"");
+  const tag=(allOn?tagH("Alleen online"):allSt?tagH("Alleen in de winkel"):"")+(d.vertuo?tagH("Alleen voor Vertuo"):d.compat&&d.sys?tagH("Past in "+esc(d.sys)):"");
   const title=n>1?esc(d.brand)+" "+(TL[d.type]||d.type.toLowerCase()):esc(d.name);
   const priceType=!nd&&!np&&mech(d)==="Actieprijs";
   const lowNow=fmt(Math.min(...g.map(nowP)));
@@ -295,7 +295,7 @@ function render(){
   document.getElementById("sortrow").hidden=out.length<2||!us.length;
   document.getElementById("ppnote").hidden=!us.length;
   const map=new Map();
-  out.forEach(d=>{const k=[d.shop,d.brand,d.type,mech(d),d.until,d.nodisc?"n":"",d.noprice?"p":"",d.compat?"c":""].join("|");if(!map.has(k))map.set(k,[]);map.get(k).push(d)});
+  out.forEach(d=>{const k=[d.shop,d.brand,d.type,mech(d),d.until,d.nodisc?"n":"",d.noprice?"p":"",d.compat?"c":"",d.vertuo?"v":""].join("|");if(!map.has(k))map.set(k,[]);map.get(k).push(d)});
   const lowPP=g=>{const v=g.filter(x=>x.pp!=null).map(x=>x.pp);return v.length?Math.min(...v):Infinity};
   const gs=[...map.values()].sort((a,b)=>{const byPct=Math.max(...b.map(x=>x.pct))-Math.max(...a.map(x=>x.pct));return sortBy==="pp"?(lowPP(a)-lowPP(b))||byPct:byPct});
   if(sortBy==="pp")document.getElementById("hint").textContent=document.getElementById("hint").textContent.replace("Gesorteerd op hoogste korting.","Gesorteerd op laagste prijs per "+us[0]+".");
