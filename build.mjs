@@ -6,6 +6,7 @@ import { BF_ON, BF_URL, bfHomeLink, writeBlackFriday } from "./black-friday.mjs"
 import { feedbackInject } from "./feedback.mjs";
 import { INFO_ON, INFO_URLS, footerLinks, writeInfoPages } from "./extra-paginas.mjs"; // Over ons, Contact, Privacy, Hoe verdienen we geld (site-gegevens.json)
 import { G, footerStatic, homeFaqExtra, SITE_DESC, MK_URL, mkLinkItem, mkIndexable, writeMeerkoop } from "./groei.mjs";
+import { NU, isCombo, nudgeInject } from "./nudge.mjs"; // nudging (nudge.json). Uit = site ongewijzigd.
 import { BN, VINDBAAR, brandNote, autoShopHead } from "./bijna.mjs"; // bijna op pagina 1 (bijna.json). Uit = site ongewijzigd.
 import { ZT, HEAD_TERMS, headOf as headOf0 } from "./zoektermen.mjs"; // grote zoektermen (zoektermen.json). Uit = site ongewijzigd.
 import { gemakInject, writeManifest } from "./gemak.mjs"; // favoriete supermarkt, beginscherm, delen (gemak.json). Uit = site ongewijzigd.
@@ -17,9 +18,11 @@ const OUT = process.argv[2] || "_site";
 const raw = JSON.parse(fs.readFileSync("deals.json", "utf8"));
 let tpl = fs.readFileSync("index.html", "utf8");
 tpl = gemakInject(tpl); // gemak.json: favoriete supermarkt, op beginscherm zetten, delen
+tpl = nudgeInject(tpl); // nudge.json: labels onder de productnaam, eerste scherm op de telefoon, laatste dag
 tpl = feedbackInject(tpl); // feedback.json: duimpjes + "Wat miste je?" + anonieme kliktelling. Uit = pagina's ongewijzigd.
 tpl = tpl.replace("</div></footer>", () => footerLinks() + "</div></footer>"); // links naar de informatiepagina's onderaan elke pagina (alleen als ze bestaan)
 if (ZT.paginas) tpl = tpl.replace("</style>", () => ".zt{margin:28px 0 0}.zt h2{font-size:20px;color:var(--title);margin:0 0 8px}.zt h3{font-size:16px;color:var(--title);margin:16px 0 4px}.zt p{margin:0 0 8px;max-width:70ch}.ztwrap{overflow-x:auto}.zttab{border-collapse:separate;border-spacing:0;width:100%;max-width:720px;background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:15px}.zttab th,.zttab td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}.zttab th:first-child{text-align:left;white-space:normal}.zttab thead th{font-size:13px;color:var(--mute);font-weight:600}.zttab tbody tr:last-child th,.zttab tbody tr:last-child td{border-bottom:0}.zttab a{color:var(--ink);font-weight:600}@media (max-width:480px){.zttab th,.zttab td{padding:8px 7px}.zttab thead th{white-space:normal}}</style>");
+if (NU.goedkoopste) tpl = tpl.replace("</style>", () => ".hublist{margin:8px 0 0;padding-left:20px}.hublist li{margin:2px 0}.hublist a{color:var(--ink);font-weight:600}.hubsec{scroll-margin-top:12px}</style>");
 if (BN.systemen || BN.vindbaar) tpl = tpl.replace("</style>", () => ".sysline{margin:10px 0 0;max-width:70ch}.sysline a{color:var(--ink);font-weight:600}.hubsec.nxt{margin-top:24px}</style>");
 const today = new Date().toISOString().slice(0, 10);
 const updated = (raw.updated || today).slice(0, 10);
@@ -207,7 +210,7 @@ const cheapPages = new Map(); // url -> {c, list, ranked, indexable}
 for (const c of CHEAP) {
   if (taken.has(c.slug)) { console.warn(`Slug-botsing overgeslagen: ${c.slug}`); continue; }
   const list = deals.filter(d => match(d, c.f));
-  const ranked = list.filter(d => d.pp != null && d.pu === c.unit).sort((a, b) => a.pp - b.pp || b.pct - a.pct);
+  const ranked = list.filter(d => d.pp != null && d.pu === c.unit && !isCombo(d)).sort((a, b) => a.pp - b.pp || b.pct - a.pct);
   cheapPages.set(`/${c.slug}/`, { c, list, ranked, indexable: ranked.length >= MIN_CHEAP });
 }
 // Overzichtspagina "Goedkoopste koffie": per soort de 3 goedkoopste, met links naar de volledige lijsten.
@@ -248,6 +251,7 @@ function multiOf(d) {
   if ((m = d.deal.match(/^(\d+) voor €([\d,]+)/))) return { q: +m[1], t: parseFloat(m[2].replace(",", ".")), r };
   return null;
 }
+const tagS = d => d.vertuo ? ` <span class="tag">Alleen voor Vertuo</span>` : d.compat && d.sys ? ` <span class="tag">Past in ${esc(d.sys)}</span>` : "";
 function listHtml(list, o = {}) {
   const sorted = [...list].sort(o.sort || ((a, b) => b.pct - a.pct)).slice(0, o.limit || 80);
   const nowS = d => (d.deal.match(/€[\d,]+/) || [""])[0];
@@ -259,7 +263,7 @@ function listHtml(list, o = {}) {
     const price = d.noprice || d.nodisc ? "" : mm ? `<div class="pnow mk">${mm.q} voor ${eur(mm.t)} <s class="reg">${eur(mm.q * mm.r)}</s></div>` : priceType ? `<div class="pnow">${esc(nowS(d))} <s class="reg">${esc(d.reg)}</s></div>` : `<span class="reg">${esc(d.reg)}</span>`;
     const badge = d.noprice ? d.deal : d.nodisc ? d.deal.replace(/^Nu voor/, "Actieprijs") : priceType ? `${d.pct}% korting` : mech(d);
     const note = d.noprice ? `<div class="meta sub">Prijs onbekend, check de winkel</div>` : d.nodisc ? `<div class="meta sub">Normale prijs onbekend</div>` : "";
-    return `<div class="row" data-k="${esc(d.id + "~" + d.shop)}"><div class="name">${o.rank ? `<span class="rk">${i + 1}.</span> ` : ""}${esc(d.name)}<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div></div><div class="who"><div class="shop">${chip(d.shop)}<span class="wd"> · ${esc(d.until)}</span>${d.vertuo ? ` <span class="tag">Alleen voor Vertuo</span>` : d.compat && d.sys ? ` <span class="tag">Past in ${esc(d.sys)}</span>` : ""}</div></div><div class="act"><span class="deal">${esc(badge)}</span><div class="meta">${esc(d.until)}</div></div><div class="pr">${price}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}${note}</div>${d.url ? `<div class="gocell"><a class="go" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>` : `<div class="gocell"></div>`}</div>`;
+    return `<div class="row" data-k="${esc(d.id + "~" + d.shop)}"><div class="name">${o.rank ? `<span class="rk">${i + 1}.</span> ` : ""}${esc(d.name)}<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div>${NU.label && tagS(d) ? `<div class="tags">${tagS(d)}</div>` : ""}</div><div class="who"><div class="shop">${chip(d.shop)}<span class="wd"> · ${esc(d.until)}</span>${NU.label ? "" : tagS(d)}</div></div><div class="act"><span class="deal">${esc(badge)}</span><div class="meta">${esc(d.until)}</div></div><div class="pr">${price}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}${note}</div>${d.url ? `<div class="gocell"><a class="go" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>` : `<div class="gocell"></div>`}</div>`;
   }).join("");
 }
 
@@ -349,7 +353,7 @@ function ztBlocks(p, list) {
     const name = pg && pg.indexable && pg.list.length ? `<a href="${u}">${esc(s)}</a>` : esc(s);
     return `<tr><th scope="row">${name}</th><td>${c}</td><td>${max ? max + "%" : "–"}</td>${h.unit ? `<td>${pp.length ? eur(Math.min(...pp)) : "–"}</td>` : ""}</tr>`;
   });
-  const table = `<section class="zt"><h2>${esc(h.term)} per supermarkt</h2><p>Op ${dateNL(updated)} zijn er aanbiedingen bij ${plural(rows.length, "supermarkt", "supermarkten")}. Klik op een supermarkt voor alle aanbiedingen daar.</p><div class="ztwrap"><table class="zttab"><thead><tr><th scope="col">Supermarkt</th><th scope="col">Aanbiedingen</th><th scope="col">Hoogste korting</th>${h.unit ? `<th scope="col">Laagste prijs per ${h.unit}</th>` : ""}</tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
+  const table = `<section class="zt"${NU.sprong ? ' id="overzicht"' : ""}><h2>${esc(h.term)} per supermarkt</h2><p>Op ${dateNL(updated)} zijn er aanbiedingen bij ${plural(rows.length, "supermarkt", "supermarkten")}. Klik op een supermarkt voor alle aanbiedingen daar.</p><div class="ztwrap"><table class="zttab"><thead><tr><th scope="col">Supermarkt</th><th scope="col">Aanbiedingen</th><th scope="col">Hoogste korting</th>${h.unit ? `<th scope="col">Laagste prijs per ${h.unit}</th>` : ""}</tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
   const gids = `<section class="zt"><h2>Waar let je op bij ${esc(sentLabel(p))} in de aanbieding?</h2>${h.gids.map(([t, x]) => `<h3>${esc(t)}</h3><p>${esc(x)}</p>`).join("")}</section>`;
   return table + gids;
 }
@@ -369,7 +373,7 @@ function ztByType(h, p, list) {
   const mkTxt = k11 ? ` ${k11 === 1 ? "Eén daarvan is" : `${k11} daarvan zijn`} 1+1 gratis${G.meerkoop && mkIndexable(deals) ? ` (<a href="${MK_URL}">alle 1+1-acties</a>)` : ""}.` : "";
   let gidsList = h.gids;
   if (h.auto) { const un = counts(list.filter(d => d.until), "until")[0]; if (un) gidsList = [["Tot wanneer lopen de aanbiedingen?", `De meeste aanbiedingen bij ${p.shop} lopen nu ${un[0]}. Onder ‘Volgende week’ zie je de nieuwe aanbiedingen zodra ze bekend zijn.`], ...h.gids]; }
-  const table = `<section class="zt"><h2>${esc(h.term)} per soort</h2><p>Op ${dateNL(updated)} heeft ${esc(p.shop)} ${plural(list.length, "koffieaanbieding", "koffieaanbiedingen")}.${mkTxt} Klik op een soort voor alle aanbiedingen daarvan.</p><div class="ztwrap"><table class="zttab"><thead><tr><th scope="col">Soort</th><th scope="col">Aantal</th><th scope="col">Max. korting</th><th scope="col">Laagste prijs</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
+  const table = `<section class="zt"${NU.sprong ? ' id="overzicht"' : ""}><h2>${esc(h.term)} per soort</h2><p>Op ${dateNL(updated)} heeft ${esc(p.shop)} ${plural(list.length, "koffieaanbieding", "koffieaanbiedingen")}.${mkTxt} Klik op een soort voor alle aanbiedingen daarvan.</p><div class="ztwrap"><table class="zttab"><thead><tr><th scope="col">Soort</th><th scope="col">Aantal</th><th scope="col">Max. korting</th><th scope="col">Laagste prijs</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
   const gids = `<section class="zt"><h2>Waar let je op bij koffie in de aanbieding bij ${esc(p.shop)}?</h2>${gidsList.map(([t, x]) => `<h3>${esc(t)}</h3><p>${esc(x)}</p>`).join("")}</section>`;
   return table + gids;
 }
@@ -442,7 +446,7 @@ function render(url, pg) {
   if (n) {
     intro = home
       ? `Op ${dateNL(updated)} zijn er ${n} koffie-aanbiedingen bij ${shopsN} supermarkten. Kies hieronder je supermarkt, merk of soort koffie, of bekijk de goedkoopste koffiebonen, cups en pads.`
-      : `Op ${dateNL(updated)} ${n === 1 ? "is" : "zijn"} er ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}.${top ? ` De grootste korting is ${max}%: ${nameOf(top)}${p.shop ? "" : ` bij ${top.shop}`}.` : ""} Hieronder staan alle aanbiedingen, de filters kun je zelf aanpassen.`;
+      : `Op ${dateNL(updated)} ${n === 1 ? "is" : "zijn"} er ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}.${top ? ` De grootste korting is ${max}%: ${nameOf(top)}${p.shop ? "" : ` bij ${top.shop}`}.` : ""}${NU.eerstescherm ? "" : " Hieronder staan alle aanbiedingen, de filters kun je zelf aanpassen."}`;
   } else intro = `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Zodra er weer een is, staat die hier. Bekijk intussen de andere aanbiedingen.`;
   // bijna.json "vindbaar": eerlijk antwoord op een lege pagina + de aanbiedingen van volgende week
   const nxt = pg.vind && !n ? upcoming.filter(d => match(d, p)) : [];
@@ -471,7 +475,13 @@ function render(url, pg) {
     ...ld.map(o => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`),
   ].join("\n");
   const crumbHtml = home ? "" : `<nav class="crumbs" aria-label="Kruimelpad">${trail.map((t, i) => i < trail.length - 1 ? `<a href="${t.url}">${esc(t.name)}</a>` : `<span aria-current="page">${esc(t.name)}</span>`).join(" › ")}</nav>`;
-  const top_ = `<section class="pagehead">${crumbHtml}<h1>${esc(h1)}</h1><p class="intro">${home && n ? esc(intro).replace("goedkoopste koffiebonen, cups en pads", `<a href="${HUB_URL}">goedkoopste koffiebonen, cups en pads</a>`) : esc(intro)}</p></section>`;
+  let extra = "";
+  { const h = NU.sprong && ZT.paginas && n ? headOf(p) : null; if (h) extra += `<p class="jump"><a href="#overzicht">${h.by === "type" ? "Overzicht per soort" : "Overzicht per supermarkt"} ↓</a></p>`; } // nudge.json "sprong"
+  if (NU.nubij && n && p.brand && Object.keys(p).length === 1 && !headOf(p)) { // nudge.json "nubij"
+    const parts = counts(list, "shop").map(([s, c]) => { const u = urlOf({ ...p, shop: s }), pg2 = pages.get(u); return `${pg2 && pg2.indexable && pg2.list.length ? `<a href="${u}">${esc(s)}</a>` : esc(s)} (${c})`; });
+    if (parts.length > 1) extra += `<p class="jump">Nu bij: ${parts.join(" · ")}</p>`;
+  }
+  const top_ = `<section class="pagehead">${crumbHtml}<h1>${esc(h1)}</h1><p class="intro">${home && n ? esc(intro).replace("goedkoopste koffiebonen, cups en pads", `<a href="${HUB_URL}">goedkoopste koffiebonen, cups en pads</a>`) : esc(intro)}</p>${extra}</section>`;
   let altHtml = "";
   if (!n) {
     const alt = alternativesOf(p, pg.t || KNOWN_PAGES[url]?.t || (p.sys ? { "Dolce Gusto": "Cups", Nespresso: "Cups", Senseo: "Pads", Tassimo: "Cups" }[p.sys] : null));
@@ -589,8 +599,10 @@ function renderHub() {
     `<meta property="og:image" content="${SITE}/logo-volledig.png"><meta name="twitter:card" content="summary">`,
     ...ld.map(o => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`),
   ].join("\n");
-  const top_ = `<section class="pagehead"><nav class="crumbs" aria-label="Kruimelpad"><a href="/">Koffieboonus</a> › <span aria-current="page">Goedkoopste koffie</span></nav><h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p></section>`;
-  const body = hubSections.map(g => `<section class="hubsec"><h2>Goedkoopste ${esc(g.c.word)}</h2>${listHtml(g.ranked, { sort: byPP, limit: 3, rank: true })}<p><a href="/${g.c.slug}/">Bekijk alle goedkoopste ${esc(g.c.word)} ›</a></p></section>`).join("");
+  const top_ = `<section class="pagehead"><nav class="crumbs" aria-label="Kruimelpad"><a href="/">Koffieboonus</a> › <span aria-current="page">Goedkoopste koffie</span></nav><h1>${esc(h1)}</h1>${NU.goedkoopste
+    ? `<p class="intro">De goedkoopste aanbiedingen van ${dateNL(updated)}, per soort koffie. We rekenen om naar een prijs per kilo of per stuk.</p><ul class="hublist">${hubSections.map(g => `<li><a href="#g-${g.c.slug}">${esc(cap(g.c.word))}</a>: vanaf ${eur(g.ranked[0].pp)} per ${g.c.unit} bij ${esc(g.ranked[0].shop)}</li>`).join("")}</ul>`
+    : `<p class="intro">${esc(intro)}</p>`}</section>`;
+  const body = hubSections.map(g => `<section class="hubsec"${NU.goedkoopste ? ` id="g-${g.c.slug}"` : ""}><h2>Goedkoopste ${esc(g.c.word)}</h2>${listHtml(g.ranked, { sort: byPP, limit: 3, rank: true })}<p><a href="/${g.c.slug}/">Bekijk alle goedkoopste ${esc(g.c.word)} ›</a></p></section>`).join("");
   const items = [...cheapPages].filter(([, g]) => g.indexable).map(([u, g]) => `<li><a href="${u}">Goedkoopste ${esc(g.c.word)}</a></li>`);
   { const mk = mkLinkItem(deals); if (mk) items.push(mk); } // groei.json "meerkoop"
   items.push(`<li><a href="/">Alle koffie-aanbiedingen</a></li>`);

@@ -1,0 +1,18 @@
+{
+  "_uitleg": [
+    "Nudging-verbeteringen (Fable-weekend blok 1, 14 nov 2026), zie nudge.mjs. aan = false: de site is letter voor letter gelijk aan daarvoor.",
+    "label: 'Past in Nespresso', 'Alleen online' enz. staan onder de productnaam (was: naast de supermarkt).",
+    "eerstescherm: op de telefoon staat de eerste aanbieding in het eerste scherm: kleinere kop, inleiding van 3 regels (tik = alles lezen), tabknoppen naast elkaar, filters als rij om te vegen, uitleg over de sortering onder de lijst. Op alle schermen: 'Type koffie' boven 'Supermarkt'.",
+    "sprong: op de zoektermpagina's een link 'Per supermarkt' / 'Per soort' naar het overzicht onderaan.",
+    "nubij: op een merkpagina een regel 'Nu bij: ...' met de supermarkten.",
+    "goedkoopste: /goedkoopste-koffie/ krijgt een korte inleiding met één regel per soort; combinatieacties ('pak 500 gram of zak 54 stuks') tellen niet mee in de goedkoopste-lijsten.",
+    "laatstedag: bij een aanbieding die vandaag afloopt staat 'laatste dag', bij morgen 't/m morgen'."
+  ],
+  "aan": true,
+  "label": true,
+  "eerstescherm": true,
+  "sprong": true,
+  "nubij": true,
+  "goedkoopste": true,
+  "laatstedag": true
+}
