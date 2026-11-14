@@ -7,5 +7,7 @@
   "/dolce-gusto/jumbo/": {"sys": "Dolce Gusto", "shop": "Jumbo"},
   "/dolce-gusto/dirk/": {"sys": "Dolce Gusto", "shop": "Dirk"},
   "/ijskoffie/plus/": {"type": "IJskoffie & koffiedrank", "shop": "PLUS"},
-  "/nescafe/jumbo/": {"brand": "Nescafé", "shop": "Jumbo"}
+  "/nescafe/jumbo/": {"brand": "Nescafé", "shop": "Jumbo"},
+  "/starbucks/albert-heijn/": {"brand": "Starbucks", "shop": "Albert Heijn"},
+  "/koffiebonen/vomar/": {"type": "Bonen", "shop": "Vomar"}
 }

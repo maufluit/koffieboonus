@@ -1,0 +1,24 @@
+{
+  "_uitleg": [
+    "Verbeteringen 'bijna op pagina 1' (Fable-weekend blok 1, 14 nov 2026), zie bijna.mjs.",
+    "aan = false: de site is letter voor letter gelijk aan daarvoor.",
+    "winkels: alle supermarktpagina's krijgen dezelfde opzet als /jumbo/ en /albert-heijn/ (kop 'Hoogvliet koffie aanbieding deze week', overzicht per soort, uitleg).",
+    "vindbaar: de pagina's in 'vindbaar_paginas' blijven in Google staan als er even geen aanbieding is, met een eerlijk antwoord ('nu niet'), de aanbiedingen van volgende week en wat er wel is. Alleen pagina's waar mensen aantoonbaar op zoeken (Search Console).",
+    "vragen: op supermarktpagina's de vragen 'Is er deze week koffie 1+1 gratis bij ...?' en 'Wat kost een kilo koffie bij ... deze week?', plus een zin over 1+1 in het overzicht.",
+    "systemen: op /goedkoopste-koffiecups/ een regel met de laagste prijs per cup per machine (Nespresso, Dolce Gusto).",
+    "merknotities: een vaste zin bij een merk (Perla is het huismerk van Albert Heijn).",
+    "De titels en omschrijvingen in Google veranderen niet."
+  ],
+  "aan": true,
+  "winkels": true,
+  "vindbaar": true,
+  "vragen": true,
+  "systemen": true,
+  "merknotities": true,
+  "vindbaar_paginas": [
+    "/perla/", "/perla/cups/", "/starbucks/albert-heijn/", "/lor/cups/albert-heijn/", "/lor/cups/hoogvliet/",
+    "/cafe-nova/", "/cafe-nova/koffiebonen/", "/simon-levelt/", "/koffiebonen/vomar/", "/cups/vomar/", "/vomar/",
+    "/koffiebonen/hoogvliet/", "/cups/hoogvliet/", "/douwe-egberts/hoogvliet/", "/douwe-egberts/nettorama/",
+    "/gemalen-koffie/nettorama/", "/nettorama/", "/coop/"
+  ]
+}

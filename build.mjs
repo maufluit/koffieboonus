@@ -5,8 +5,9 @@ import path from "node:path";
 import { BF_ON, BF_URL, bfHomeLink, writeBlackFriday } from "./black-friday.mjs";
 import { feedbackInject } from "./feedback.mjs";
 import { INFO_ON, INFO_URLS, footerLinks, writeInfoPages } from "./extra-paginas.mjs"; // Over ons, Contact, Privacy, Hoe verdienen we geld (site-gegevens.json)
-import { G, footerStatic, homeFaqExtra, SITE_DESC, MK_URL, mkLinkItem, writeMeerkoop } from "./groei.mjs";
-import { ZT, HEAD_TERMS, headOf } from "./zoektermen.mjs"; // grote zoektermen (zoektermen.json). Uit = site ongewijzigd.
+import { G, footerStatic, homeFaqExtra, SITE_DESC, MK_URL, mkLinkItem, mkIndexable, writeMeerkoop } from "./groei.mjs";
+import { BN, VINDBAAR, brandNote, autoShopHead } from "./bijna.mjs"; // bijna op pagina 1 (bijna.json). Uit = site ongewijzigd.
+import { ZT, HEAD_TERMS, headOf as headOf0 } from "./zoektermen.mjs"; // grote zoektermen (zoektermen.json). Uit = site ongewijzigd.
 import { gemakInject, writeManifest } from "./gemak.mjs"; // favoriete supermarkt, beginscherm, delen (gemak.json). Uit = site ongewijzigd.
 // Verbeteringen voor meer bezoekers (groeiplan): elk met een schakelaar in groei.json. Alles uit = site zoals daarvoor.
 // Black Friday-pagina /black-friday-koffie/: aan/uit en instellingen in black-friday.json (zie black-friday.mjs).
@@ -19,12 +20,16 @@ tpl = gemakInject(tpl); // gemak.json: favoriete supermarkt, op beginscherm zett
 tpl = feedbackInject(tpl); // feedback.json: duimpjes + "Wat miste je?" + anonieme kliktelling. Uit = pagina's ongewijzigd.
 tpl = tpl.replace("</div></footer>", () => footerLinks() + "</div></footer>"); // links naar de informatiepagina's onderaan elke pagina (alleen als ze bestaan)
 if (ZT.paginas) tpl = tpl.replace("</style>", () => ".zt{margin:28px 0 0}.zt h2{font-size:20px;color:var(--title);margin:0 0 8px}.zt h3{font-size:16px;color:var(--title);margin:16px 0 4px}.zt p{margin:0 0 8px;max-width:70ch}.ztwrap{overflow-x:auto}.zttab{border-collapse:separate;border-spacing:0;width:100%;max-width:720px;background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:15px}.zttab th,.zttab td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}.zttab th:first-child{text-align:left;white-space:normal}.zttab thead th{font-size:13px;color:var(--mute);font-weight:600}.zttab tbody tr:last-child th,.zttab tbody tr:last-child td{border-bottom:0}.zttab a{color:var(--ink);font-weight:600}@media (max-width:480px){.zttab th,.zttab td{padding:8px 7px}.zttab thead th{white-space:normal}}</style>");
+if (BN.systemen || BN.vindbaar) tpl = tpl.replace("</style>", () => ".sysline{margin:10px 0 0;max-width:70ch}.sysline a{color:var(--ink);font-weight:600}.hubsec.nxt{margin-top:24px}</style>");
 const today = new Date().toISOString().slice(0, 10);
 const updated = (raw.updated || today).slice(0, 10);
 const deals = raw.deals.filter(d => (!d.end || d.end >= today) && !(d.next && d.from > today));
+const upcoming = BN.vindbaar ? raw.deals.filter(d => d.next && d.from > today) : []; // bijna.json "vindbaar": aanbiedingen van volgende week op een lege pagina
 
 // ---------- vaste lijsten ----------
 const SHOPS = ["Albert Heijn", "Jumbo", "PLUS", "Dirk", "DekaMarkt", "Hoogvliet", "Poiesz", "Vomar", "Aldi", "Lidl", "Coop", "Ekoplaza", "Nettorama", "SPAR", "Dagwinkel", "Boon's Markt", "MCD"];
+// bijna.json "winkels": elke supermarktpagina krijgt de opzet van /jumbo/ en /albert-heijn/
+const headOf = p => headOf0(p) || (BN.winkels && ZT.paginas && p.shop && Object.keys(p).length === 1 && SHOPS.includes(p.shop) ? autoShopHead(p.shop) : null);
 const MAIN_BRANDS = ["Douwe Egberts", "Nescafé", "L'OR", "Lavazza", "Senseo", "Starbucks", "Segafredo", "Illy", "Jacobs", "Perla", "Buisman", "Kanis & Gunnink", "Smit & Dorlas"];
 const SYSTEMS = ["Dolce Gusto", "Nespresso", "Senseo"];
 const TYPES = ["Bonen", "Gemalen koffie", "Cups", "Pads", "Oploskoffie", "IJskoffie & koffiedrank"];
@@ -152,6 +157,20 @@ for (const [u, k] of Object.entries(KNOWN_PAGES)) {
   keptN++;
 }
 
+// bijna.json "vindbaar": pagina's waar mensen aantoonbaar op zoeken blijven in Google staan, ook als er even geen (of maar één) aanbieding is.
+// Bestaat zo'n pagina nog niet (ook niet in het geheugen), dan maken we hem: zo komt een verdwenen pagina terug.
+for (const u of VINDBAAR) {
+  let pg = pages.get(u);
+  if (!pg) {
+    const parts = u.split("/").filter(Boolean), p = {};
+    let ok = parts.length > 0;
+    for (const s of parts) { const dim = taken.get(s); if (!dim || p[dim] || (dim === "brand" && p.sys) || (dim === "sys" && p.brand)) { ok = false; break; } p[dim] = dict[dim].get(s); }
+    if (!ok || urlOf(p) !== u) { console.warn(`Vindbare pagina overgeslagen (adres onbekend): ${u}`); continue; }
+    pg = { p, list: dealsFor(p), indexable: false, kept: true }; pages.set(u, pg);
+  }
+  if (!pg.indexable) { pg.indexable = true; pg.vind = true; }
+}
+
 // Alternatieven voor een pagina zonder aanbiedingen: steeds één onderdeel weglaten (eerst de supermarkt, dan het merk/systeem, dan de soort).
 function alternativesOf(p, hintType) {
   const tries = [];
@@ -260,10 +279,20 @@ function faqOf(p, list) {
   const byUnit = {};
   list.forEach(d => { if (d.pp != null) (byUnit[d.pu] = byUnit[d.pu] || []).push(d); });
   for (const [u, arr] of Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length).slice(0, 2)) {
-    if (arr.length < 2) continue;
+    const kiloShop = BN.vragen && u === "kilo" && p.shop && Object.keys(p).length === 1; // bijna.json "vragen": zo vragen mensen het ("wat kost de koffie bij nettorama")
+    if (kiloShop) arr.splice(0, arr.length, ...arr.filter(d => d.type === "Bonen" || d.type === "Gemalen koffie")); // "een kilo koffie" = bonen of gemalen, geen oploskoffie
+    if (arr.length < (kiloShop ? 1 : 2)) continue;
     const lo = arr.reduce((m, d) => d.pp < m.pp ? d : m);
     const word = u === "kilo" ? "kilo" : u;
+    if (kiloShop) { ppFaq.push([`Wat kost een kilo koffie bij ${p.shop} deze week?`, `In de aanbieding vanaf ${eur(lo.pp)} per kilo: ${nameOf(lo)} (${mech(lo)}, ${lo.until}). Dat is de laagste prijs per kilo van de koffie die op ${dateNL(updated)} bij ${p.shop} in de aanbieding is. De prijs is berekend uit de verpakkingsgrootte; controleer hem altijd bij de winkel.`]); continue; }
     ppFaq.push([`Wat is nu de laagste prijs per ${word} voor ${sl}?`, `Op ${dateNL(updated)} is dat ${eur(lo.pp)} per ${word}: ${nameOf(lo)} bij ${lo.shop} (${mech(lo)}, ${lo.until}). De prijs is berekend uit de verpakkingsgrootte; controleer hem altijd bij de winkel.`]);
+  }
+  if (BN.vragen && n && p.shop && Object.keys(p).length === 1) { // bijna.json "vragen": "jumbo koffie 1+1 gratis"
+    const k11 = list.filter(d => /^1\+1 gratis/.test(d.deal)), other = list.filter(d => /^(2\+1 gratis|2e halve prijs|\d+ voor €)/.test(d.deal)).length;
+    const names = [...new Set(k11.map(nameOf))].slice(0, 3);
+    ppFaq.unshift([`Is er deze week koffie 1+1 gratis bij ${p.shop}?`, k11.length
+      ? `Ja. Op ${dateNL(updated)} ${k11.length === 1 ? "is er 1 aanbieding" : `zijn er ${k11.length} aanbiedingen`} met 1+1 gratis bij ${p.shop}${names.length ? `, onder andere ${names.join(", ")}` : ""}. Je betaalt dan voor twee pakken de prijs van één.`
+      : `Nee, op ${dateNL(updated)} niet.${other ? ` Wel ${other === 1 ? "is er 1 andere actie" : `zijn er ${other} andere acties`} waarbij je meer pakken tegelijk koopt, zoals 2+1 gratis of 2e halve prijs.` : ""} Op de pagina ‘Koffie 1+1 gratis en 2e halve prijs’ staan de acties van alle supermarkten.`]);
   }
   return [
     [p.shop ? `Wat is er nu bij ${p.shop} in de aanbieding${Object.keys(p).length > 1 ? ` voor ${sl.replace(` bij ${p.shop}`, "")}` : ""}?` : `Waar vind je nu ${sl} in de aanbieding?`, a1],
@@ -336,8 +365,12 @@ function ztByType(h, p, list) {
     return `<tr><th scope="row">${name}</th><td>${ls.length}</td><td>${max ? max + "%" : "–"}</td><td>${pp.length ? `${eur(Math.min(...pp))}/${unit}` : "–"}</td></tr>`;
   });
   if (!rows.length) return "";
-  const table = `<section class="zt"><h2>${esc(h.term)} per soort</h2><p>Op ${dateNL(updated)} heeft ${esc(p.shop)} ${plural(list.length, "koffieaanbieding", "koffieaanbiedingen")}. Klik op een soort voor alle aanbiedingen daarvan.</p><div class="ztwrap"><table class="zttab"><thead><tr><th scope="col">Soort</th><th scope="col">Aantal</th><th scope="col">Max. korting</th><th scope="col">Laagste prijs</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
-  const gids = `<section class="zt"><h2>Waar let je op bij koffie in de aanbieding bij ${esc(p.shop)}?</h2>${h.gids.map(([t, x]) => `<h3>${esc(t)}</h3><p>${esc(x)}</p>`).join("")}</section>`;
+  const k11 = BN.vragen ? list.filter(d => /^1\+1 gratis/.test(d.deal)).length : 0;
+  const mkTxt = k11 ? ` ${k11 === 1 ? "Eén daarvan is" : `${k11} daarvan zijn`} 1+1 gratis${G.meerkoop && mkIndexable(deals) ? ` (<a href="${MK_URL}">alle 1+1-acties</a>)` : ""}.` : "";
+  let gidsList = h.gids;
+  if (h.auto) { const un = counts(list.filter(d => d.until), "until")[0]; if (un) gidsList = [["Tot wanneer lopen de aanbiedingen?", `De meeste aanbiedingen bij ${p.shop} lopen nu ${un[0]}. Onder ‘Volgende week’ zie je de nieuwe aanbiedingen zodra ze bekend zijn.`], ...h.gids]; }
+  const table = `<section class="zt"><h2>${esc(h.term)} per soort</h2><p>Op ${dateNL(updated)} heeft ${esc(p.shop)} ${plural(list.length, "koffieaanbieding", "koffieaanbiedingen")}.${mkTxt} Klik op een soort voor alle aanbiedingen daarvan.</p><div class="ztwrap"><table class="zttab"><thead><tr><th scope="col">Soort</th><th scope="col">Aantal</th><th scope="col">Max. korting</th><th scope="col">Laagste prijs</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
+  const gids = `<section class="zt"><h2>Waar let je op bij koffie in de aanbieding bij ${esc(p.shop)}?</h2>${gidsList.map(([t, x]) => `<h3>${esc(t)}</h3><p>${esc(x)}</p>`).join("")}</section>`;
   return table + gids;
 }
 
@@ -411,6 +444,12 @@ function render(url, pg) {
       ? `Op ${dateNL(updated)} zijn er ${n} koffie-aanbiedingen bij ${shopsN} supermarkten. Kies hieronder je supermarkt, merk of soort koffie, of bekijk de goedkoopste koffiebonen, cups en pads.`
       : `Op ${dateNL(updated)} zijn er ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}.${top ? ` De grootste korting is ${max}%: ${nameOf(top)}${p.shop ? "" : ` bij ${top.shop}`}.` : ""} Hieronder staan alle aanbiedingen, de filters kun je zelf aanpassen.`;
   } else intro = `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Zodra er weer een is, staat die hier. Bekijk intussen de andere aanbiedingen.`;
+  // bijna.json "vindbaar": eerlijk antwoord op een lege pagina + de aanbiedingen van volgende week
+  const nxt = pg.vind && !n ? upcoming.filter(d => match(d, p)) : [];
+  if (pg.vind && !n) intro = nxt.length
+    ? `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Die komt er wel: ${nxt[0].fromTxt || "binnenkort"} ${nxt.length === 1 ? "is er 1 aanbieding" : `zijn er ${nxt.length} aanbiedingen`}. Hieronder staan ze, met daaronder wat er nu wel in de aanbieding is.`
+    : `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Hieronder staat wat er nu wel in de aanbieding is. Deze pagina wordt elke nacht bijgewerkt: zodra er weer een aanbieding is, staat die hier.`;
+  { const note = brandNote(p); if (note) intro += " " + note; } // bijna.json "merknotities"
 
   const canon = SITE + url;
   const faq = faqOf(p, list);
@@ -442,6 +481,7 @@ function render(url, pg) {
       altHtml = `<section class="hubsec alt"><h2>${esc(head2)}</h2>${listHtml(alt.list, { limit: 6 })}<p><a href="${alt.u}">${alt.u === "/" ? "Bekijk alle koffie-aanbiedingen" : `Bekijk alle ${alt.list.length} aanbiedingen voor ${esc(what ? ((alt.q.brand || alt.q.sys) ? what : low(what)) : "koffie")}`} ›</a></p></section>`;
     }
   }
+  if (nxt.length) altHtml = `<section class="hubsec nxt"><h2>${esc(cap(nxt[0].fromTxt || "Volgende week"))}: ${esc((p.brand || p.sys) ? Label : low(Label))}</h2>${listHtml(nxt.map(d => ({ ...d, until: d.fromTxt || d.until })), { limit: 8 })}</section>` + altHtml;
   const bottom = altHtml + ztBlocks(p, list) + relatedHtml(url, p) + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
   const preset = { brand: p.brand ? [p.brand] : [], sys: p.sys ? [p.sys] : [], type: p.type ? [p.type] : [], shop: p.shop ? [p.shop] : [] };
   const presetJs = `<script>window.PRESET=${js(preset)};window.PLABEL=${home ? "null" : js(Label)};window.STATIC=${n ? "true" : "false"};</script>`;
@@ -490,7 +530,13 @@ function renderCheap(url, { c, list, ranked, indexable }) {
     ...ld.map(o => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`),
   ].join("\n");
   const crumbHtml = `<nav class="crumbs" aria-label="Kruimelpad"><a href="/">Koffieboonus</a> › <span aria-current="page">Goedkoopste ${esc(c.word)}</span></nav>`;
-  const top_ = `<section class="pagehead">${crumbHtml}<h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p></section>`;
+  // bijna.json "systemen": cups passen niet in elkaars machine, dus per machine de laagste prijs per cup
+  let sysLine = "";
+  if (BN.systemen && c.slug === "goedkoopste-koffiecups" && n) {
+    const parts = SYSTEMS.map(sy => { const r = ranked.filter(d => d.sys === sy && !d.vertuo); if (!r.length) return ""; const g = [...cheapPages].find(([, x]) => x.c.f.sys === sy && x.c.f.type === "Cups"); const href = g && g[1].indexable ? g[0] : urlOf({ sys: sy }); return `<a href="${href}">${esc(sy)}</a> vanaf ${eur(r[0].pp)} per cup`; }).filter(Boolean);
+    if (parts.length) sysLine = `<p class="sysline">Cups passen niet in elkaars machine. Per machine: ${parts.join(" · ")}.</p>`;
+  }
+  const top_ = `<section class="pagehead">${crumbHtml}<h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p>${sysLine}</section>`;
   // Ook bekijken: de gewone pagina, de andere "goedkoopste"-pagina's en de startpagina
   const items = [];
   const plain = pages.get(urlOf(c.f));
