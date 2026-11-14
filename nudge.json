@@ -6,7 +6,7 @@
     "sprong: op de zoektermpagina's een link 'Per supermarkt' / 'Per soort' naar het overzicht onderaan.",
     "nubij: op een merkpagina een regel 'Nu bij: ...' met de supermarkten.",
     "goedkoopste: /goedkoopste-koffie/ krijgt een korte inleiding met één regel per soort; combinatieacties ('pak 500 gram of zak 54 stuks') tellen niet mee in de goedkoopste-lijsten.",
-    "laatstedag: bij een aanbieding die vandaag afloopt staat 'laatste dag', bij morgen 't/m morgen'."
+    "laatstedag: bij een aanbieding die vandaag afloopt staat 'laatste dag', bij morgen 'nog 2 dagen'."
   ],
   "aan": true,
   "label": true,

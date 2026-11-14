@@ -38,7 +38,7 @@ export function nudgeInject(tpl) {
   if (NU.sprong || NU.nubij) css += ".jump{margin:8px 0 0}.jump a{color:var(--ink);font-weight:600}.zt{scroll-margin-top:12px}";
   if (NU.laatstedag) {
     // Eerlijk: alleen als de aanbieding echt vandaag of morgen afloopt (datum uit de bron)
-    rep('const tagH=t=>', 'const lastTxt=d=>{if(!d.end||d.next)return "";if(d.end===today)return "laatste dag";const m=new Date(today+"T12:00:00");m.setDate(m.getDate()+1);return d.end===m.toLocaleDateString("sv-SE")?"t/m morgen":""};\nconst tagH=t=>');
+    rep('const tagH=t=>', 'const lastTxt=d=>{if(!d.end||d.next)return "";if(d.end===today)return "laatste dag";const m=new Date(today+"T12:00:00");m.setDate(m.getDate()+1);return d.end===m.toLocaleDateString("sv-SE")?"nog 2 dagen":""};\nconst tagH=t=>');
     rep(' · ${esc(d.until)}</span>', ' · ${esc(d.until)}${lastTxt(d)?` <b class="last">${lastTxt(d)}</b>`:""}</span>');
     rep('${esc(d.until)}</div></div><div class="pr">', '${esc(d.until)}${lastTxt(d)?` <b class="last">${lastTxt(d)}</b>`:""}</div></div><div class="pr">');
     css += ".last{color:var(--deal);font-weight:700;white-space:nowrap}";
