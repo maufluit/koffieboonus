@@ -442,7 +442,7 @@ function render(url, pg) {
   if (n) {
     intro = home
       ? `Op ${dateNL(updated)} zijn er ${n} koffie-aanbiedingen bij ${shopsN} supermarkten. Kies hieronder je supermarkt, merk of soort koffie, of bekijk de goedkoopste koffiebonen, cups en pads.`
-      : `Op ${dateNL(updated)} zijn er ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}.${top ? ` De grootste korting is ${max}%: ${nameOf(top)}${p.shop ? "" : ` bij ${top.shop}`}.` : ""} Hieronder staan alle aanbiedingen, de filters kun je zelf aanpassen.`;
+      : `Op ${dateNL(updated)} ${n === 1 ? "is" : "zijn"} er ${plural(n, "aanbieding", "aanbiedingen")} voor ${sl}${p.shop ? "" : ` bij ${plural(shopsN, "supermarkt", "supermarkten")}`}.${top ? ` De grootste korting is ${max}%: ${nameOf(top)}${p.shop ? "" : ` bij ${top.shop}`}.` : ""} Hieronder staan alle aanbiedingen, de filters kun je zelf aanpassen.`;
   } else intro = `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Zodra er weer een is, staat die hier. Bekijk intussen de andere aanbiedingen.`;
   // bijna.json "vindbaar": eerlijk antwoord op een lege pagina + de aanbiedingen van volgende week
   const nxt = pg.vind && !n ? upcoming.filter(d => match(d, p)) : [];
