@@ -166,7 +166,7 @@ function mapOne(p,today){
   const o={id:p.base_product_id||p.product_id,pct,qty,shop:SHOPS[p.retailer]||p.retailer,brand,type,name,reg:E(orig||price),deal,until:until(p.valid_until),end:p.valid_until};
   const unit=unitPrice(o);if(unit){o.pp=unit.pp;o.pu=unit.pu}
   // Duidelijk foute prijs in de bron (bijv. 20 capsules voor €70,11): niet tonen, wel in het logboek.
-  if(!unit&&wildPrice(o)){wild.push(`${o.shop}: ${o.name} [${o.type}, ${o.deal}]`);return null}
+  if(!unit&&wildPrice(o)){{const w=`${o.shop}: ${o.name} [${o.type}, ${o.deal}]`;if(!wild.includes(w))wild.push(w)};return null}
   if(nodisc)o.nodisc=true;
   const link=safeUrl(p.product_url);if(link)o.url=link; // voor de knop "Bekijk bij ..."
   if(up){o.next=true;o.from=p.valid_from;o.fromTxt=fromT(p.valid_from)}
