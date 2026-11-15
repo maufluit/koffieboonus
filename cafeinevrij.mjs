@@ -57,8 +57,6 @@ export function decafPage(tpl, h) {
   const max = disc.length ? Math.max(...disc.map(d => d.pct)) : 0;
   const top = disc.find(d => d.pct === max);
   const types = TYPE_ORDER.filter(t => list.some(d => d.type === t));
-  const typeWords = types.map(t => TYPE_LABEL[t].toLowerCase()).filter(w => w !== "ijskoffie");
-  const listWords = typeWords.length > 1 ? typeWords.slice(0, -1).join(", ") + " en " + typeWords.slice(-1) : typeWords[0] || "";
 
   // Titel: zoekterm vooraan, 'decaf' erbij (zo zoeken mensen ook), beste korting als die er is.
   const base = "Cafeïnevrije koffie (decaf) aanbieding";
@@ -69,7 +67,7 @@ export function decafPage(tpl, h) {
     ? `Welke cafeïnevrije koffie (decaf) is deze week in de aanbieding? Nu ${plural(n, "aanbieding", "aanbiedingen")} bij ${plural(shopsN, "supermarkt", "supermarkten")}${max ? `, tot ${max}% korting` : ""}, met prijs per kilo, cup en pad. Elke nacht bijgewerkt.`
     : "Welke cafeïnevrije koffie (decaf) is in de aanbieding? Op dit moment geen; bekijk de aanbiedingen van volgende week en alle andere koffie-aanbiedingen.";
   let intro = n
-    ? `Op ${dateNL(updated)} ${n === 1 ? "is" : "zijn"} er ${plural(n, "aanbieding", "aanbiedingen")} voor cafeïnevrije koffie (ook wel decaf of decafé) bij ${plural(shopsN, "supermarkt", "supermarkten")}${listWords ? `: ${listWords}` : ""}.${top ? ` De grootste korting is ${max}%: ${nameOf(top)} bij ${top.shop}.` : ""}`
+    ? `Op ${dateNL(updated)} ${n === 1 ? "is" : "zijn"} er ${plural(n, "aanbieding", "aanbiedingen")} voor cafeïnevrije koffie (ook wel decaf of decafé) bij ${plural(shopsN, "supermarkt", "supermarkten")}.${top ? ` De grootste korting is ${max}%: ${nameOf(top)} bij ${top.shop}.` : ""}`
     : `Op ${dateNL(updated)} is er geen cafeïnevrije koffie (decaf) in de aanbieding bij de supermarkten die we volgen.`;
   if (next.length) intro += ` ${next[0].fromTxt ? next[0].fromTxt.charAt(0).toUpperCase() + next[0].fromTxt.slice(1) : "Volgende week"} ${next.length === 1 ? "komt er 1 aanbieding" : `komen er ${next.length} aanbiedingen`} bij: zie het tabblad ‘Volgende week’.`;
 
