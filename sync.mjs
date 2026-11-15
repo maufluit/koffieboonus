@@ -5,7 +5,7 @@ const KEY=process.env.PRIJSPROFEET_API_KEY||"";
 const SHOPS={albert_heijn:"Albert Heijn",jumbo:"Jumbo",plus:"PLUS",dirk:"Dirk",dekamarkt:"DekaMarkt",hoogvliet:"Hoogvliet",poiesz:"Poiesz",vomar:"Vomar",aldi:"Aldi",lidl:"Lidl",ekoplaza:"Ekoplaza",coop:"Coop",gewoon_coop:"Coop",dagwinkel:"Dagwinkel",spar:"SPAR",boons_markt:"Boon's Markt",mcd:"MCD",nettorama:"Nettorama",boni:"Boni"};
 const COFFEE=/koffie|coffee|espresso|cappuccino|latte|macchiato|lungo|ristretto|nespresso|dolce gusto|senseo|mocca|mokka|decaf|café|cafe\b|starbucks|lavazza|illy|segafredo|l'or\b|nescafé?|douwe egberts|bialetti|melitta|kanis|perla|snelfilter|filtermaling/i;
 const BLOCK=/^(absolut|smirnoff|bacardi|baileys|pickwick|pukka|lipton|twinings|teekanne|ariel|dreft|glade|lenor|sun|lucovitaal|persil|robijn|ajax|finish|calgon|vanish|febreze|ambi pur|bref|domestos|andrelon|andrélon|nivea|nivea for men|nivea men|dove|axe|rexona|sanex|becel|hg|rio mare|hertog|ola|de kuyper|chikko not coffee|chikko|streeckgenoten)$/i;
-const SKIP=/\b(earl grey|thee|tea|rooibos|koffiemelk|koffiecreamer|creamer|voor in de koffie|matcha|chai|deodorant|deo|anti-?transpirant|douche\w*|shampoo|bodylotion|bodywash|parfum|eau de \w+|geurkaars\w*|kaars(en)?|reinig\w*|koffiefilters?|filterzakjes|koek(je|jes)?|broodje|wasmiddel|wasverzachter|vaatwas\w*|afwas\w*|allesreiniger|luchtverfrisser|toiletreiniger|tabletten|vitamine\w*|supplement\w*|ontkalk\w*|reiniger|mokken?|glas|glazen?|servies|apparaat|machine|bonbons?|snoep|chocolade|repen|reep|kaas|yoghurt|kwark|vla|pudding|cake|taart|likeur|bier|wijn|roomijs|ijsjes?|ijssalon|ice ?bars?|stroopwafels?|speculaaslatte|sukerlatte|brownies?|espresso martini|cocktail|golden milk|curcuma|kurkuma|koffievervanger|koffiealternatief|yannoh|cichorei|graankoffie)\b/i;
+const SKIP=/\b(earl grey|thee|tea|rooibos|koffiemelk|koffiecreamer|creamer|voor in de koffie|matcha|chai|deodorant|deo|anti-?transpirant|douche\w*|shampoo|bodylotion|bodywash|parfum|eau de \w+|geurkaars\w*|kaars(en)?|reinig\w*|koffiefilters?|filterzakjes|koek(je|jes)?|broodje|wasmiddel|wasverzachter|vaatwas\w*|afwas\w*|allesreiniger|luchtverfrisser|toiletreiniger|tabletten|vitamine\w*|supplement\w*|ontkalk\w*|reiniger|mokken?|glas|glazen?|servies|apparaat|machine|bonbons?|snoep|chocolade|repen|reep|kaas|yoghurt|kwark|vla|pudding|cake|taart|likeur|bier|wijn|roomijs|ijsjes?|ijssalon|ice ?bars?|stroopwafels?|speculaaslatte|sukerlatte|brownies?|espresso martini|cocktail|golden milk|curcuma|kurkuma|koffievervanger|koffiealternatief|yannoh|cichorei|graankoffie|espressokopjes|koffiekopjes|passata|tomaten|chocoladeletters?|viennois|geurstokjes)\b/i;
 const DAYS=["zo","ma","di","wo","do","vr","za"],MON=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
 const E=n=>"€"+Number(n).toFixed(2).replace(".",",");
 const safeUrl=u=>{try{const x=new URL(u);return x.protocol==="https:"?x.href:""}catch{return ""}};
@@ -32,8 +32,13 @@ export const untyped=[];
 function typeFallback(p){
   let slug="";
   try{slug=decodeURIComponent((p.product_url||"").replace(/^https?:\/\/[^/]+/i,"")).toLowerCase().replace(/[^a-zà-ÿ0-9']+/g," ")}catch{}
-  const t=typeOf({...p,name:`${p.name||""} ${slug}`});
+  // Ook de verpakkingsomschrijving meenemen (folderketens zetten daar vaak het echte product in, bijv. "Lavazza qualità Oro espressobonen, pak 500 gram").
+  const t=typeOf({...p,name:`${p.name||""} ${p.quantity||""} ${slug}`});
   if(t)return t;
+  // Capsulemerken met een aantal stuks (bijv. "Lavazza Tales of Roma, 30 stuks", "Starbucks Pumpkin spice, 10 stuks") zijn cups.
+  if(/starbucks|lavazza|illy|l['’]?or\b/i.test(`${p.name||""} ${p.brand||""}`)&&/^\s*\d+\s*(stuks|st\.?|capsules)\s*$/i.test(p.quantity||""))return "Cups";
+  if(/dubai style/i.test(p.name||""))return "Oploskoffie"; // Douwe Egberts Dubai style warm/koud = sticks oploskoffie, net als Dubai chocolate
+  if(/bellarom koffie rood/i.test(p.name||""))return "Gemalen koffie"; // Lidl Bellarom Koffie rood (500 g) = gemalen filterkoffie
   if(/nescaf[eé]/i.test(`${p.name||""} ${p.brand||""}`))return "Oploskoffie";
   if(/rood ?merk/i.test(p.name||""))return "Gemalen koffie"; // Douwe Egberts Roodmerk (kilozak) = gemalen filterkoffie
   if(/dubai chocolate/i.test(p.name||""))return "Oploskoffie"; // Douwe Egberts Dubai chocolate = oploskoffie (bevestigd via de.nl)
@@ -117,6 +122,16 @@ export function unitPrice(o){
 // Alleen supermarkten uit de lijst SHOPS. Een nieuwe winkel bij PrijsProfeet (bijv. "amazing_oriental") komt niet vanzelf op de site,
 // maar wel in een waarschuwing, zodat Maurits kan kiezen of hij erbij moet (dan hier aan SHOPS toevoegen, met een nette naam).
 export const unknownShops=new Map();
+export const wild=[];
+// Prijs per stuk of per kilo die niet kan kloppen: cups/pads boven €2,50 per stuk, bonen/gemalen boven €150 per kilo.
+export function wildPrice(o){
+  const m=(o.deal||"").match(/^Nu voor €([\d,]+)/)||(o.deal||"").match(/^(\d+) voor €([\d,]+)/);if(!m)return false;
+  const price=m.length===3?numS(m[2])/+m[1]:numS(m[1]);if(!(price>0))return false;
+  const sz=parseSize(o.name||"");
+  if((o.type==="Cups"||o.type==="Pads")&&sz.count>=4)return price/sz.count>2.5;
+  if((o.type==="Bonen"||o.type==="Gemalen koffie")&&sz.grams>=50)return price/(sz.grams/1000)>150;
+  return false;
+}
 function mapOne(p,today){
   const up=p.promotion_status==="upcoming";
   if(!p.is_promotional||!(p.promotion_status==="active"||up)||!p.valid_until||p.valid_until<today)return null;
@@ -134,6 +149,7 @@ function mapOne(p,today){
   if(!type)type=typeFallback(p);
   if(!type)return null;
   let brand=brandOf(p),name=raw.replace(/^alle\s+/i,"");
+  const alle=/^alle\s+/i.test(raw);
   if(!brand){ // sommige winkels (bijv. Vomar) leveren geen merk mee: zoek een bekend merk in de rest van de productgegevens
     const g=guessBrand(p);
     if(g){brand=g;guessed.push(`${p.retailer}: ${raw} -> ${g}`)}
@@ -143,10 +159,14 @@ function mapOne(p,today){
   name=name.charAt(0).toUpperCase()+name.slice(1);
   name=name.replace(/\bIjs/g,"IJs"); // Nederlandse spelling: IJskoffie, niet Ijskoffie
   const qt=(p.quantity||"").trim();
-  if(qt&&!name.toLowerCase().replace(/\s/g,"").includes(qt.toLowerCase().replace(/\s/g,"")))name+=" "+qt;
+  // Folderactie "Alle Lavazza koffie" met een voorbeeldproduct in de verpakkingsregel: "Alle koffie, bijv. qualità Oro espressobonen, pak 500 gram".
+  if(alle&&/^koffie$/i.test(name)&&/[a-z]{4,}/i.test(qt.replace(/\b(pak|zak|gram|stuks)\b/gi,""))){const ex=brand?qt.replace(new RegExp("^"+brand.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\s+","i"),""):qt;name=`Alle koffie, bijv. ${ex}`}
+  else if(qt&&!name.toLowerCase().replace(/\s/g,"").includes(qt.toLowerCase().replace(/\s/g,"")))name+=" "+qt;
   const [deal,qty]=dealOf(p);
   const o={id:p.base_product_id||p.product_id,pct,qty,shop:SHOPS[p.retailer]||p.retailer,brand,type,name,reg:E(orig||price),deal,until:until(p.valid_until),end:p.valid_until};
   const unit=unitPrice(o);if(unit){o.pp=unit.pp;o.pu=unit.pu}
+  // Duidelijk foute prijs in de bron (bijv. 20 capsules voor €70,11): niet tonen, wel in het logboek.
+  if(!unit&&wildPrice(o)){{const w=`${o.shop}: ${o.name} [${o.type}, ${o.deal}]`;if(!wild.includes(w))wild.push(w)};return null}
   if(nodisc)o.nodisc=true;
   const link=safeUrl(p.product_url);if(link)o.url=link; // voor de knop "Bekijk bij ..."
   if(up){o.next=true;o.from=p.valid_from;o.fromTxt=fromT(p.valid_from)}
@@ -167,7 +187,8 @@ export function mapItems(p,today){
     return out;
   }
   const parts=(p.name||"").split(/\s+of\s+/i);
-  if(parts.length!==2){const m=mapOne(p,today);return m?[m]:[]}
+  // Engels "of" in een productnaam (Lavazza "Tales of Roma") is geen keuze tussen twee producten.
+  if(parts.length!==2||/\btales$/i.test(parts[0].trim())){const m=mapOne(p,today);return m?[m]:[]}
   const [l,r]=parts.map(x=>x.trim()),rw=r.split(/\s+/);
   let names,brandCase=false;
   // "koffiebonen of -capsules": het prijsvoorbeeld in de folder hoort bij het eerste product (bijv. Masterblend zak 500 gram).
@@ -270,6 +291,7 @@ async function main(){
   // Met de namen van de overgeslagen producten (max 5 per winkel), zodat te zien is of het filter te streng is of de korting te klein.
   if(missing.length){const msg="Geen aanbiedingen van: "+missing.map(n=>{const l=skippedBy[n]||[];return `${n} (overgeslagen koffieproducten: ${l.length}${l.length?": "+l.slice(0,5).join("; "):""})`}).join(" | ");console.log(msg);if(process.env.GITHUB_ACTIONS)console.log("::warning title=Supermarkt ontbreekt::"+msg)}
   if(unknownShops.size){const msg="Onbekende winkel overgeslagen (niet op de site): "+[...unknownShops].map(([r,n])=>`${r} (${n} koffieproduct${n===1?"":"en"})`).join(", ");console.log(msg);if(process.env.GITHUB_ACTIONS)console.log("::warning title=Onbekende winkel::"+msg)}
+  if(wild.length){console.log("Onwaarschijnlijke prijs, niet getoond:\n"+wild.join("\n"));if(process.env.GITHUB_ACTIONS)console.log("::warning title=Onwaarschijnlijke prijs::"+wild.join(" | "))}
   console.log("Overgeslagen (eerste 30):\n"+[...skipped].slice(0,30).join("\n"));
   if(deals.filter(d=>!d.next).length<30)throw new Error("Te weinig aanbiedingen; deals.json blijft ongewijzigd.");
   let prev=null;try{prev=JSON.parse(fs.readFileSync("deals.json","utf8"))}catch{}
