@@ -149,6 +149,7 @@ function mapOne(p,today){
   if(!type)type=typeFallback(p);
   if(!type)return null;
   let brand=brandOf(p),name=raw.replace(/^alle\s+/i,"");
+  const alle=/^alle\s+/i.test(raw);
   if(!brand){ // sommige winkels (bijv. Vomar) leveren geen merk mee: zoek een bekend merk in de rest van de productgegevens
     const g=guessBrand(p);
     if(g){brand=g;guessed.push(`${p.retailer}: ${raw} -> ${g}`)}
@@ -158,7 +159,9 @@ function mapOne(p,today){
   name=name.charAt(0).toUpperCase()+name.slice(1);
   name=name.replace(/\bIjs/g,"IJs"); // Nederlandse spelling: IJskoffie, niet Ijskoffie
   const qt=(p.quantity||"").trim();
-  if(qt&&!name.toLowerCase().replace(/\s/g,"").includes(qt.toLowerCase().replace(/\s/g,"")))name+=" "+qt;
+  // Folderactie "Alle Lavazza koffie" met een voorbeeldproduct in de verpakkingsregel: "Alle koffie, bijv. qualità Oro espressobonen, pak 500 gram".
+  if(alle&&/^koffie$/i.test(name)&&/[a-z]{4,}/i.test(qt.replace(/\b(pak|zak|gram|stuks)\b/gi,""))){const ex=brand?qt.replace(new RegExp("^"+brand.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\s+","i"),""):qt;name=`Alle koffie, bijv. ${ex}`}
+  else if(qt&&!name.toLowerCase().replace(/\s/g,"").includes(qt.toLowerCase().replace(/\s/g,"")))name+=" "+qt;
   const [deal,qty]=dealOf(p);
   const o={id:p.base_product_id||p.product_id,pct,qty,shop:SHOPS[p.retailer]||p.retailer,brand,type,name,reg:E(orig||price),deal,until:until(p.valid_until),end:p.valid_until};
   const unit=unitPrice(o);if(unit){o.pp=unit.pp;o.pu=unit.pu}
@@ -184,7 +187,8 @@ export function mapItems(p,today){
     return out;
   }
   const parts=(p.name||"").split(/\s+of\s+/i);
-  if(parts.length!==2){const m=mapOne(p,today);return m?[m]:[]}
+  // Engels "of" in een productnaam (Lavazza "Tales of Roma") is geen keuze tussen twee producten.
+  if(parts.length!==2||/\btales$/i.test(parts[0].trim())){const m=mapOne(p,today);return m?[m]:[]}
   const [l,r]=parts.map(x=>x.trim()),rw=r.split(/\s+/);
   let names,brandCase=false;
   // "koffiebonen of -capsules": het prijsvoorbeeld in de folder hoort bij het eerste product (bijv. Masterblend zak 500 gram).
