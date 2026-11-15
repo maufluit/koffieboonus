@@ -1,0 +1,31 @@
+# Tijdelijke proef (alleen op deze tak, zet niets live): vergelijkt de aanbiedingen van de code op main met die van deze tak.
+name: Proef sync (vergelijking, niets live)
+on:
+  push:
+    branches: [datacheck-15nov]
+permissions:
+  contents: read
+jobs:
+  vergelijk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: {path: nieuw}
+      - uses: actions/checkout@v5
+        with: {ref: main, path: oud}
+      - uses: actions/setup-node@v5
+        with: {node-version: 22}
+      - name: Oud en nieuw ophalen en vergelijken
+        env:
+          PRIJSPROFEET_API_KEY: ${{ secrets.PRIJSPROFEET_API_KEY }}
+        run: |
+          (cd oud && node sync.mjs > ../oud.log)
+          (cd nieuw && node sync.mjs > ../nieuw.log)
+          grep -A5 "Onwaarschijnlijke" nieuw.log || true
+          node -e '
+            const f=p=>JSON.parse(require("fs").readFileSync(p)).deals.map(d=>`${d.shop} | ${d.brand} | ${d.type} | ${d.name} | ${d.deal}${d.next?" (volgende week)":""}`);
+            const a=new Set(f("oud/deals.json")),b=new Set(f("nieuw/deals.json"));
+            console.log("Oud:",a.size,"Nieuw:",b.size);
+            console.log("ERBIJ:");for(const x of b)if(!a.has(x))console.log("+ "+x);
+            console.log("ERAF:");for(const x of a)if(!b.has(x))console.log("- "+x);'
+          rm -f oud/deals.json nieuw/deals.json
