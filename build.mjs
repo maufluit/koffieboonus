@@ -9,16 +9,19 @@ import { G, footerStatic, homeFaqExtra, SITE_DESC, MK_URL, mkLinkItem, mkIndexab
 import { NU, isCombo, nudgeInject } from "./nudge.mjs"; // nudging (nudge.json). Uit = site ongewijzigd.
 import { BN, VINDBAAR, brandNote, autoShopHead } from "./bijna.mjs"; // bijna op pagina 1 (bijna.json). Uit = site ongewijzigd.
 import { ZT, HEAD_TERMS, headOf as headOf0 } from "./zoektermen.mjs"; // grote zoektermen (zoektermen.json). Uit = site ongewijzigd.
-import { gemakInject, writeManifest } from "./gemak.mjs"; // favoriete supermarkt, beginscherm, delen (gemak.json). Uit = site ongewijzigd.
+import { gemakInject, writeManifest } from "./gemak.mjs";
+import { DC, DC_URL, DC_SLUG, markDecaf, decafTag, decafInject, decafPage, decafLink } from "./cafeinevrij.mjs"; // cafeïnevrije koffie (cafeinevrij.json). Uit = site ongewijzigd. // favoriete supermarkt, beginscherm, delen (gemak.json). Uit = site ongewijzigd.
 // Verbeteringen voor meer bezoekers (groeiplan): elk met een schakelaar in groei.json. Alles uit = site zoals daarvoor.
 // Black Friday-pagina /black-friday-koffie/: aan/uit en instellingen in black-friday.json (zie black-friday.mjs).
 
 const SITE = "https://koffieboonus.nl";
 const OUT = process.argv[2] || "_site";
 const raw = JSON.parse(fs.readFileSync("deals.json", "utf8"));
+markDecaf(raw.deals); // cafeinevrij.json: herkent cafeïnevrije koffie aan de naam (decaf, decafé, cafeïnevrij ...)
 let tpl = fs.readFileSync("index.html", "utf8");
 tpl = gemakInject(tpl); // gemak.json: favoriete supermarkt, op beginscherm zetten, delen
 tpl = nudgeInject(tpl); // nudge.json: labels onder de productnaam, eerste scherm op de telefoon, laatste dag
+tpl = decafInject(tpl); // cafeinevrij.json: label 'Cafeïnevrij' en de pagina /cafeinevrije-koffie/
 tpl = feedbackInject(tpl); // feedback.json: duimpjes + "Wat miste je?" + anonieme kliktelling. Uit = pagina's ongewijzigd.
 tpl = tpl.replace("</div></footer>", () => footerLinks() + "</div></footer>"); // links naar de informatiepagina's onderaan elke pagina (alleen als ze bestaan)
 if (ZT.paginas) tpl = tpl.replace("</style>", () => ".zt{margin:28px 0 0}.zt h2{font-size:20px;color:var(--title);margin:0 0 8px}.zt h3{font-size:16px;color:var(--title);margin:16px 0 4px}.zt p{margin:0 0 8px;max-width:70ch}.ztwrap{overflow-x:auto}.zttab{border-collapse:separate;border-spacing:0;width:100%;max-width:720px;background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:15px}.zttab th,.zttab td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}.zttab th:first-child{text-align:left;white-space:normal}.zttab thead th{font-size:13px;color:var(--mute);font-weight:600}.zttab tbody tr:last-child th,.zttab tbody tr:last-child td{border-bottom:0}.zttab a{color:var(--ink);font-weight:600}@media (max-width:480px){.zttab th,.zttab td{padding:8px 7px}.zttab thead th{white-space:normal}}</style>");
@@ -67,7 +70,7 @@ const BRANDS = [...MAIN_BRANDS, ...Object.keys(brandCount).filter(b => !MAIN_BRA
 const taken = new Map(); // slug -> dim
 const dict = { brand: new Map(), sys: new Map(), type: new Map(), shop: new Map() };
 // Vaste adressen van de site zelf ("Goedkoopste ..."-pagina's, Black Friday): die mag een merk nooit innemen.
-const RESERVED = s => /^goedkoopste-/.test(s) || ["black-friday-koffie", "koffie-1-plus-1-gratis", "go", "over", "contact", "privacy", "hoe-verdienen-we-geld"].includes(s);
+const RESERVED = s => /^goedkoopste-/.test(s) || ["black-friday-koffie", "koffie-1-plus-1-gratis", "go", "over", "contact", "privacy", "hoe-verdienen-we-geld", DC_SLUG].includes(s);
 function reg(dim, values, slugFn = slug) {
   for (const v of values) {
     const s = slugFn(v);
@@ -251,7 +254,7 @@ function multiOf(d) {
   if ((m = d.deal.match(/^(\d+) voor €([\d,]+)/))) return { q: +m[1], t: parseFloat(m[2].replace(",", ".")), r };
   return null;
 }
-const tagS = d => d.vertuo ? ` <span class="tag">Alleen voor Vertuo</span>` : d.compat && d.sys ? ` <span class="tag">Past in ${esc(d.sys)}</span>` : "";
+const tagS = (d, o = {}) => decafTag(d, o) + (d.vertuo ? ` <span class="tag">Alleen voor Vertuo</span>` : d.compat && d.sys ? ` <span class="tag">Past in ${esc(d.sys)}</span>` : "");
 function listHtml(list, o = {}) {
   const sorted = [...list].sort(o.sort || ((a, b) => b.pct - a.pct)).slice(0, o.limit || 80);
   const nowS = d => (d.deal.match(/€[\d,]+/) || [""])[0];
@@ -263,7 +266,7 @@ function listHtml(list, o = {}) {
     const price = d.noprice || d.nodisc ? "" : mm ? `<div class="pnow mk">${mm.q} voor ${eur(mm.t)} <s class="reg">${eur(mm.q * mm.r)}</s></div>` : priceType ? `<div class="pnow">${esc(nowS(d))} <s class="reg">${esc(d.reg)}</s></div>` : `<span class="reg">${esc(d.reg)}</span>`;
     const badge = d.noprice ? d.deal : d.nodisc ? d.deal.replace(/^Nu voor/, "Actieprijs") : priceType ? `${d.pct}% korting` : mech(d);
     const note = d.noprice ? `<div class="meta sub">Prijs onbekend, check de winkel</div>` : d.nodisc ? `<div class="meta sub">Normale prijs onbekend</div>` : "";
-    return `<div class="row" data-k="${esc(d.id + "~" + d.shop)}"><div class="name">${o.rank ? `<span class="rk">${i + 1}.</span> ` : ""}${esc(d.name)}<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div>${NU.label && tagS(d) ? `<div class="tags">${tagS(d)}</div>` : ""}</div><div class="who"><div class="shop">${chip(d.shop)}<span class="wd"> · ${esc(d.until)}</span>${NU.label ? "" : tagS(d)}</div></div><div class="act"><span class="deal">${esc(badge)}</span><div class="meta">${esc(d.until)}</div></div><div class="pr">${price}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}${note}</div>${d.url ? `<div class="gocell"><a class="go" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>` : `<div class="gocell"></div>`}</div>`;
+    return `<div class="row" data-k="${esc(d.id + "~" + d.shop)}"><div class="name">${o.rank ? `<span class="rk">${i + 1}.</span> ` : ""}${esc(d.name)}<div class="meta bt">${esc(d.brand)} · ${esc(d.type)}</div>${NU.label && tagS(d, o) ? `<div class="tags">${tagS(d, o)}</div>` : ""}</div><div class="who"><div class="shop">${chip(d.shop)}<span class="wd"> · ${esc(d.until)}</span>${NU.label ? "" : tagS(d, o)}</div></div><div class="act"><span class="deal">${esc(badge)}</span><div class="meta">${esc(d.until)}</div></div><div class="pr">${price}${d.pp!=null?`<div class="meta ppu">${eur(d.pp)} per ${d.pu}</div>`:""}${note}</div>${d.url ? `<div class="gocell"><a class="go" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>` : `<div class="gocell"></div>`}</div>`;
   }).join("");
 }
 
@@ -325,6 +328,7 @@ function relatedHtml(url, p) {
   if (wider.length) groups.push(`<div class="grp"><h3>Breder zoeken</h3><ul class="links">${wider.join("")}</ul></div>`);
   const cg = cheapLinks(p);
   if (cg) groups.unshift(cg);
+  if (!Object.keys(p).length || (p.type && Object.keys(p).length === 1 && ["Bonen", "Gemalen koffie", "Cups", "Pads"].includes(p.type))) { const dl = decafLink(deals); if (dl) groups.splice(cg ? 1 : 0, 0, dl); } // cafeinevrij.json "link": direct na Goedkoopste/Acties
   { const pop = ztPopular(url, p); if (pop) groups.push(pop); } // zoektermen.json "populair"
   if (!Object.keys(p).length || (G.links && p.type && Object.keys(p).length === 1)) { const bf = bfHomeLink(); if (bf) groups.unshift(bf); } // alleen op de startpagina, kort voor en tijdens Black Friday
   return groups.length ? `<section class="more"><h2>Ook bekijken</h2>${groups.join("")}</section>` : "";
@@ -659,10 +663,14 @@ if (hubSections.length) {
   if (mk) { const mod = track(MK_URL, mk.list, null, mk.indexable); if (mk.indexable) sitemap.push(`  <url><loc>${SITE}${MK_URL}</loc><lastmod>${mod}</lastmod></url>`); } }
 { const bfList = writeBlackFriday(OUT, tpl, { deals, updated, listHtml, eur, nameOf, mech, hubSections, cheapPages, HUB_URL, hubIndexable, pages, urlOf, labelOf, popular: ztPopular("/black-friday-koffie/") });
   if (bfList) sitemap.push(`  <url><loc>${SITE}${BF_URL}</loc><lastmod>${track(BF_URL, bfList, null, true)}</lastmod></url>`); }
+{ const dp = decafPage(tpl, { deals, upcoming: raw.deals.filter(d => d.next && d.from > today), updated, dateNL, listHtml, nameOf, eur, esc, js, SITE, NU, popular: ztPopular(DC_URL), cheapLinks: cheapLinks({}) }); // cafeinevrij.json "pagina"
+  if (dp) { fs.mkdirSync(path.join(OUT, DC_URL), { recursive: true }); fs.writeFileSync(path.join(OUT, DC_URL, "index.html"), dp.html);
+    const mod = track(DC_URL, dp.list, null, dp.indexable); if (dp.indexable) sitemap.push(`  <url><loc>${SITE}${DC_URL}</loc><lastmod>${mod}</lastmod></url>`);
+    console.log(`Cafeïnevrij: ${dp.list.length} aanbiedingen nu, pagina ${dp.indexable ? "in Google" : "noindex"}`); } }
 sitemap.push(...writeInfoPages(OUT, tpl)); // informatiepagina's: vaste datum (privacy_datum), niet in het geheugen van de vaste adressen
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
 // Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)
-const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : []), ...(BF_ON ? [BF_URL] : []), ...(G.meerkoop ? [MK_URL] : []), ...(INFO_ON ? INFO_URLS : [])];
+const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : []), ...(BF_ON ? [BF_URL] : []), ...(G.meerkoop ? [MK_URL] : []), ...(INFO_ON ? INFO_URLS : []), ...(DC.pagina ? [DC_URL] : [])];
 writeManifest(OUT); // gemak.json "beginscherm": manifest.webmanifest (naam, kleuren, pictogrammen)
 fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}}</style></head><body><h1>Hier is nu geen aanbieding</h1><p>Deze pagina bestaat op dit moment niet: er zijn te weinig aanbiedingen voor deze combinatie, of de aanbieding is afgelopen.</p><p id="near"></p><p><a href="/">Bekijk alle koffie-aanbiedingen</a></p><script>const K=${js(known)};let p=location.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);while(p.length){const u="/"+p.join("/")+"/";if(K.includes(u)){document.getElementById("near").innerHTML='Misschien zoek je <a href="'+u+'">een bredere pagina</a>.';break}p.pop()}</script></body></html>`);
 fs.writeFileSync(path.join(OUT, "paginas.json"), JSON.stringify(memo));

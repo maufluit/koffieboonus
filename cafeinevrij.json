@@ -1,0 +1,15 @@
+{
+  "_uitleg": [
+    "Cafeïnevrije koffie (keuze Maurits 15 nov 2026, na een reactie van een bezoeker): zie cafeinevrij.mjs.",
+    "aan = false: de site is letter voor letter gelijk aan daarvoor (geen label, geen pagina, geen link).",
+    "label: onder de productnaam het label 'Cafeïnevrij' (zoals 'Past in Nespresso'). Herkend aan decaf, decafé, decaffeinato of cafeïnevrij in de naam. Niet op de pagina /cafeinevrije-koffie/ zelf (daar is alles cafeïnevrij).",
+    "pagina: de pagina /cafeinevrije-koffie/ met alle cafeïnevrije aanbiedingen (nu en volgende week), filters, overzicht per soort en vragen. Op de site overal het woord 'cafeïnevrij'; 'decaf' alleen in titel, inleiding en een vraag.",
+    "link: een link naar de pagina onder 'Ook bekijken' op de startpagina en de pagina's per soort (bonen, gemalen, cups, pads).",
+    "min_index: pas in Google (index) vanaf zoveel cafeïnevrije aanbiedingen van nu; daaronder blijft de pagina bestaan, maar met noindex."
+  ],
+  "aan": true,
+  "label": true,
+  "pagina": true,
+  "link": true,
+  "min_index": 3
+}
