@@ -52,7 +52,8 @@ export function toProducts(rows) {
     if (!name || !id || !(price >= minP) || !/^https:\/\//.test(link)) { skipBad++; continue; }
     if (seen.has(name.toLowerCase())) continue; // dezelfde machine twee keer in de feed: de eerste houden
     seen.add(name.toLowerCase());
-    const foto = get(r, "foto") || get(r, "foto_reserve");
+    // Coolblue levert foto's van 2048x2048 (±250 KB); op de site zijn ze hoogstens 84 px breed. 500x500 is ±30 KB (getest 16 nov 2026; 300x300 bestaat niet).
+    const foto = (get(r, "foto") || get(r, "foto_reserve")).replace(/^(https:\/\/image\.coolblue\.nl\/max\/)\d+x\d+\//, "$1500x500/");
     const dc = get(r, "bezorgkosten");
     list.push({
       id: String(id), name, brand: get(r, "merk"), cat: c, price,
