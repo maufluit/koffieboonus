@@ -1,0 +1,90 @@
+{
+  "_uitleg": [
+    "Sectie Koffiemachines (preview 16 nov 2026, plan Maurits). Zie koffiemachines.mjs en feed-coolblue.mjs.",
+    "aan = false: de site is letter voor letter gelijk aan daarvoor (geen tabbladen, geen pagina's, geen blok op de koffiepagina's, niets in de sitemap).",
+    "aan = true: build.mjs maakt /koffiemachines/ en een pagina per soort, maar alleen als coolblue.json (uit de Coolblue-feed via Awin) er is. Ontbreekt de feed, dan wordt de sectie overgeslagen en verandert er niets.",
+    "Knoppen 'Bekijk bij Coolblue' komen er alleen als de partnerlinks aan staan (affiliate/go-links.json \"aan\": true). Ze lopen altijd via /go/coolblue-.../, met boven elk blok één melding 'Partnerlinks' (we krijgen alleen een commissie per verkoop, geen geld voor plaatsing).",
+    "De feedlink bevat een sleutel en staat NOOIT hier, alleen als GitHub-secret COOLBLUE_FEED_URL.",
+    "kolommen: de kolomnamen in de Awin-feed. Pas ze hier aan als de feed andere namen gebruikt.",
+    "categorie_filter / uitsluiten: welke producten een koffiemachine zijn (zoekt in categorie + naam). min_prijs: goedkoper telt niet als machine.",
+    "kopjes_per_dag, jaren, gram_per_kopje: de rekensom 'Wat kost een kopje?' (3 jaar, 3 kopjes per dag, 8 gram bonen per kopje).",
+    "soorten: per soort machine. herkennen = woorden in naam/categorie (de eerste soort die past, wint; volgorde: capsules eerst). derde = het derde kaartje: 'melk' (Voor melkdrinkers) of 'compact' (Stil en compact), of leeg.",
+    "keuzes: hier kun je per soort zelf een machine vastzetten met het product-id uit de feed (aw_product_id), met eigen kenmerken (3 korte zinnen, eigen woorden) en een eigen nadeel. Leeg = de regel kiest (zie LEESMIJ).",
+    "nadeel: per soort een eerlijk nadeel, per kaartje (onze_keuze, goedkoopst, derde). algemeen: kenmerken die voor elke machine van die soort gelden (vullen aan tot 3).",
+    "koppeling: op welke koffiepagina's onderaan het blok 'Nog geen ...? Zo kies je een machine' staat, en naar welke soort."
+  ],
+  "aan": false,
+  "feed_bestand": "coolblue.json",
+  "winkel": "Coolblue",
+  "netwerk": "Awin",
+  "kolommen": {
+    "link": "aw_deep_link",
+    "naam": "product_name",
+    "id": "aw_product_id",
+    "winkel_id": "merchant_product_id",
+    "foto": "merchant_image_url",
+    "foto_reserve": "aw_image_url",
+    "omschrijving": "description",
+    "categorie": "merchant_category",
+    "categorie_reserve": "category_name",
+    "prijs": "search_price",
+    "normale_prijs": "rrp_price",
+    "normale_prijs_reserve": "store_price",
+    "merk": "brand_name",
+    "voorraad": "in_stock",
+    "bezorgkosten": "delivery_cost",
+    "bijgewerkt": "last_updated"
+  },
+  "categorie_filter": "koffiemachine|koffiezetapparat|koffiezetter|espressomachine|volautomaat|volautomatische|padmachine|capsulemachine|nespresso|dolce gusto|senseo",
+  "uitsluiten": "ontkalk|reinig|schoonmaak|filterpapier|waterfilter|capsulehouder|cuphouder|onderdeel|accessoire|koffiebonen|koffiecups|capsules\\b|\\bpads\\b|losse melkopschuimer|thermoskan los|koffiemolen|bonenmaler|kopjes set|glazen|beker",
+  "min_prijs": 20,
+  "kopjes_per_dag": 3,
+  "jaren": 3,
+  "gram_per_kopje": 8,
+  "soorten": {
+    "nespresso": {
+      "herkennen": "nespresso",
+      "niet": "vertuo",
+      "derde": "melk",
+      "algemeen": ["Werkt met Nespresso Original-cups, ook van supermarktmerken", "Een kopje in een halve minuut", "Weinig schoonmaken: de cup gaat zo de bak in"],
+      "nadeel": { "onze_keuze": "Per kopje duurder dan bonen of pads.", "goedkoopst": "Geen melkopschuimer: daarvoor koop je er los een bij.", "derde": "Duurder in aanschaf dan een Nespresso zonder melk." }
+    },
+    "dolce-gusto": {
+      "herkennen": "dolce gusto",
+      "derde": "",
+      "algemeen": ["Ook cappuccino en chocolademelk met cups", "Een kopje in een halve minuut", "Werkt ook met supermarktcups die passen in Dolce Gusto"],
+      "nadeel": { "onze_keuze": "Per kopje de duurste soort: melkdranken kosten vaak twee cups.", "goedkoopst": "Per kopje de duurste soort: melkdranken kosten vaak twee cups.", "derde": "Per kopje de duurste soort." }
+    },
+    "senseo": {
+      "herkennen": "senseo|padmachine|koffiepadmachine",
+      "derde": "compact",
+      "algemeen": ["Werkt met gewone koffiepads uit de supermarkt", "Zet 1 of 2 kopjes tegelijk", "Makkelijk: pad erin, knop in"],
+      "nadeel": { "onze_keuze": "Geen echte espresso: de koffie is milder.", "goedkoopst": "Eenvoudige machine: weinig keuze in sterkte.", "derde": "Klein waterreservoir: vaker bijvullen." }
+    },
+    "volautomaat": {
+      "herkennen": "volautomaat|volautomatische|bean to cup",
+      "derde": "melk",
+      "algemeen": ["Maalt verse bonen voor elk kopje", "Per kopje de goedkoopste espresso", "Sterkte en hoeveelheid zelf in te stellen"],
+      "nadeel": { "onze_keuze": "Maakt geluid bij het malen en moet regelmatig ontkalkt worden.", "goedkoopst": "Geen melksysteem: melk schuim je zelf op.", "derde": "Het melksysteem moet je vaak schoonmaken." }
+    },
+    "filterkoffie": {
+      "herkennen": "filterkoffie|filter koffie|koffiezetapparaat|koffiezetter|filtermachine",
+      "derde": "",
+      "algemeen": ["Zet in één keer koffie voor de hele dag", "Werkt met gewone gemalen koffie", "Goedkoop in aanschaf en per kopje"],
+      "nadeel": { "onze_keuze": "Geen espresso of cappuccino.", "goedkoopst": "Op een warmhoudplaat wordt de koffie na een tijdje bitter.", "derde": "Geen espresso of cappuccino." }
+    }
+  },
+  "keuzes": {
+    "volautomaat": {},
+    "nespresso": {},
+    "senseo": {},
+    "dolce-gusto": {},
+    "filterkoffie": {}
+  },
+  "koppeling": {
+    "/nespresso/": "nespresso",
+    "/dolce-gusto/": "dolce-gusto",
+    "/senseo/": "senseo",
+    "/koffiebonen/": "volautomaat"
+  }
+}

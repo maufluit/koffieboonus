@@ -1,7 +1,9 @@
 // Extra pagina's van Koffieboonus: Over ons, Contact, Privacy, "Hoe verdient Koffieboonus geld?" en de /go/-doorstuurpagina's.
 // Wordt gebruikt door build.mjs. Twee instellingen bepalen wat er gebeurt:
 //   site-gegevens.json  -> de vier informatiepagina's verschijnen pas als naam en e-mail zijn ingevuld (geen [PLAATSHOUDER] meer).
-//   affiliate/go-links.json -> "aan": false (standaard) betekent: geen /go/-pagina's, geen advertentielabels, niets verandert.
+//   affiliate/go-links.json -> "aan": false (standaard) betekent: geen /go/-pagina's, geen partnerlinks, niets verandert.
+// Partnerlinks (affiliatelinks): we krijgen alleen een commissie per verkoop, geen geld voor plaatsing. Daarom heet het op de site
+// 'partnerlinks' en niet 'advertentie' (besluit Maurits 16 nov 2026): één melding adNotice() boven elk blok, geen label per knop.
 // Staat alles uit, dan is de uitvoer van build.mjs precies gelijk aan die van vóór deze module.
 // Alleen voor testen en previews: KB_GEGEVENS=<pad> en KB_GO=<pad> gebruiken een ander instellingenbestand.
 import fs from "node:fs";
@@ -25,7 +27,7 @@ export const INFO_ON = filled(G.naam) && emailOk;
 const INFO = { naam: val(G.naam), email: emailOk ? G.email.trim() : "", plaats: val(G.plaats), kvk: val(G.kvk), over: val(G.over_mij), datum: /^\d{4}-\d{2}-\d{2}$/.test(G.privacy_datum || "") ? G.privacy_datum : "2026-10-23" };
 if (!INFO_ON) console.log("Informatiepagina's (over, contact, privacy, geld): uit, want naam en e-mail in site-gegevens.json zijn nog niet ingevuld.");
 
-// ---------- advertentielinks (/go/) ----------
+// ---------- partnerlinks (/go/) ----------
 const GOCFG = readJson(process.env.KB_GO || path.join("affiliate", "go-links.json"), { aan: false, links: [] });
 const NETWERKEN = GOCFG.netwerken || {};
 const GO_LINKS = new Map(); // id -> link
@@ -45,17 +47,37 @@ export const GO_ON = GOCFG.aan === true && INFO_ON;
 if (GOCFG.aan === true && !INFO_ON) console.warn("go-links.json staat aan, maar de informatiepagina's ontbreken (vul site-gegevens.json in). Advertentielinks blijven daarom UIT.");
 console.log(`Advertentielinks (/go/): ${GO_ON ? `aan, ${GO_LINKS.size} actieve link(s)` : "uit"}`);
 
+// Extra advertentielinks die een module zelf maakt (koffiemachines.mjs: één link per gekozen machine uit de Coolblue-feed).
+// Zelfde controles als voor go-links.json. Staan de advertentielinks uit, dan gebeurt er niets.
+export function addGoLinks(list) {
+  if (!GO_ON) return 0;
+  let n = 0;
+  for (const l of list || []) {
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(l.id || "")) { console.warn(`addGoLinks: ongeldige id "${l.id}" overgeslagen.`); continue; }
+    let u; try { u = new URL(l.url); } catch { u = null; }
+    if (!u || u.protocol !== "https:") { console.warn(`addGoLinks: link "${l.id}" heeft geen geldige https-url en is overgeslagen.`); continue; }
+    if (!filled(l.winkel || "")) { console.warn(`addGoLinks: link "${l.id}" mist de winkelnaam en is overgeslagen.`); continue; }
+    if (GO_LINKS.has(l.id)) { console.warn(`addGoLinks: id "${l.id}" bestaat al (go-links.json gaat voor) en is overgeslagen.`); continue; }
+    GO_LINKS.set(l.id, { ...l, url: u.href }); n++;
+  }
+  return n;
+}
+
 // Hulpfuncties voor andere pagina's (bijv. de Black Friday-pagina). Staan de advertentielinks uit, dan geven ze niets terug.
 export const goHref = id => (GO_ON && GO_LINKS.has(id) ? `/go/${id}/` : null);
 export function adLink(id, text, { cls = "go" } = {}) {
   const h = goHref(id);
   if (!h) return "";
-  return `<a class="${esc(cls)}" href="${h}" target="_blank" rel="sponsored nofollow noopener">${esc(text)}</a><span class="adlabel">Advertentie</span>`;
+  return `<a class="${esc(cls)}" href="${h}" target="_blank" rel="sponsored nofollow noopener">${esc(text)}</a>`;
 }
-export const adNotice = () => GO_ON
-  ? `<p class="adnote"><strong>Advertentie:</strong> koop je via een link met het label ‘Advertentie’, dan krijgt Koffieboonus een kleine vergoeding van de webshop. Jij betaalt hetzelfde en de volgorde verandert er niet door. <a href="${GELD_URL}">Hoe verdienen we geld?</a></p>`
+// Eén melding boven elk blok met partnerlinks. knop = "een knop" of "de knop"; keuze = wat wij zelf bepalen (null = die zin weglaten).
+export const adNotice = ({ knop = "een knop", keuze = "wat we laten zien en in welke volgorde, bepalen wij zelf" } = {}) => GO_ON
+  ? `<p class="adnote"><span class="adtag">Partnerlinks</span> Koop je via ${esc(knop)} hieronder, dan krijgt Koffieboonus een kleine commissie van de winkel. Je betaalt niets extra. De winkel betaalt ons niet om hier te staan${keuze ? `; ${esc(keuze)}` : ""}. <a href="${GELD_URL}">Hoe verdienen we geld?</a></p>`
   : "";
-export const AD_CSS = ".adlabel{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:4px;font-size:12px;font-weight:600;background:var(--line);color:var(--ink);vertical-align:middle;white-space:nowrap}.adnote{font-size:13px;color:var(--mute);margin:8px 0 12px;max-width:70ch}.adnote a{color:inherit}";
+export const AD_CSS = ".adnote{font-size:15px;line-height:1.5;color:var(--ink);background:color-mix(in srgb,var(--orange) 9%,var(--card));border:1px solid color-mix(in srgb,var(--orange) 35%,var(--line));border-radius:10px;padding:10px 14px;margin:8px 0 14px;max-width:70ch}.adnote a{color:inherit;font-weight:600}.adtag{display:inline-block;margin-right:6px;padding:1px 8px;border-radius:999px;background:var(--brown);color:var(--brownink);font-size:12px;font-weight:700;letter-spacing:.02em;vertical-align:1px;white-space:nowrap}";
+// Extra alinea's voor de privacyverklaring vanuit een module (koffiemachines.mjs: foto's van Coolblue). Leeg = verklaring ongewijzigd.
+const PRIVACY_EXTRA = [];
+export const addPrivacyNote = html => { PRIVACY_EXTRA.push(html); };
 
 // ---------- pagina-adressen ----------
 const OVER_URL = "/over/", CONTACT_URL = "/contact/", PRIVACY_URL = "/privacy/", GELD_URL = "/hoe-verdienen-we-geld/";
@@ -102,7 +124,7 @@ function page(tpl, { url, title, desc, h1, crumb, body }) {
 // ---------- teksten ----------
 const mail = () => `<a href="mailto:${esc(INFO.email)}">${esc(INFO.email)}</a>`;
 const dateNL = iso => new Date(iso + "T12:00:00Z").toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-const activeShops = () => [...GO_LINKS.values()];
+const activeShops = () => [...new Map([...GO_LINKS.values()].map(l => [l.winkel + "|" + (l.netwerk || ""), l])).values()]; // één regel per winkel, ook als er meer links naar dezelfde winkel zijn (koffiemachines)
 const usedNetworks = () => [...new Set(activeShops().map(l => l.netwerk).filter(Boolean))];
 const ORDER = `<ul><li>Standaard staan de aanbiedingen op <strong>hoogste korting</strong>.</li><li>Op de pagina's ‘Goedkoopste …’ staan ze op <strong>laagste prijs per kilo, cup of pad</strong>.</li><li>We tonen aanbiedingen vanaf 10% korting, en aanbiedingen waarvan de normale prijs onbekend is.</li></ul>`;
 
@@ -133,19 +155,19 @@ function contactBody() {
 function geldBody() {
   const always = `<h2>Wat altijd zo blijft</h2><p>De supermarktaanbiedingen blijven gratis te bekijken. En geld bepaalt nooit de volgorde. Zo kiezen we die:</p>${ORDER}`;
   if (!GO_ON) return [
-    `<p>Op dit moment verdient Koffieboonus geen geld. Er staan geen advertenties en geen advertentielinks op de site.</p>`,
+    `<p>Op dit moment verdient Koffieboonus geen geld. Er staan geen advertenties en geen partnerlinks (affiliatelinks) op de site.</p>`,
     `<h2>De knoppen ‘Bekijk bij …’</h2><p>Dat zijn gewone links naar de winkel. Koffieboonus krijgt daar niets voor.</p>`,
-    `<h2>Als dat verandert</h2><p>Misschien gaat Koffieboonus later advertentielinks gebruiken, bijvoorbeeld naar webshops met koffiemachines. Dan leggen we dat eerst hier uit, en staat bij elke advertentielink het label ‘Advertentie’.</p>`,
+    `<h2>Als dat verandert</h2><p>Misschien gaat Koffieboonus later partnerlinks (affiliatelinks) gebruiken, bijvoorbeeld naar webshops met koffiemachines. Dan leggen we dat eerst hier uit, en staat boven elk blok met partnerlinks een duidelijke melding.</p>`,
     always,
   ].join("\n");
   const shops = activeShops().map(l => `<li>${esc(l.winkel)}${l.netwerk ? ` (via ${esc(l.netwerk)})` : ""}</li>`);
-  const daisy = usedNetworks().some(n => NETWERKEN[n]?.melding) ? `<p>Voor een deel van de advertentielinks gebruiken we de diensten van Daisycon, een netwerk voor advertentielinks.</p>` : "";
+  const daisy = usedNetworks().some(n => NETWERKEN[n]?.melding) ? `<p>Voor een deel van de partnerlinks gebruiken we de diensten van Daisycon, een netwerk voor partnerlinks.</p>` : "";
   return [
-    `<p>Koffieboonus is gratis. We verdienen geld met <strong>advertentielinks</strong> (ook wel affiliatelinks).</p>`,
-    `<h2>Hoe werkt een advertentielink?</h2><p>Bij sommige links naar webshops staat het label <span class="adlabel" style="margin-left:0">Advertentie</span>. Klik je daarop en koop je iets, dan krijgt Koffieboonus een kleine vergoeding van die webshop. <strong>Jij betaalt hetzelfde.</strong></p><p>Je koopt bij de webshop, niet bij Koffieboonus. Vragen over een bestelling stel je dus aan de webshop.</p><p>Een link zonder het label ‘Advertentie’ is een gewone link. Daar krijgen we niets voor.</p>`,
+    `<p>Koffieboonus is gratis. We verdienen geld met <strong>partnerlinks</strong> (ook wel affiliatelinks): koop je via zo'n link iets, dan krijgen we een kleine commissie van de winkel.</p>`,
+    `<h2>Hoe werkt een partnerlink?</h2><p>Boven knoppen die een partnerlink zijn, staat een melding met het label <span class="adtag">Partnerlinks</span>. Klik je op zo'n knop en koop je iets, dan krijgt Koffieboonus een kleine commissie van de winkel. <strong>Je betaalt niets extra.</strong></p><p>We krijgen alleen geld als er iets gekocht wordt. Een winkel betaalt ons niet om op de site te staan, en kan ook niet betalen om bovenaan te komen.</p><p>Je koopt bij de winkel, niet bij Koffieboonus. Vragen over een bestelling stel je dus aan de winkel.</p><p>De knoppen ‘Bekijk bij …’ bij de koffieaanbiedingen van de supermarkten zijn gewone links. Daar krijgen we niets voor.</p>`,
     shops.length ? `<h2>Met wie werken we samen?</h2><ul>${shops.join("")}</ul>${daisy}` : daisy,
     always,
-    `<h2>Je privacy</h2><p>Koffieboonus plaatst zelf geen cookies, ook niet bij advertentielinks. Wat er gebeurt nadat je op een advertentielink klikt, lees je in de <a href="${PRIVACY_URL}">privacyverklaring</a>.</p>`,
+    `<h2>Je privacy</h2><p>Koffieboonus plaatst zelf geen cookies, ook niet bij partnerlinks. Wat er gebeurt nadat je op een partnerlink klikt, lees je in de <a href="${PRIVACY_URL}">privacyverklaring</a>.</p>`,
   ].filter(Boolean).join("\n");
 }
 
@@ -158,10 +180,12 @@ function privacyBody() {
     `<h2>Als je de site bezoekt</h2><p>De site staat bij GitHub Pages. Zoals bij elke website ziet de server je IP-adres; GitHub gebruikt dat voor de beveiliging en wij krijgen het niet. Voor bezoekersaantallen en de duimpjes onder de aanbiedingen gebruiken we Cloudflare, zonder cookies en zonder je IP-adres op te slaan. Wij zien alleen totalen, niet wie je bent. Typ je een e-mailadres of telefoonnummer in het feedbackvakje, dan halen we dat weg voordat het wordt opgeslagen.</p>${GM.favoriet ? "<p>Kies je voor licht of donker, of laat je je supermarkt onthouden, dan bewaart alleen je eigen browser die keuze. Wij zien die niet.</p>" : "<p>Kies je voor licht of donker, dan onthoudt alleen je eigen browser die keuze.</p>"}${GM.delen ? "<p>Deel je een pagina of aanbieding, dan tellen we alleen dát er iets gedeeld is en wat (de pagina of de aanbieding), niet met wie.</p>" : ""}`,
     `<h2>De aanbiedingen</h2><p>De aanbiedingen komen van <a href="https://www.prijsprofeet.nl">PrijsProfeet</a>. Wij halen ze één keer per nacht op en zetten ze op onze eigen site. Je browser maakt daarvoor geen contact met PrijsProfeet, en we geven geen gegevens over bezoekers aan PrijsProfeet.</p>`,
     `<h2>Links naar winkels</h2><p>Klik je op ‘Bekijk bij …’, dan ga je naar de website van de winkel. Daar gelden het privacy- en cookiebeleid van die winkel.</p>`,
+    GO_ON ? `<h2>Partnerlinks</h2><p>Sommige knoppen naar webshops zijn partnerlinks (affiliatelinks)${usedNetworks().length ? `, via ${usedNetworks().map(esc).join(" en ")}` : ""}. Klik je daarop, dan gaat de link via zo'n partnernetwerk naar de winkel. Het netwerk en de winkel registreren dan dat je via Koffieboonus komt, zodat de winkel ons een commissie kan betalen als je iets koopt. Dat doen zij op hun eigen website, soms met cookies; daarvoor gelden hun eigen privacy- en cookiebeleid. Koffieboonus plaatst zelf geen cookies en geeft geen gegevens over jou door. We tellen alleen hoe vaak er op een partnerlink is geklikt, net als bij de andere pagina's.</p>` : "",
+    ...PRIVACY_EXTRA,
     `<h2>Buiten Europa</h2><p>GitHub, Cloudflare en Anthropic zijn Amerikaanse bedrijven en kunnen gegevens buiten de Europese Unie verwerken. In hun eigen privacyverklaringen staat hoe zij die gegevens beschermen.</p>`,
     `<h2>Je rechten</h2><p>Je mag vragen welke gegevens we van je hebben, en vragen om ze te verbeteren, te verwijderen of over te dragen. Je mag ook bezwaar maken tegen het gebruik ervan. Mail daarvoor naar ${mail()}. Ben je het niet eens met hoe we met je gegevens omgaan, dan kun je een klacht indienen bij de <a href="https://www.autoriteitpersoonsgegevens.nl">Autoriteit Persoonsgegevens</a>.</p>`,
     `<p class="meta">Laatst bijgewerkt: ${dateNL(INFO.datum)}.</p>`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 // ---------- schrijven ----------
@@ -193,7 +217,7 @@ export function writeGoPages(out, tpl) {
     const dir = path.join(out, "go", id);
     fs.mkdirSync(dir, { recursive: true });
     const js = JSON.stringify(l.url).replace(/</g, "\\u003c");
-    const html = `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Doorsturen naar ${esc(l.winkel)} | Koffieboonus</title><meta http-equiv="refresh" content="3;url=${esc(l.url)}"><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B;font-weight:600}.m{color:#6E5F53;font-size:14px}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}.m{color:#B3A395}}</style>${beacon}</head><body><p>Je gaat naar <strong>${esc(l.winkel)}</strong>…</p><p class="m">Dit is een advertentielink. Koop je iets, dan krijgt Koffieboonus een kleine vergoeding. Jij betaalt hetzelfde.</p><p><a href="${esc(l.url)}" rel="sponsored nofollow">Ga verder naar ${esc(l.winkel)} ›</a></p><script>(function(){var T=${js},d=0;function go(){if(d)return;d=1;setTimeout(function(){location.replace(T)},150)}var b=document.getElementById("cfb");if(b){b.addEventListener("load",go);b.addEventListener("error",go)}setTimeout(go,b?1200:0)})();</script></body></html>\n`;
+    const html = `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Doorsturen naar ${esc(l.winkel)} | Koffieboonus</title><meta http-equiv="refresh" content="3;url=${esc(l.url)}"><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B;font-weight:600}.m{color:#6E5F53;font-size:14px}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}.m{color:#B3A395}}</style>${beacon}</head><body><p>Je gaat naar <strong>${esc(l.winkel)}</strong>…</p><p class="m">Dit is een partnerlink. Koop je iets, dan krijgt Koffieboonus een kleine commissie van de winkel. Je betaalt niets extra.</p><p><a href="${esc(l.url)}" rel="sponsored nofollow">Ga verder naar ${esc(l.winkel)} ›</a></p><script>(function(){var T=${js},d=0;function go(){if(d)return;d=1;setTimeout(function(){location.replace(T)},150)}var b=document.getElementById("cfb");if(b){b.addEventListener("load",go);b.addEventListener("error",go)}setTimeout(go,b?1200:0)})();</script></body></html>\n`;
     fs.writeFileSync(path.join(dir, "index.html"), html);
   }
   // Zoekmachines hoeven de doorstuurpagina's niet te bezoeken.

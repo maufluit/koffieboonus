@@ -27,6 +27,11 @@ jobs:
         run: node sync.mjs
         env:
           PRIJSPROFEET_API_KEY: ${{ secrets.PRIJSPROFEET_API_KEY }}
+      - name: Haal koffiemachines op (Coolblue-feed; mag ontbreken, dan slaat de build de sectie over)
+        continue-on-error: true
+        run: node feed-coolblue.mjs
+        env:
+          COOLBLUE_FEED_URL: ${{ secrets.COOLBLUE_FEED_URL }}
       - name: Bouw de site (alle pagina's; deals.json komt nergens in git)
         run: |
           mkdir _site
