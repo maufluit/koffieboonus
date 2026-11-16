@@ -301,7 +301,10 @@ function stats(deals) {
   const cups = CUPS_DAY * 365 * YEARS;
   return ACTIVE.map(k => {
     const list = BY[k], c = cheapest(k, deals), med = Math.round(median(list.map(p => p.price)));
-    return { k, s: SOORT[k], list, c, med, min: Math.min(...list.map(p => p.price)), total: c ? med + cups * c.cpk : null, koffie: c ? cups * c.cpk : null };
+    // Machineprijs in de rekensom = de prijs van onze keuze (wat we aanraden), niet de mediaan van alle machines (16 nov, Maurits: 'doe wat het meest eerlijk is').
+    const top = PICKS.get(k)?.picks.find(x => x.slot === "onze_keuze")?.p;
+    const mach = top ? Math.round(top.price) : med;
+    return { k, s: SOORT[k], list, c, med, mach, top, min: Math.min(...list.map(p => p.price)), total: c ? mach + cups * c.cpk : null, koffie: c ? cups * c.cpk : null };
   });
 }
 
@@ -311,12 +314,12 @@ function costChart(st) {
   const max = Math.max(...rows.map(x => x.total));
   const w = v => (v / max * 100).toFixed(1);
   const cpks = rows.map(x => x.c.cpk), lo = Math.min(...cpks), hi = Math.max(...cpks);
-  const li = rows.map(x => `<li data-k="${x.k}"><span>${esc(x.s.chart)}</span><span class="kmbar" role="img" aria-label="${esc(`${x.s.chart}: machine ${eur0(x.med)} plus koffie ${eur0(x.koffie)}, samen ${eur0(x.total)}`)}"><i style="width:${w(x.med)}%"></i><b style="left:${w(x.med)}%;width:${w(x.koffie)}%"></b></span><span class="v">${eur0(x.total)}</span></li>`).join("");
-  return `<section aria-labelledby="km-kost"><h2 id="km-kost">Wat kost een kopje? ${YEARS} jaar, ${CUPS_DAY} kopjes per dag</h2><div class="kmcost"><p>Machine + koffie met de goedkoopste aanbieding van deze week</p><ul class="kmbars">${li}</ul><div class="kmkey"><span><i style="background:var(--kmm)"></i>machine</span><span><i style="background:var(--kmk)"></i>koffie (${lo === hi ? eur(lo) : `${eur(lo)}–${eur(hi).slice(1)}`} per kopje)</span></div></div><p class="kmnote">Machine: de middelste prijs van de machines van die soort bij ${esc(WINKEL)}. Koffie: de goedkoopste aanbieding van deze week die in de machine past (bij bonen en gemalen koffie rekenen we ${GRAM} gram per kopje). Losse kosten zoals ontkalker en melk tellen we niet mee.</p></section>`;
+  const li = rows.map(x => `<li data-k="${x.k}"><span>${esc(x.s.chart)}</span><span class="kmbar" role="img" aria-label="${esc(`${x.s.chart}: machine ${eur0(x.mach)} plus koffie ${eur0(x.koffie)}, samen ${eur0(x.total)}`)}"><i style="width:${w(x.mach)}%"></i><b style="left:${w(x.mach)}%;width:${w(x.koffie)}%"></b></span><span class="v">${eur0(x.total)}</span></li>`).join("");
+  return `<section aria-labelledby="km-kost"><h2 id="km-kost">Wat kost een kopje? ${YEARS} jaar, ${CUPS_DAY} kopjes per dag</h2><div class="kmcost"><p>Machine + koffie met de goedkoopste aanbieding van deze week</p><ul class="kmbars">${li}</ul><div class="kmkey"><span><i style="background:var(--kmm)"></i>machine</span><span><i style="background:var(--kmk)"></i>koffie (${lo === hi ? eur(lo) : `${eur(lo)}–${eur(hi).slice(1)}`} per kopje)</span></div></div><p class="kmnote">Machine: de prijs van onze keuze voor die soort bij ${esc(WINKEL)} (zie de pagina per soort). Koffie: de goedkoopste aanbieding van deze week die in de machine past (bij bonen en gemalen koffie rekenen we ${GRAM} gram per kopje). Losse kosten zoals ontkalker en melk tellen we niet mee.</p></section>`;
 }
 
 function keuzehulp(st) {
-  const data = st.filter(x => x.c).map(x => ({ k: x.k, n: x.s.een, u: urlOf(x.k), f: x.s.fit, c: +x.c.cpk.toFixed(4), m2: !!x.s.melk2, p: x.list.map(p => p.price).sort((a, b) => a - b), pm: x.list.filter(isMelk).map(p => p.price).sort((a, b) => a - b) }));
+  const data = st.filter(x => x.c).map(x => ({ k: x.k, n: x.s.een, u: urlOf(x.k), f: x.s.fit, c: +x.c.cpk.toFixed(4), m2: !!x.s.melk2, p: x.list.map(p => p.price).sort((a, b) => a - b), pm: x.list.filter(isMelk).map(p => p.price).sort((a, b) => a - b), kp: (PICKS.get(x.k)?.picks || []).map(pk => ({ p: pk.p.price, m: isMelk(pk.p) ? 1 : 0, n: pk.p.name, top: pk.slot === "onze_keuze" ? 1 : 0 })) }));
   if (data.length < 2) return { html: "", script: "" };
   const q = (n, name, legend, opts) => `<fieldset class="kmq"><legend><small>Vraag ${n} van 3</small>${legend}</legend><div class="chips">${opts.map(([v, t]) => `<label><input type="radio" name="${name}" value="${v}"><span>${t}</span></label>`).join("")}</div></fieldset>`;
   const html = `<section id="kmhulp" hidden aria-label="Keuzehulp"><div class="kmqs">${q(1, "drink", "Wat drink je meestal?", Object.entries(DRINK))}${q(2, "cups", "Hoeveel kopjes per dag, thuis?", [["1.5", "1–2"], ["3.5", "3–4"], ["6", "5 of meer"]])}${q(3, "budget", "Hoeveel wil je uitgeven aan de machine?", [["100", "Tot €100"], ["300", "Tot €300"], ["0", "Maakt niet uit"]])}</div><p class="kmres" id="kmres" aria-live="polite" hidden></p></section>`;
@@ -324,11 +327,11 @@ function keuzehulp(st) {
   const script = `(function(){var S=${js(data)},Y=${YEARS},h=document.getElementById("kmhulp"),r=document.getElementById("kmres");if(!h)return;h.hidden=false;
 var e=function(n){return"€"+Math.round(n).toLocaleString("nl-NL")},md=function(a){var m=a.length>>1;return a.length%2?a[m]:(a[m-1]+a[m])/2};
 function go(){var g=function(n){var i=h.querySelector('input[name="'+n+'"]:checked');return i?i.value:null},d=g("drink"),c=g("cups"),b=g("budget");if(!d||!c||!b)return;c=+c;b=+b||1e9;
-var cups=c*365*Y,o=[];S.forEach(function(s){if(s.f.indexOf(d)<0)return;var melk=d==="melk"&&s.pm.length&&s.k!=="dolce-gusto",pr=(melk?s.pm:s.p).filter(function(p){return p<=b});if(!pr.length)return;var m=md(pr),k=cups*s.c*(d==="melk"&&s.m2?2:1);o.push({s:s,m:m,k:k,t:m+k,melk:melk})});
+var cups=c*365*Y,o=[];S.forEach(function(s){if(s.f.indexOf(d)<0)return;var melk=d==="melk"&&s.pm.length&&s.k!=="dolce-gusto",pr=(melk?s.pm:s.p).filter(function(p){return p<=b});if(!pr.length)return;var kp=s.kp.filter(function(q){return q.p<=b&&(!melk||q.m)}),pk=kp.filter(function(q){return q.top})[0]||kp.sort(function(a,b){return a.p-b.p})[0],m=pk?pk.p:md(pr),k=cups*s.c*(d==="melk"&&s.m2?2:1);o.push({s:s,m:m,k:k,t:m+k,melk:melk,pk:pk})});
 o.sort(function(a,b){return a.t-b.t});document.querySelectorAll(".kmbars li").forEach(function(li){li.classList.toggle("on",!!o[0]&&li.getAttribute("data-k")===o[0].s.k)});r.hidden=false;
 if(!o.length){r.innerHTML="<strong>Binnen dit budget hebben we nu geen machine die past.</strong> Kies een hoger budget, of bekijk hieronder alle soorten.";return}
 var a=o[0],x=a.s.k==="volautomaat"&&a.melk?" met melksysteem":a.s.k==="nespresso"&&a.melk?" met melkopschuimer":"";
-r.innerHTML="<strong>Past bij jou: "+a.s.n+x+".</strong> Over "+Y+" jaar kost dat ongeveer "+e(a.t)+": "+e(a.m)+" voor de machine en "+e(a.k)+" voor de koffie, met de aanbiedingen van deze week."+(d==="melk"&&a.s.m2?" (Melkdranken kosten twee cups.)":"")+(o[1]?" Op twee: "+o[1].s.n+" (ongeveer "+e(o[1].t)+").":"")+' <a href="'+a.s.u+'">Bekijk onze 3 keuzes ›</a>'}
+r.innerHTML="<strong>Past bij jou: "+a.s.n+x+".</strong> Over "+Y+" jaar kost dat ongeveer "+e(a.t)+": "+e(a.m)+(a.pk?" voor de machine ("+(a.pk.top?"onze keuze":"een van onze keuzes")+": "+a.pk.n+")":" voor een machine binnen je budget")+" en "+e(a.k)+" voor de koffie, met de aanbiedingen van deze week."+(d==="melk"&&a.s.m2?" (Melkdranken kosten twee cups.)":"")+(o[1]?" Op twee: "+o[1].s.n+" (ongeveer "+e(o[1].t)+").":"")+' <a href="'+a.s.u+'">Bekijk onze '+(a.s.kp.length>1?a.s.kp.length+" keuzes":"keuze")+' ›</a>'}
 h.addEventListener("change",go)})();\n`;
   return { html, script };
 }
@@ -370,7 +373,7 @@ function soortPage(tpl, x, st, picks, h) {
   const { pages, dateNL, upd } = h;
   const s = x.s, k = x.k, url = urlOf(k);
   const cups = CUPS_DAY * 365 * YEARS;
-  const kost = x.c ? `<p>Met de ${esc(s.word)} van deze week kost een kopje <span class="nw">±${eur(x.c.cpk)}</span>. Over ${YEARS} jaar met ${CUPS_DAY} kopjes per dag is dat samen ongeveer <strong>${eur0(x.total)}</strong>: ${eur0(x.med)} voor een gemiddelde machine en ${eur0(x.koffie)} voor de koffie. <a href="${KM_URL}">Vergelijk met andere soorten ›</a></p>` : "";
+  const kost = x.c ? `<p>Met de ${esc(s.word)} van deze week kost een kopje <span class="nw">±${eur(x.c.cpk)}</span>. Over ${YEARS} jaar met ${CUPS_DAY} kopjes per dag is dat samen ongeveer <strong>${eur0(x.total)}</strong>: ${eur0(x.mach)} voor ${x.top ? `onze keuze, de ${esc(x.top.name)},` : "een machine van de middelste prijs"} en ${eur0(x.koffie)} voor de koffie. <a href="${KM_URL}">Vergelijk met andere soorten ›</a></p>` : "";
   const cards = picks.picks.map((pk, i) => card(x, st, pk, i)).join("");
   const pg = pages.get(s.page), n = pg && pg.indexable ? pg.list.length : 0;
   const coffee = n ? `<a class="kmcoffee" href="${s.page}">${esc(s.word.charAt(0).toUpperCase() + s.word.slice(1))} voor deze machine in de aanbieding: ${n} deze week →</a>` : "";
