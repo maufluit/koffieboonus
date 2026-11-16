@@ -35,8 +35,8 @@
     "bezorgkosten": "delivery_cost",
     "bijgewerkt": "last_updated"
   },
-  "categorie_filter": "koffiemachine|koffiezetapparat|koffiezetter|espressomachine|volautomaat|volautomatische|padmachine|capsulemachine|nespresso|dolce gusto|senseo",
-  "uitsluiten": "ontkalk|reinig|schoonmaak|filterpapier|waterfilter|capsulehouder|cuphouder|onderdeel|accessoire|koffiebonen|koffiecups|capsules\\b|\\bpads\\b|losse melkopschuimer|thermoskan los|koffiemolen|bonenmaler|kopjes set|glazen|beker",
+  "categorie_filter": ".",
+  "uitsluiten": "ontkalk|reinig|schoonmaak|filterpapier|waterfilter|capsulehouder|cuphouder|onderdeel|accessoire|koffiebonen|koffiecups|capsules\\b|\\bpads\\b|losse melkopschuimer|thermoskan los|koffiemolen|bonenmaler|kopjes set|glazen|beker|capsule ?houder|melkopschuimer|\\s\\+\\s",
   "min_prijs": 20,
   "kopjes_per_dag": 3,
   "jaren": 3,
@@ -51,35 +51,53 @@
     },
     "dolce-gusto": {
       "herkennen": "dolce gusto",
+      "niet": "\\bneo\\b",
       "derde": "",
       "algemeen": ["Ook cappuccino en chocolademelk met cups", "Een kopje in een halve minuut", "Werkt ook met supermarktcups die passen in Dolce Gusto"],
       "nadeel": { "onze_keuze": "Per kopje de duurste soort: melkdranken kosten vaak twee cups.", "goedkoopst": "Per kopje de duurste soort: melkdranken kosten vaak twee cups.", "derde": "Per kopje de duurste soort." }
     },
     "senseo": {
       "herkennen": "senseo|padmachine|koffiepadmachine",
-      "derde": "compact",
+      "derde": "",
       "algemeen": ["Werkt met gewone koffiepads uit de supermarkt", "Zet 1 of 2 kopjes tegelijk", "Makkelijk: pad erin, knop in"],
       "nadeel": { "onze_keuze": "Geen echte espresso: de koffie is milder.", "goedkoopst": "Eenvoudige machine: weinig keuze in sterkte.", "derde": "Klein waterreservoir: vaker bijvullen." }
     },
     "volautomaat": {
-      "herkennen": "volautomaat|volautomatische|bean to cup",
+      "herkennen": "volautomaat|volautomatische|bean to cup|philips (?:\\d{4} ep|lattego|cafe aromis)|de'?longhi (?:magnifica|dinamica|eletta|primadonna|rivelia|maestosa|ecam|exam|epam)|jura (?:a|c|e|j|s|w|x|z|ena|giga) ?\\d|siemens eq|saeco (?:granaroma|xelsis|picobaristo|lirika|magic)|krups (?:evidence|sensation|serenity|arabica|coffee crush|ea\\d{3})|melitta (?:purista|barista|avanza|caffeo|latticia|solo)|bosch (?:verocafe|perfectly|t[iq][seu] ?\\d)|kitchenaid kf\\d|wmf perfection|smeg bcc|miele cm|ninja autobarista",
       "derde": "melk",
       "algemeen": ["Maalt verse bonen voor elk kopje", "Per kopje de goedkoopste espresso", "Sterkte en hoeveelheid zelf in te stellen"],
       "nadeel": { "onze_keuze": "Maakt geluid bij het malen en moet regelmatig ontkalkt worden.", "goedkoopst": "Geen melksysteem: melk schuim je zelf op.", "derde": "Het melksysteem moet je vaak schoonmaken." }
     },
     "filterkoffie": {
-      "herkennen": "filterkoffie|filter koffie|koffiezetapparaat|koffiezetter|filtermachine",
+      "herkennen": "filterkoffie|filter koffie|koffiezetapparaat|koffiezetter|filtermachine|philips (?:daily|gaia|hd7\\d{3})|melitta (?:aromaboy|look|enjoy|easy|aromafresh|aroma ?elegance|optima)|bosch styline tka|inventum kz|krups (?:pro aroma|aroma|km\\d)|smeg dcf|kitchenaid 5kcm|tefal subito|moccamaster|wmf kitchenminis aroma|sage the (?:luxe|precision) brewer|ninja prestige dualbrew",
       "derde": "",
       "algemeen": ["Zet in één keer koffie voor de hele dag", "Werkt met gewone gemalen koffie", "Goedkoop in aanschaf en per kopje"],
       "nadeel": { "onze_keuze": "Geen espresso of cappuccino.", "goedkoopst": "Op een warmhoudplaat wordt de koffie na een tijdje bitter.", "derde": "Geen espresso of cappuccino." }
     }
   },
   "keuzes": {
-    "volautomaat": {},
-    "nespresso": {},
-    "senseo": {},
-    "dolce-gusto": {},
-    "filterkoffie": {}
+    "volautomaat": {
+      "onze_keuze": {"id": "38876975894", "kenmerken": ["Cappuccino met één druk op de knop", "Melksysteem van 2 losse onderdelen: afspoelen onder de kraan", "Stiller dan veel andere volautomaten"], "nadeel": "Weinig keuze: espresso, koffie, cappuccino en heet water."},
+      "goedkoopst": {"id": "38707377503", "kenmerken": ["Zet 2 kopjes tegelijk", "Vakje voor gemalen koffie, bijvoorbeeld cafeïnevrij", "Heet water voor thee"], "nadeel": "Geen melksysteem: melk schuim je zelf op met het stoompijpje."},
+      "derde": {"id": "38552648336", "kenmerken": ["Cappuccino en latte macchiato met één knop", "Melkreservoir kan in de vaatwasser", "Vakje voor gemalen koffie, bijvoorbeeld cafeïnevrij"], "nadeel": "Het melkreservoir moet je na gebruik schoonmaken."}
+    },
+    "nespresso": {
+      "onze_keuze": {"id": "40346154987", "kenmerken": ["Espresso en lungo met 2 eigen knoppen", "In 25 seconden warm", "Gaat na 9 minuten vanzelf uit"], "nadeel": "Geen melkopschuimer: daarvoor koop je er los een bij."},
+      "goedkoopst": {"id": "38707377486", "kenmerken": ["Extra klein: past op elk aanrecht", "In 25 seconden warm", "Gaat na 9 minuten vanzelf uit"], "nadeel": "Klein waterreservoir: vaker bijvullen."},
+      "derde": {"id": "45462836187", "kenmerken": ["Cappuccino en latte met één druk op de knop, met verse melk", "7 soorten koffie", "Ruimte voor een hoog latte macchiato-glas"], "nadeel": "Duurder in aanschaf dan een Nespresso zonder melk."}
+    },
+    "senseo": {
+      "onze_keuze": {"id": "43592463353", "kenmerken": ["Knop voor sterkere koffie", "Zet meteen koffie zodra hij warm is", "Gaat na het zetten meteen uit"], "nadeel": "Geen echte espresso: de koffie is milder."},
+      "goedkoopst": {"id": "42328574531", "kenmerken": ["Zet 2 kopjes tegelijk", "Werkt met gewone koffiepads uit de supermarkt", "Gaat na 30 minuten vanzelf uit"], "nadeel": "Geen knop voor sterkere koffie."}
+    },
+    "dolce-gusto": {
+      "onze_keuze": {"id": "40844631475", "kenmerken": ["XL-functie: een grote kop van 300 ml", "Stopt vanzelf als je kopje vol is", "Meer dan 30 dranken, ook chocolademelk"], "nadeel": "Melkdranken alleen met melkpoedercups, niet met verse melk."},
+      "goedkoopst": {"id": "45758575716", "kenmerken": ["Klein: past in elke keuken", "Meer dan 30 dranken, ook chocolademelk en thee", "Gaat na 1 minuut vanzelf uit"], "nadeel": "Met een hendel: je let zelf op wanneer je kopje vol is."}
+    },
+    "filterkoffie": {
+      "onze_keuze": {"id": "45161657825", "kenmerken": ["Thermoskan: koffie blijft 2 uur warm zonder bitter te worden", "Zet tot 10 kopjes in één keer", "Gaat vanzelf uit als de koffie klaar is"], "nadeel": "Geen espresso of cappuccino."},
+      "goedkoopst": {"id": "41703128644", "kenmerken": ["Timer: koffie klaar wanneer jij wilt", "Sterkte zelf in te stellen", "Druppelstop: geen gemors op het aanrecht"], "nadeel": "Op een warmhoudplaat wordt de koffie na een tijdje bitter."}
+    }
   },
   "koppeling": {
     "/nespresso/": "nespresso",
