@@ -1,0 +1,10 @@
+{
+  "_uitleg": [
+    "Titels en omschrijvingen in Google voor de winkelpagina's en de Black Friday-pagina (voorstel 17 nov 2026, na de meting van de dealtitels; live alleen na akkoord Maurits).",
+    "winkels: op de pagina's per supermarkt (bijv. /hoogvliet/) staat de winkelnaam vooraan, zoals mensen zoeken ('Hoogvliet koffie aanbieding: tot 50% korting'), en de omschrijving noemt het aantal aanbiedingen en de goedkoopste koffie per kilo (of per cup/pad) bij die winkel.",
+    "blackfriday: in de Black Friday-periode noemt de titel de hoogste korting en de omschrijving de beste deal plus dat wij nep-korting eruit houden.",
+    "Alles false = de site is letter voor letter gelijk aan daarvoor."
+  ],
+  "winkels": false,
+  "blackfriday": false
+}

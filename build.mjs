@@ -6,7 +6,8 @@ import { BF_ON, BF_URL, bfHomeLink, writeBlackFriday } from "./black-friday.mjs"
 import { feedbackInject } from "./feedback.mjs";
 import { INFO_ON, INFO_URLS, footerLinks, writeInfoPages } from "./extra-paginas.mjs"; // Over ons, Contact, Privacy, Hoe verdienen we geld (site-gegevens.json)
 import { G, footerStatic, homeFaqExtra, SITE_DESC, MK_URL, mkLinkItem, mkIndexable, writeMeerkoop } from "./groei.mjs";
-import { NU, isCombo, nudgeInject } from "./nudge.mjs"; // nudging (nudge.json). Uit = site ongewijzigd.
+import { NU, isCombo, nudgeInject } from "./nudge.mjs";
+import { winkelTitel } from "./titels.mjs"; // titels.json: winkelnaam vooraan + goedkoopste per kilo. Uit = site ongewijzigd. // nudging (nudge.json). Uit = site ongewijzigd.
 import { BN, VINDBAAR, brandNote, autoShopHead } from "./bijna.mjs"; // bijna op pagina 1 (bijna.json). Uit = site ongewijzigd.
 import { ZT, HEAD_TERMS, headOf as headOf0 } from "./zoektermen.mjs"; // grote zoektermen (zoektermen.json). Uit = site ongewijzigd.
 import { gemakInject, writeManifest } from "./gemak.mjs";
@@ -426,6 +427,7 @@ function render(url, pg) {
       const B = `${t}: ${n} ${n === 1 ? "deal" : "deals"} nu | Koffieboonus`;
       title = A.length <= 62 ? A : A2.length <= 58 ? A2 : B.length <= 62 ? B : `${t} | Koffieboonus`;
     }
+    { const wt = winkelTitel(p, list, max); if (wt) { title = wt.title; pg._wdesc = wt.desc; } }
     h1 = `${Label} in de aanbieding`;
     { const h = ZT.paginas ? headOf(p) : null; if (h && n) h1 = `${h.term} deze week`; } // zoektermen.json "paginas"
     desc = n
@@ -447,6 +449,7 @@ function render(url, pg) {
       }
     }
   }
+  if (pg._wdesc) desc = pg._wdesc;
   if (n) {
     intro = home
       ? `Op ${dateNL(updated)} zijn er ${n} koffie-aanbiedingen bij ${shopsN} supermarkten. Kies hieronder je supermarkt, merk of soort koffie, of bekijk de goedkoopste koffiebonen, cups en pads.`

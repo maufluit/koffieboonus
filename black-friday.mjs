@@ -9,6 +9,7 @@
 // Alleen voor testen en previews: KB_BF=<pad> gebruikt een ander instellingenbestand, KB_DATUM=JJJJ-MM-DD doet alsof het die dag is.
 import fs from "node:fs";
 import path from "node:path";
+import { bfTitel } from "./titels.mjs"; // titels.json "blackfriday". Uit = pagina ongewijzigd.
 
 const SITE = "https://koffieboonus.nl";
 export const BF_URL = "/black-friday-koffie/";
@@ -86,12 +87,13 @@ export function writeBlackFriday(out, tpl, h) {
   const nowLine = n ? `Op ${dateNL(updated)} zijn er ${n} koffieaanbiedingen bij ${shopsN} supermarkten.` : `Op ${dateNL(updated)} is er geen koffieaanbieding bij de supermarkten die we volgen.`;
 
   // Teksten per fase
-  const title = PER_SOORT ? `Black Friday koffie ${Y}: bonen, cups en pads | Koffieboonus` : `Black Friday koffie ${Y}: aanbiedingen | Koffieboonus`;
+  let title = PER_SOORT ? `Black Friday koffie ${Y}: bonen, cups en pads | Koffieboonus` : `Black Friday koffie ${Y}: aanbiedingen | Koffieboonus`;
   const h1 = `Black Friday ${Y}: koffie in de aanbieding`;
   let intro, desc;
   if (active) {
     intro = `Black Friday is op ${dayNL(P.bf)}. ${nowLine} Hieronder staan de grootste kortingen en de goedkoopste koffie per kilo, cup en pad. Deze pagina wordt elke nacht bijgewerkt.`;
     desc = `Black Friday ${Y}: de beste koffieaanbiedingen van de supermarkten${topPct ? `, nu tot ${topPct.pct}% korting` : ""}. Ook de goedkoopste koffie per kilo, cup en pad. Elke nacht bijgewerkt.`;
+    { const bt = bfTitel({ Y, topPct, nameOf, bfDag: dateNL(P.bf).replace(/ \d{4}$/, "") }); if (bt) { title = bt.title; desc = bt.desc; } }
   } else if (P.phase === "binnenkort") {
     intro = `Black Friday is dit jaar op ${dayNL(P.bf)}. Vanaf ${dayNL(P.start)} zetten we hier de beste koffieaanbiedingen van de Black Friday-periode uitgebreid op een rij. Tot die tijd zie je hieronder de beste aanbiedingen van nu. ${nowLine}`;
     desc = `Black Friday ${Y} is op ${dateNL(P.bf)}. De beste koffieaanbiedingen van de supermarkten van nu, en hoe je een echte aanbieding herkent.`;
