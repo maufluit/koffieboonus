@@ -138,6 +138,7 @@ export function writeBlackFriday(out, tpl, h) {
   const shopSec = `<section class="bfsec"><h2>Koffiemachines en cups bij webshops</h2><p>Zoek je een koffiemachine of een grote voorraad cups? Webshops en merken met een eigen webwinkel hebben rond Black Friday vaak acties. Koffieboonus vergelijkt die prijzen niet. Let bij een ‘van … voor …’-prijs goed op: bij een prijsverlaging moet de ‘van’-prijs de laagste prijs van de afgelopen 30 dagen zijn.</p></section>`;
   const machineSec = `<section class="bfsec prose"><h2>Koffiemachine kopen met Black Friday: waar let je op?</h2><p>Koffieboonus vergelijkt (nog) geen koffiemachines. Wel deze tips:</p><ul><li><strong>Reken met de prijs per kop.</strong> Een machine voor cups is vaak goedkoop, maar per kop is koffie van bonen of filterkoffie meestal goedkoper dan een cup.</li><li><strong>Nespresso Original of Vertuo?</strong> Voor de Original liggen er in de supermarkt capsules van veel merken, ook in de aanbieding. Voor de Vertuo bijna niet.</li><li><strong>Kijk of er een cashbackactie is.</strong> Merken als De'Longhi en Philips hebben rond Black Friday vaak een actie die je zelf bij het merk aanvraagt.</li><li><strong>Controleer de ‘van’-prijs.</strong> Bij een prijsverlaging moet de ‘van’-prijs de laagste prijs van de afgelopen 30 dagen zijn.</li></ul></section>`;
   secs.push(PER_SOORT ? machineSec : shopSec);
+  if (h.rm) secs.push(h.rm.block); // roastmarket.json: advertentieblok Roastmarket (alleen als het aan staat en er zakken in de aanbieding zijn)
 
   // Tips
   secs.push(`<section class="bfsec prose"><h2>Zo herken je een echte koffieaanbieding</h2><ul><li><strong>Kijk naar de prijs per kilo, cup of pad</strong>, niet alleen naar het kortingspercentage. Een groot pak met korting kan per kilo duurder zijn dan een ander merk zonder korting.</li><li><strong>Check de ‘van’-prijs.</strong> Bij een prijsverlaging moet de winkel de laagste prijs van de afgelopen 30 dagen als ‘van’-prijs gebruiken. Een ‘adviesprijs’ zegt weinig.</li><li><strong>1+1 gratis is pas 50% korting als je ze allebei gebruikt.</strong> Sla je voorraad in, kijk dan naar de houdbaarheidsdatum.</li><li><strong>Je hoeft niet op Black Friday te wachten.</strong> Koffie is bijna elke week wel ergens in de aanbieding. Een goede aanbieding nu is net zo goed.</li></ul></section>`);
@@ -151,7 +152,7 @@ export function writeBlackFriday(out, tpl, h) {
     ["Is een Black Friday-korting altijd echt?", "Niet altijd. De Autoriteit Consument & Markt (ACM) vond in november 2025 bij 18 van de 24 grote winkels misleidende prijsinformatie, meestal over de ‘van’-prijs. Die moet de laagste prijs van de afgelopen 30 dagen zijn. Vergelijk daarom zelf, bijvoorbeeld op prijs per kilo."],
     ["Is koffie rond Black Friday goedkoper dan normaal?", "Dat weten we niet zeker. We vergelijken alleen de aanbiedingen van nu, niet de prijzen van vorige maanden. Koffie is het hele jaar door regelmatig in de aanbieding."],
     ["Hoe vaak wordt deze pagina bijgewerkt?", `Elke nacht. Deze pagina is voor het laatst bijgewerkt op ${dateNL(updated)}. De aanbiedingen komen van PrijsProfeet.`],
-    ["Verdient Koffieboonus geld aan deze pagina?", "Nee. De supermarktaanbiedingen zijn gratis informatie, en Koffieboonus krijgt niets voor de knoppen ‘Bekijk bij …’."],
+    ["Verdient Koffieboonus geld aan deze pagina?", h.rm ? "Aan de supermarktaanbiedingen niet: dat is gratis informatie, en Koffieboonus krijgt niets voor de knoppen ‘Bekijk bij …’. Wel aan het blok met het label ‘Advertentie’: koop je via die links bij Roastmarket, dan krijgen wij een klein deel. Jij betaalt niets extra." : "Nee. De supermarktaanbiedingen zijn gratis informatie, en Koffieboonus krijgt niets voor de knoppen ‘Bekijk bij …’."],
   ];
   // FAQ-tekst zonder HTML voor schema.org
   const plainFaq = faq.map(([q, a]) => [q, a.replace(/<[^>]+>/g, "")]);
@@ -184,7 +185,7 @@ export function writeBlackFriday(out, tpl, h) {
     ...ld.map(o => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`),
   ].join("\n");
   const { start, footer, theme } = partsOf(tpl);
-  const top = start.replace("{{HEAD}}", () => head).replace("</style>", () => PAGE_CSS + BF_CSS + "</style>");
+  const top = start.replace("{{HEAD}}", () => head).replace("</style>", () => PAGE_CSS + BF_CSS + (h.rm ? h.rm.css : "") + "</style>");
   const pagehead = `<section class="pagehead"><nav class="crumbs" aria-label="Kruimelpad"><a href="/">Koffieboonus</a> › <span aria-current="page">${esc(crumb)}</span></nav><h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p>${dates}</section>`;
   const html = `${top}<main><div class="wrap">\n${pagehead}\n${honest}\n${secs.join("\n")}\n${more}\n${faqHtml}\n</div></main>\n${footer}\n<script>\n${theme}\n</script>\n</body>\n</html>\n`;
   const dir = path.join(out, BF_URL);

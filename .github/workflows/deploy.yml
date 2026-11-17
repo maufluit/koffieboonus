@@ -27,6 +27,11 @@ jobs:
         run: node sync.mjs
         env:
           PRIJSPROFEET_API_KEY: ${{ secrets.PRIJSPROFEET_API_KEY }}
+      - name: Haal Roastmarket op (advertentieblok; mag mislukken, dan blijft het blok weg)
+        continue-on-error: true
+        run: node feed-roastmarket.mjs
+        env:
+          ROASTMARKET_FEED_URL: ${{ secrets.ROASTMARKET_FEED_URL }}
       - name: Bouw de site (alle pagina's; deals.json komt nergens in git)
         run: |
           mkdir _site

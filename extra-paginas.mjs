@@ -45,6 +45,22 @@ export const GO_ON = GOCFG.aan === true && INFO_ON;
 if (GOCFG.aan === true && !INFO_ON) console.warn("go-links.json staat aan, maar de informatiepagina's ontbreken (vul site-gegevens.json in). Advertentielinks blijven daarom UIT.");
 console.log(`Advertentielinks (/go/): ${GO_ON ? `aan, ${GO_LINKS.size} actieve link(s)` : "uit"}`);
 
+// Extra advertentielinks die een module zelf maakt (roastmarket.mjs: één link per getoonde zak uit de feed).
+// Zelfde controles als voor go-links.json. Staan de advertentielinks uit, dan gebeurt er niets.
+export function addGoLinks(list) {
+  if (!GO_ON) return 0;
+  let n = 0;
+  for (const l of list || []) {
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(l.id || "")) { console.warn(`addGoLinks: ongeldige id "${l.id}" overgeslagen.`); continue; }
+    let u; try { u = new URL(l.url); } catch { u = null; }
+    if (!u || u.protocol !== "https:") { console.warn(`addGoLinks: link "${l.id}" heeft geen geldige https-url en is overgeslagen.`); continue; }
+    if (!filled(l.winkel || "")) { console.warn(`addGoLinks: link "${l.id}" mist de winkelnaam en is overgeslagen.`); continue; }
+    if (GO_LINKS.has(l.id)) { console.warn(`addGoLinks: id "${l.id}" bestaat al (go-links.json gaat voor) en is overgeslagen.`); continue; }
+    GO_LINKS.set(l.id, { ...l, url: u.href }); n++;
+  }
+  return n;
+}
+
 // Hulpfuncties voor andere pagina's (bijv. de Black Friday-pagina). Staan de advertentielinks uit, dan geven ze niets terug.
 export const goHref = id => (GO_ON && GO_LINKS.has(id) ? `/go/${id}/` : null);
 export function adLink(id, text, { cls = "go" } = {}) {
@@ -94,7 +110,7 @@ function page(tpl, { url, title, desc, h1, crumb, body }) {
     `<meta property="og:image" content="${SITE}/logo-volledig.png"><meta name="twitter:card" content="summary">`,
     `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>`,
   ].join("\n");
-  const top = start.replace("{{HEAD}}", () => head).replace("</style>", () => PAGE_CSS + "</style>");
+  const top = start.replace("{{HEAD}}", () => head).replace("</style>", () => PAGE_CSS + (GO_ON ? AD_CSS : "") + "</style>");
   const crumbs = `<nav class="crumbs" aria-label="Kruimelpad"><a href="/">Koffieboonus</a> › <span aria-current="page">${esc(crumb)}</span></nav>`;
   return `${top}<main><div class="wrap">\n<section class="pagehead">${crumbs}<h1>${esc(h1)}</h1></section>\n<article class="prose">${body}</article>\n</div></main>\n${footer}\n<script>\n${theme}\n</script>\n</body>\n</html>\n`;
 }
@@ -102,7 +118,7 @@ function page(tpl, { url, title, desc, h1, crumb, body }) {
 // ---------- teksten ----------
 const mail = () => `<a href="mailto:${esc(INFO.email)}">${esc(INFO.email)}</a>`;
 const dateNL = iso => new Date(iso + "T12:00:00Z").toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-const activeShops = () => [...GO_LINKS.values()];
+const activeShops = () => [...new Map([...GO_LINKS.values()].map(l => [l.winkel + "|" + (l.netwerk || ""), l])).values()]; // één regel per winkel, ook als er meer links naar dezelfde winkel zijn
 const usedNetworks = () => [...new Set(activeShops().map(l => l.netwerk).filter(Boolean))];
 const ORDER = `<ul><li>Standaard staan de aanbiedingen op <strong>hoogste korting</strong>.</li><li>Op de pagina's ‘Goedkoopste …’ staan ze op <strong>laagste prijs per kilo, cup of pad</strong>.</li><li>We tonen aanbiedingen vanaf 10% korting, en aanbiedingen waarvan de normale prijs onbekend is.</li></ul>`;
 
@@ -142,7 +158,7 @@ function geldBody() {
   const daisy = usedNetworks().some(n => NETWERKEN[n]?.melding) ? `<p>Voor een deel van de advertentielinks gebruiken we de diensten van Daisycon, een netwerk voor advertentielinks.</p>` : "";
   return [
     `<p>Koffieboonus is gratis. We verdienen geld met <strong>advertentielinks</strong> (ook wel affiliatelinks).</p>`,
-    `<h2>Hoe werkt een advertentielink?</h2><p>Bij sommige links naar webshops staat het label <span class="adlabel" style="margin-left:0">Advertentie</span>. Klik je daarop en koop je iets, dan krijgt Koffieboonus een kleine vergoeding van die webshop. <strong>Jij betaalt hetzelfde.</strong></p><p>Je koopt bij de webshop, niet bij Koffieboonus. Vragen over een bestelling stel je dus aan de webshop.</p><p>Een link zonder het label ‘Advertentie’ is een gewone link. Daar krijgen we niets voor.</p>`,
+    `<h2>Hoe werkt een advertentielink?</h2><p>Bij sommige links naar webshops staat het label <span class="adlabel" style="margin-left:0">Advertentie</span>, bij de link zelf of boven het blok met de links. Klik je daarop en koop je iets, dan krijgt Koffieboonus een kleine vergoeding van die webshop. <strong>Jij betaalt hetzelfde.</strong></p><p>Je koopt bij de webshop, niet bij Koffieboonus. Vragen over een bestelling stel je dus aan de webshop.</p><p>Een link zonder het label ‘Advertentie’ is een gewone link. Daar krijgen we niets voor.</p>`,
     shops.length ? `<h2>Met wie werken we samen?</h2><ul>${shops.join("")}</ul>${daisy}` : daisy,
     always,
     `<h2>Je privacy</h2><p>Koffieboonus plaatst zelf geen cookies, ook niet bij advertentielinks. Wat er gebeurt nadat je op een advertentielink klikt, lees je in de <a href="${PRIVACY_URL}">privacyverklaring</a>.</p>`,
@@ -158,10 +174,11 @@ function privacyBody() {
     `<h2>Als je de site bezoekt</h2><p>De site staat bij GitHub Pages. Zoals bij elke website ziet de server je IP-adres; GitHub gebruikt dat voor de beveiliging en wij krijgen het niet. Voor bezoekersaantallen en de duimpjes onder de aanbiedingen gebruiken we Cloudflare, zonder cookies en zonder je IP-adres op te slaan. Wij zien alleen totalen, niet wie je bent. Typ je een e-mailadres of telefoonnummer in het feedbackvakje, dan halen we dat weg voordat het wordt opgeslagen.</p>${GM.favoriet ? "<p>Kies je voor licht of donker, of laat je je supermarkt onthouden, dan bewaart alleen je eigen browser die keuze. Wij zien die niet.</p>" : "<p>Kies je voor licht of donker, dan onthoudt alleen je eigen browser die keuze.</p>"}${GM.delen ? "<p>Deel je een pagina of aanbieding, dan tellen we alleen dát er iets gedeeld is en wat (de pagina of de aanbieding), niet met wie.</p>" : ""}`,
     `<h2>De aanbiedingen</h2><p>De aanbiedingen komen van <a href="https://www.prijsprofeet.nl">PrijsProfeet</a>. Wij halen ze één keer per nacht op en zetten ze op onze eigen site. Je browser maakt daarvoor geen contact met PrijsProfeet, en we geven geen gegevens over bezoekers aan PrijsProfeet.</p>`,
     `<h2>Links naar winkels</h2><p>Klik je op ‘Bekijk bij …’, dan ga je naar de website van de winkel. Daar gelden het privacy- en cookiebeleid van die winkel.</p>`,
+    GO_ON ? `<h2>Advertentielinks</h2><p>Sommige knoppen naar webshops zijn advertentielinks (affiliatelinks)${usedNetworks().length ? `, via ${usedNetworks().map(esc).join(" en ")}` : ""}. Je herkent ze aan het label ‘Advertentie’. Klik je daarop, dan gaat de link via zo'n netwerk naar de winkel. Het netwerk en de winkel registreren dan dat je via Koffieboonus komt, zodat de winkel ons een vergoeding kan betalen als je iets koopt. Dat doen zij op hun eigen website, soms met cookies; daarvoor gelden hun eigen privacy- en cookiebeleid. Koffieboonus plaatst zelf geen cookies en geeft geen gegevens over jou door. We tellen alleen hoe vaak er op een advertentielink is geklikt. Foto's van producten bij advertentielinks zetten we zelf op onze site, zodat je browser daarvoor geen contact maakt met de winkel.</p>` : "",
     `<h2>Buiten Europa</h2><p>GitHub, Cloudflare en Anthropic zijn Amerikaanse bedrijven en kunnen gegevens buiten de Europese Unie verwerken. In hun eigen privacyverklaringen staat hoe zij die gegevens beschermen.</p>`,
     `<h2>Je rechten</h2><p>Je mag vragen welke gegevens we van je hebben, en vragen om ze te verbeteren, te verwijderen of over te dragen. Je mag ook bezwaar maken tegen het gebruik ervan. Mail daarvoor naar ${mail()}. Ben je het niet eens met hoe we met je gegevens omgaan, dan kun je een klacht indienen bij de <a href="https://www.autoriteitpersoonsgegevens.nl">Autoriteit Persoonsgegevens</a>.</p>`,
     `<p class="meta">Laatst bijgewerkt: ${dateNL(INFO.datum)}.</p>`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 // ---------- schrijven ----------
