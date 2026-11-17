@@ -270,7 +270,7 @@ if (KM_ON && FEED.products.some(p => p.img)) addPrivacyNote(`<h2>Foto's van koff
 export function kmBlackFriday() {
   if (!KM_ON) return null;
   const intro = `<p>Welke machine past bij jou, en wat kost een kopje met de koffie van deze week? Dat zie je bij <a href="${KM_URL}">Koffiemachines kiezen en vergelijken</a>. En deze tips:</p>`;
-  if (!BF_PICKS.length) return { intro, block: "" };
+  if (CFG.black_friday_blok !== true || !BF_PICKS.length) return { intro, block: "" }; // besluit 16 nov (optie A): standaard geen Coolblue-blok op de Black Friday-pagina
   const nBtn = BF_PICKS.filter(x => x.go).length;
   const li = BF_PICKS.map(x => `<li>${x.p.img ? `<img src="${esc(x.p.img)}" alt="" width="64" height="72" loading="lazy" referrerpolicy="no-referrer" decoding="async">` : ICON}<div><strong>${esc(x.p.name)}</strong><span class="nw"><s>${eurP(x.p.rrp)}</s><b>${eurP(x.p.price)}</b></span><span class="kmsale">In de aanbieding</span><br><a href="${urlOf(x.k)}" style="color:var(--ink);font-size:14px">${esc(SOORT[x.k].label)}: ${(PICKS.get(x.k)?.picks.length || 0) > 1 ? `onze ${PICKS.get(x.k).picks.length} keuzes` : "onze keuze"} ›</a></div>${x.go ? adLink(x.go, `Bekijk bij ${WINKEL}`, { cls: "kmbtn" }) : ""}</li>`).join("");
   const block = `<section class="bfsec"><h2>Koffiemachines in de aanbieding bij ${esc(WINKEL)}</h2>${nBtn ? adNotice({ knop: nBtn === 1 ? "de knop" : "een knop", keuze: "welke machines we hier laten zien, bepalen wij zelf: per soort de grootste prijsverlaging" }) : ""}<ul class="kmbf">${li}</ul><p class="meta">${esc(WINKEL)} noemt de doorgestreepte prijs de normale prijs. Of dat ook de laagste prijs van de afgelopen 30 dagen is, weten we niet. Vergelijk daarom altijd even.</p></section>`;
