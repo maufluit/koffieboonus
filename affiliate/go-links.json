@@ -1,0 +1,71 @@
+{
+  "_uitleg": [
+    "Advertentielinks (affiliatelinks) van Koffieboonus. Uitleg in gewone taal: affiliate/HOE-GO-LINKS-WERKEN.md",
+    "aan = false: er verandert NIETS op de site. Geen /go/-pagina's, geen advertentielabels, geen extra tekst.",
+    "aan = true: build.mjs maakt voor elke actieve link een doorstuurpagina koffieboonus.nl/go/<id>/ en zet de advertentieparagrafen op /privacy/ en /hoe-verdienen-we-geld/ aan.",
+    "Pas op 'aan' zetten na akkoord van Maurits, en pas nadat een netwerk (Awin, bol, Daisycon, ...) de site heeft goedgekeurd.",
+    "Een link doet alleen mee als: actief = true, id alleen kleine letters/cijfers/streepjes, en url begint met https://.",
+    "Zet hier NOOIT wachtwoorden of API-sleutels: dit bestand staat openbaar op GitHub. Een gewone affiliatelink is geen geheim."
+  ],
+  "aan": false,
+  "netwerken": {
+    "Awin": {
+      "privacy": "https://www.awin.com/privacy"
+    },
+    "Daisycon": {
+      "privacy": "https://www.daisycon.com/en/privacy/",
+      "melding": true
+    },
+    "TradeTracker": {
+      "privacy": "https://tradetracker.com/nl/privacy-policy/"
+    },
+    "bol": {
+      "privacy": ""
+    },
+    "Partnerize": {
+      "privacy": ""
+    }
+  },
+  "links": [
+    {
+      "id": "coolblue-koffiemachines",
+      "winkel": "Coolblue",
+      "netwerk": "Awin",
+      "url": "[AFFILIATELINK UIT AWIN]",
+      "actief": false,
+      "notitie": "Voorbeeld. Na goedkeuring door Awin de link uit het Awin-account hier plakken en actief op true zetten."
+    },
+    {
+      "id": "bol-koffie",
+      "winkel": "bol",
+      "netwerk": "bol",
+      "url": "[AFFILIATELINK UIT HET BOL PARTNERPROGRAMMA]",
+      "actief": false,
+      "notitie": "Voorbeeld."
+    },
+    {
+      "id": "nespresso-machines",
+      "winkel": "Nespresso",
+      "netwerk": "Awin",
+      "url": "[AFFILIATELINK UIT AWIN]",
+      "actief": false,
+      "notitie": "Voor de Black Friday-pagina. Na goedkeuring door Nespresso (Awin) de link hier plakken en actief op true zetten."
+    },
+    {
+      "id": "delonghi-koffiemachines",
+      "winkel": "De'Longhi",
+      "netwerk": "Awin",
+      "url": "[AFFILIATELINK UIT AWIN]",
+      "actief": false,
+      "notitie": "Voor de Black Friday-pagina."
+    },
+    {
+      "id": "philips-koffiemachines",
+      "winkel": "Philips",
+      "netwerk": "Partnerize",
+      "url": "[AFFILIATELINK UIT PARTNERIZE]",
+      "actief": false,
+      "notitie": "Voor de Black Friday-pagina."
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "_uitleg": [
+    "Advertentieblok Roastmarket (speciaalkoffie via Awin). Akkoord Maurits 17 nov 2026: eerst als test op de Black Friday-pagina.",
+    "aan = false: er verandert NIETS aan de site. Ook niet als de feed er is.",
+    "aan = true: build.mjs zet het blok 'Speciaalkoffie in de aanbieding bij Roastmarket' op /black-friday-koffie/, maar alleen als (1) de advertentielinks aan staan (affiliate/go-links.json \"aan\": true) en (2) feed-roastmarket.mjs vannacht minstens 1 zak in de aanbieding vond. Anders verandert er niets.",
+    "Label 'Advertentie' (één winkel = reclame, besluit 17 nov). Geen vergelijking met de supermarktprijs per kilo (besluit 17 nov); wel prijs per kopje en de koffiebar als vergelijking.",
+    "Keuze van de zakken (feed-roastmarket.mjs): koffie uit de categorieën hieronder, op voorraad, hele bonen of gemalen met bekend gewicht, met een lopende actie van Roastmarket (savings_percent + valid_to gevuld, oude prijs hoger dan nu). Volgorde: grootste korting, daarna laagste prijs per kilo; elk merk één keer.",
+    "vast: zet hier aw_product_id's om zelf zakken te kiezen (gaan voor de regel, als ze nog in de aanbieding zijn).",
+    "gram_per_kopje: voor de prijs per kopje (zelfde als de kiesgids koffiemachines). koffiebar_prijs: 'In een koffiebar betaal je voor één kop al snel € ... of meer' (0 = zin weglaten).",
+    "De feedlink bevat een sleutel en staat NOOIT hier, alleen als GitHub-secret ROASTMARKET_FEED_URL. roastmarket-feed.json en rm-fotos/ komen nooit in git."
+  ],
+  "aan": false,
+  "aantal": 3,
+  "categorieen": ["Derde koffie", "Eigen merk"],
+  "vast": [],
+  "gram_per_kopje": 8,
+  "koffiebar_prijs": 3
+}

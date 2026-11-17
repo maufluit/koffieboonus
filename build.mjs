@@ -4,7 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { BF_ON, BF_URL, bfHomeLink, writeBlackFriday } from "./black-friday.mjs";
 import { feedbackInject } from "./feedback.mjs";
-import { INFO_ON, INFO_URLS, footerLinks, writeInfoPages } from "./extra-paginas.mjs"; // Over ons, Contact, Privacy, Hoe verdienen we geld (site-gegevens.json)
+import { INFO_ON, INFO_URLS, footerLinks, writeInfoPages, writeGoPages } from "./extra-paginas.mjs";
+import { rmBlackFriday, RM_FOTOS } from "./roastmarket.mjs"; // advertentieblok Roastmarket (roastmarket.json). Uit = site ongewijzigd. // Over ons, Contact, Privacy, Hoe verdienen we geld (site-gegevens.json)
 import { G, footerStatic, homeFaqExtra, SITE_DESC, MK_URL, mkLinkItem, mkIndexable, writeMeerkoop } from "./groei.mjs";
 import { NU, isCombo, nudgeInject } from "./nudge.mjs"; // nudging (nudge.json). Uit = site ongewijzigd.
 import { BN, VINDBAAR, brandNote, autoShopHead } from "./bijna.mjs"; // bijna op pagina 1 (bijna.json). Uit = site ongewijzigd.
@@ -661,12 +662,14 @@ if (hubSections.length) {
 }
 { const mk = writeMeerkoop(OUT, tpl, { deals, updated, dateNL, listHtml, nameOf, cheapPages, hubIndexable, HUB_URL });
   if (mk) { const mod = track(MK_URL, mk.list, null, mk.indexable); if (mk.indexable) sitemap.push(`  <url><loc>${SITE}${MK_URL}</loc><lastmod>${mod}</lastmod></url>`); } }
-{ const bfList = writeBlackFriday(OUT, tpl, { deals, updated, listHtml, eur, nameOf, mech, hubSections, cheapPages, HUB_URL, hubIndexable, pages, urlOf, labelOf, popular: ztPopular("/black-friday-koffie/") });
+{ const bfList = writeBlackFriday(OUT, tpl, { deals, updated, listHtml, eur, nameOf, mech, hubSections, cheapPages, HUB_URL, hubIndexable, pages, urlOf, labelOf, popular: ztPopular("/black-friday-koffie/"), rm: rmBlackFriday() });
   if (bfList) sitemap.push(`  <url><loc>${SITE}${BF_URL}</loc><lastmod>${track(BF_URL, bfList, null, true)}</lastmod></url>`); }
 { const dp = decafPage(tpl, { deals, upcoming: raw.deals.filter(d => d.next && d.from > today), updated, dateNL, listHtml, nameOf, eur, esc, js, SITE, NU, popular: ztPopular(DC_URL), cheapLinks: cheapLinks({}) }); // cafeinevrij.json "pagina"
   if (dp) { fs.mkdirSync(path.join(OUT, DC_URL), { recursive: true }); fs.writeFileSync(path.join(OUT, DC_URL, "index.html"), dp.html);
     const mod = track(DC_URL, dp.list, null, dp.indexable); if (dp.indexable) sitemap.push(`  <url><loc>${SITE}${DC_URL}</loc><lastmod>${mod}</lastmod></url>`);
     console.log(`Cafeïnevrij: ${dp.list.length} aanbiedingen nu, pagina ${dp.indexable ? "in Google" : "noindex"}`); } }
+writeGoPages(OUT, tpl); // /go/-doorstuurpagina's (alleen als affiliate/go-links.json aan staat)
+for (const f of RM_FOTOS) { fs.mkdirSync(path.join(OUT, "rm-fotos"), { recursive: true }); fs.copyFileSync("." + f, path.join(OUT, f)); } // foto's Roastmarket (eigen kopie, cookievrij)
 sitemap.push(...writeInfoPages(OUT, tpl)); // informatiepagina's: vaste datum (privacy_datum), niet in het geheugen van de vaste adressen
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
 // Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)
