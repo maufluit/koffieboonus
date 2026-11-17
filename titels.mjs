@@ -24,7 +24,8 @@ export function winkelTitel(p, list, max) {
   const A2 = `${t}: tot ${max}% korting`;
   const B = `${t}: ${plural(list.length, "deal", "deals")} deze week | Koffieboonus`;
   const title = max >= 10 ? (A.length <= 62 ? A : A2.length <= 58 ? A2 : `${t} | Koffieboonus`) : (B.length <= 62 ? B : `${t} | Koffieboonus`);
-  const kern = `${p.shop}: ${plural(list.length, "koffieaanbieding", "koffieaanbiedingen")} deze week${max >= 10 ? `, tot ${max}% korting` : ""}.`;
+  const naam = p.shop === "Albert Heijn" ? "Albert Heijn (AH Bonus)" : p.shop;
+  const kern = `${naam}: ${plural(list.length, "koffieaanbieding", "koffieaanbiedingen")} deze week${max >= 10 ? `, tot ${max}% korting` : ""}.`;
   const goed = goedkoopste(list);
   const staart = " Met prijs per kilo, cup en pad. Elke nacht bijgewerkt.";
   const desc = [kern + (goed ? " " + goed : "") + staart, kern + (goed ? " " + goed : ""), kern + staart, kern].find((x) => x.length <= 158) || kern;
@@ -39,7 +40,7 @@ export function bfTitel({ Y, topPct, nameOf, bfDag }) {
   const nm = nameOf(topPct).length > 40 ? nameOf(topPct).slice(0, 40).replace(/\s+\S*$/, "") : nameOf(topPct);
   const kern = `Black Friday ${Y} (${bfDag}): koffie tot ${topPct.pct}% korting bij de supermarkt.`;
   const deal = ` Nu het best: ${nm} bij ${topPct.shop}.`;
-  const eerlijk = " Alleen echte aanbiedingen, met prijs per kilo, cup en pad.";
+  const eerlijk = " Met prijs per kilo, cup en pad, zodat je ziet of het echt goedkoop is.";
   const desc = [kern + deal + eerlijk, kern + eerlijk, kern + deal, kern].find((x) => x.length <= 158) || kern;
   return { title, desc };
 }
