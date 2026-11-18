@@ -5,6 +5,6 @@
     "blackfriday: in de Black Friday-periode noemt de titel de hoogste korting en de omschrijving de beste deal plus dat wij nep-korting eruit houden.",
     "Alles false = de site is letter voor letter gelijk aan daarvoor."
   ],
-  "winkels": false,
-  "blackfriday": false
+  "winkels": true,
+  "blackfriday": true
 }
