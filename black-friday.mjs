@@ -22,6 +22,7 @@ const num = (v, d) => (Number.isInteger(v) && v >= 0 && v <= 60 ? v : d);
 const START_VOOR = num(CFG.start_dagen_voor, 11);   // 11 = maandag van de week vóór Black Friday
 const EIND_NA = num(CFG.eind_dagen_na, 3);          // 3 = Cyber Monday
 const LINK_VOOR = num(CFG.homelink_dagen_voor, 26); // link op de startpagina vanaf ~1 november
+const SPRING = CFG.springrij === true; // 19 nov: rij "Spring naar" bovenaan (wens Maurits). false = pagina zoals daarvoor.
 const PER_SOORT = CFG.per_soort === true; // groeiplan 12 nov: aparte stukken voor koffiebonen, Nespresso, Dolce Gusto en Senseo + stuk over koffiemachines
 
 // ---------- datums ----------
@@ -68,6 +69,7 @@ function partsOf(tpl) {
   return { start: tpl.slice(0, iMain), footer, theme: tpl.slice(t0, t1 + "syncTheme();".length) };
 }
 
+const SPRING_CSS = ".bfjump{display:flex;align-items:center;gap:6px;overflow-x:auto;white-space:nowrap;margin:14px 0 0;padding:2px 0 4px;font-size:14px;scrollbar-width:none}.bfjump::-webkit-scrollbar{display:none}.bfjump span{flex:none;color:var(--mute)}.bfjump a{flex:none;padding:5px 12px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);font-weight:600;text-decoration:none}.bfsec[id]{scroll-margin-top:12px}";
 const BF_CSS = ".bfsec{display:grid;gap:10px;margin:28px 0 0}.bfsec h2{margin:0;font-size:20px;color:var(--title)}.bfsec>p{margin:0;max-width:70ch}.bfsec p a{color:var(--ink);font-weight:600}.bfsec .prose ul{margin:0}.bfdates{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0;padding:0;list-style:none}.bfdates li{padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:14px}.bfdates strong{color:var(--title)}.shoplist{list-style:none;margin:0;padding:0;display:grid;gap:8px}.shoplist li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}.shoplist .meta{flex:1 1 220px}";
 
 // ---------- pagina ----------
@@ -184,9 +186,23 @@ export function writeBlackFriday(out, tpl, h) {
     `<meta property="og:image" content="${SITE}/logo-volledig.png"><meta name="twitter:card" content="summary">`,
     ...ld.map(o => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`),
   ].join("\n");
+  // Rij "Spring naar": alleen naar stukken die er nu staan en aanbiedingen hebben. Eén regel; op de telefoon zijwaarts te vegen.
+  let jump = "";
+  if (SPRING) {
+    const DOEL = [["Goedkoopste koffie per kilo", "Goedkoopst", "bf-goedkoopst"], ["Koffiebonen met", "Bonen", "bf-bonen"], ["Nespresso-cups met", "Nespresso", "bf-nespresso"], ["Dolce Gusto-cups met", "Dolce Gusto", "bf-dolce-gusto"], ["Senseo-pads met", "Senseo", "bf-senseo"], ["Koffiebonen in de aanbieding bij Roastmarket", "Roastmarket", "bf-roastmarket"]];
+    const links = [];
+    for (let i = 0; i < secs.length; i++) {
+      const m = secs[i].match(/^<section class="bfsec[^"]*"><h2>([^<]*)<\/h2>/);
+      const d = m && DOEL.find(([k]) => m[1].startsWith(k));
+      if (!d || !/class="list"|class="rmgrid"/.test(secs[i])) continue; // leeg stuk = geen knop
+      secs[i] = secs[i].replace(/^<section /, `<section id="${d[2]}" `);
+      links.push(`<a href="#${d[2]}">${esc(d[1])}</a>`);
+    }
+    if (links.length >= 2) jump = `<nav class="bfjump" aria-label="Spring naar"><span>Spring naar:</span>${links.join("")}</nav>`;
+  }
   const { start, footer, theme } = partsOf(tpl);
-  const top = start.replace("{{HEAD}}", () => head).replace("</style>", () => PAGE_CSS + BF_CSS + (h.rm ? h.rm.css : "") + "</style>");
-  const pagehead = `<section class="pagehead"><nav class="crumbs" aria-label="Kruimelpad"><a href="/">Koffieboonus</a> › <span aria-current="page">${esc(crumb)}</span></nav><h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p>${dates}</section>`;
+  const top = start.replace("{{HEAD}}", () => head).replace("</style>", () => PAGE_CSS + BF_CSS + (jump ? SPRING_CSS : "") + (h.rm ? h.rm.css : "") + "</style>");
+  const pagehead = `<section class="pagehead"><nav class="crumbs" aria-label="Kruimelpad"><a href="/">Koffieboonus</a> › <span aria-current="page">${esc(crumb)}</span></nav><h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p>${dates}${jump}</section>`;
   const html = `${top}<main><div class="wrap">\n${pagehead}\n${honest}\n${secs.join("\n")}\n${more}\n${faqHtml}\n</div></main>\n${footer}\n<script>\n${theme}\n</script>\n</body>\n</html>\n`;
   const dir = path.join(out, BF_URL);
   fs.mkdirSync(dir, { recursive: true });
