@@ -9,7 +9,7 @@
     "gram_per_kopje: voor de prijs per kopje (zelfde als de kiesgids koffiemachines). koffiebar_prijs: 'In een koffiebar betaal je voor één kop al snel € ... of meer' (0 = zin weglaten).",
     "De feedlink bevat een sleutel en staat NOOIT hier, alleen als GitHub-secret ROASTMARKET_FEED_URL. roastmarket-feed.json en rm-fotos/ komen nooit in git."
   ],
-  "aan": false,
+  "aan": true,
   "aantal": 3,
   "categorieen": ["Derde koffie", "Eigen merk"],
   "vast": [],

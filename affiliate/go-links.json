@@ -7,7 +7,7 @@
     "Een link doet alleen mee als: actief = true, id alleen kleine letters/cijfers/streepjes, en url begint met https://.",
     "Zet hier NOOIT wachtwoorden of API-sleutels: dit bestand staat openbaar op GitHub. Een gewone affiliatelink is geen geheim."
   ],
-  "aan": false,
+  "aan": true,
   "netwerken": {
     "Awin": {
       "privacy": "https://www.awin.com/privacy"
