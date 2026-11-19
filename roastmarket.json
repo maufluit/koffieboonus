@@ -7,9 +7,11 @@
     "Keuze van de zakken (feed-roastmarket.mjs): koffie uit de categorieën hieronder, op voorraad, hele bonen of gemalen met bekend gewicht, met een lopende actie van Roastmarket (savings_percent + valid_to gevuld, oude prijs hoger dan nu). Volgorde: grootste korting, daarna laagste prijs per kilo; elk merk één keer.",
     "vast: zet hier aw_product_id's om zelf zakken te kiezen (gaan voor de regel, als ze nog in de aanbieding zijn).",
     "gram_per_kopje: voor de prijs per kopje (zelfde als de kiesgids koffiemachines). koffiebar_prijs: 'In een koffiebar betaal je voor één kop al snel € ... of meer' (0 = zin weglaten).",
+    "kop (19 nov, wens Maurits): kop boven het blok; leeg = 'Koffiebonen in de aanbieding bij Roastmarket'. De winkelnaam staat dan in de advertentieregel en de eerste zin.",
     "De feedlink bevat een sleutel en staat NOOIT hier, alleen als GitHub-secret ROASTMARKET_FEED_URL. roastmarket-feed.json en rm-fotos/ komen nooit in git."
   ],
   "aan": true,
+  "kop": "Zin in speciaalkoffie?",
   "aantal": 3,
   "categorieen": ["Derde koffie", "Eigen merk"],
   "vast": [],

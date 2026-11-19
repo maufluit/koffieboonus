@@ -203,7 +203,9 @@ export function writeBlackFriday(out, tpl, h) {
   const { start, footer, theme } = partsOf(tpl);
   const top = start.replace("{{HEAD}}", () => head).replace("</style>", () => PAGE_CSS + BF_CSS + (jump ? SPRING_CSS : "") + (h.rm ? h.rm.css : "") + "</style>");
   const pagehead = `<section class="pagehead"><nav class="crumbs" aria-label="Kruimelpad"><a href="/">Koffieboonus</a> › <span aria-current="page">${esc(crumb)}</span></nav><h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p>${dates}${jump}</section>`;
-  const html = `${top}<main><div class="wrap">\n${pagehead}\n${honest}\n${secs.join("\n")}\n${more}\n${faqHtml}\n</div></main>\n${footer}\n<script>\n${theme}\n</script>\n</body>\n</html>\n`;
+  // Ingekorte inleiding op de telefoon (nudge.json eerstescherm) moet ook hier openklappen bij een tik: het script uit de sjabloon meenemen.
+  const introJs = (tpl.match(/<script>document\.addEventListener\("click",function\(e\)\{var i=e\.target\.closest&&e\.target\.closest\("\.intro"\)[\s\S]*?<\/script>/) || [""])[0];
+  const html = `${top}<main><div class="wrap">\n${pagehead}\n${honest}\n${secs.join("\n")}\n${more}\n${faqHtml}\n</div></main>\n${footer}\n<script>\n${theme}\n</script>\n${introJs}</body>\n</html>\n`;
   const dir = path.join(out, BF_URL);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "index.html"), html);
