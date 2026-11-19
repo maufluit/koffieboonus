@@ -205,12 +205,20 @@ export function writeInfoPages(out, tpl) {
 export function writeGoPages(out, tpl) {
   if (!GO_ON) return 0;
   // Dezelfde cookieloze Cloudflare-teller als op de rest van de site, zodat elke klik als paginabezoek van /go/<id>/ telt.
-  const beacon = (tpl.match(/<script[^>]*static\.cloudflareinsights\.com[^>]*><\/script>/) || [""])[0].replace("<script", '<script id="cfb"');
+  // 19 nov: de sjabloon laadt de teller niet meer als vaste <script>-regel maar via een script dat eerst de thuis-wifi controleert.
+  // Daarom halen we token en adressen uit de sjabloon en doen hier hetzelfde: thuis = niet tellen, anders tellen en dan doorsturen.
+  const tok = (tpl.match(/data-cf-beacon",'(\{"token": "[0-9a-f]+"\})'/) || [])[1] || "";
+  const thuisUrl = (tpl.match(/fetch\("(https:\/\/[^"]+\/thuis)"/) || [])[1] || "";
+  const beacon = "";
   for (const [id, l] of GO_LINKS) {
     const dir = path.join(out, "go", id);
     fs.mkdirSync(dir, { recursive: true });
     const js = JSON.stringify(l.url).replace(/</g, "\\u003c");
-    const html = `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Doorsturen naar ${esc(l.winkel)} | Koffieboonus</title><meta http-equiv="refresh" content="3;url=${esc(l.url)}"><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B;font-weight:600}.m{color:#6E5F53;font-size:14px}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}.m{color:#B3A395}}</style>${beacon}</head><body><p>Je gaat naar <strong>${esc(l.winkel)}</strong>…</p><p class="m">Dit is een advertentielink. Koop je iets, dan krijgt Koffieboonus een kleine vergoeding. Jij betaalt hetzelfde.</p><p><a href="${esc(l.url)}" rel="sponsored nofollow">Ga verder naar ${esc(l.winkel)} ›</a></p><script>(function(){var T=${js},d=0;function go(){if(d)return;d=1;setTimeout(function(){location.replace(T)},150)}var b=document.getElementById("cfb");if(b){b.addEventListener("load",go);b.addEventListener("error",go)}setTimeout(go,b?1200:0)})();</script></body></html>\n`;
+    const html = `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Doorsturen naar ${esc(l.winkel)} | Koffieboonus</title><meta http-equiv="refresh" content="3;url=${esc(l.url)}"><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B;font-weight:600}.m{color:#6E5F53;font-size:14px}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}.m{color:#B3A395}}</style>${beacon}</head><body><p>Je gaat naar <strong>${esc(l.winkel)}</strong>…</p><p class="m">Dit is een advertentielink. Koop je iets, dan krijgt Koffieboonus een kleine vergoeding. Jij betaalt hetzelfde.</p><p><a href="${esc(l.url)}" rel="sponsored nofollow">Ga verder naar ${esc(l.winkel)} ›</a></p><script>(function(){var T=${js},TOK=${JSON.stringify(tok)},TH=${JSON.stringify(thuisUrl)},d=0;function go(){if(d)return;d=1;location.replace(T)}
+function tel(){if(!TOK)return go();var s=document.createElement("script");s.defer=true;s.src="https://static.cloudflareinsights.com/beacon.min.js";s.setAttribute("data-cf-beacon",TOK);s.onload=function(){setTimeout(go,400)};s.onerror=go;document.head.appendChild(s);setTimeout(go,1500)}
+var k="kb-thuis",v=null;try{v=sessionStorage.getItem(k)}catch(e){}if(v==="1")return go();if(v==="0"||!TH)return tel();
+var klaar=0,t=setTimeout(function(){if(!klaar){klaar=1;tel()}},800);
+fetch(TH,{cache:"no-store"}).then(function(r){return r.ok?r.text():"0"}).catch(function(){return"0"}).then(function(x){x=x==="1"?"1":"0";try{sessionStorage.setItem(k,x)}catch(e){}if(klaar)return;klaar=1;clearTimeout(t);if(x==="1")go();else tel()})})();</script></body></html>\n`;
     fs.writeFileSync(path.join(dir, "index.html"), html);
   }
   // Zoekmachines hoeven de doorstuurpagina's niet te bezoeken.
