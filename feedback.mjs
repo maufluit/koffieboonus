@@ -49,6 +49,10 @@ if(b){s({t:"duim",v:b.dataset.v});if(b.dataset.v==="nee"){bt.hidden=true;mo.hidd
 if(e.target.closest("#fb-send")){var t=ta.value.trim();if(t&&!hp.value)s({t:"tekst",v:t.slice(0,500)});klaar("Bedankt! We lezen elke reactie en gebruiken het om Koffieboonus beter te maken.")}});
 })();</script>`;
 
+// Alleen de kliktelling (zonder duimpjes), voor pagina's die hun eigen opbouw hebben, zoals de Black Friday-pagina (19 nov).
+export function feedbackClickJs() {
+  return FB_ON ? JS(F.url) : "";
+}
 export function feedbackInject(tpl) {
   return tpl.replace("{{FEEDBACK}}", () => (FB_ON ? CSS + HTML + JS(F.url) : ""));
 }

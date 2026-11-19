@@ -8,6 +8,7 @@
 // Black Friday wordt elk jaar zelf uitgerekend (vrijdag na de vierde donderdag van november), dus de pagina werkt ook in 2027.
 // Alleen voor testen en previews: KB_BF=<pad> gebruikt een ander instellingenbestand, KB_DATUM=JJJJ-MM-DD doet alsof het die dag is.
 import fs from "node:fs";
+import { feedbackClickJs } from "./feedback.mjs"; // 19 nov: klikken naar winkels en Roastmarket ook hier tellen (zelfde anonieme teller)
 import path from "node:path";
 import { bfTitel } from "./titels.mjs"; // titels.json "blackfriday". Uit = pagina ongewijzigd.
 
@@ -205,7 +206,7 @@ export function writeBlackFriday(out, tpl, h) {
   const pagehead = `<section class="pagehead"><nav class="crumbs" aria-label="Kruimelpad"><a href="/">Koffieboonus</a> › <span aria-current="page">${esc(crumb)}</span></nav><h1>${esc(h1)}</h1><p class="intro">${esc(intro)}</p>${dates}${jump}</section>`;
   // Ingekorte inleiding op de telefoon (nudge.json eerstescherm) moet ook hier openklappen bij een tik: het script uit de sjabloon meenemen.
   const introJs = (tpl.match(/<script>document\.addEventListener\("click",function\(e\)\{var i=e\.target\.closest&&e\.target\.closest\("\.intro"\)[\s\S]*?<\/script>/) || [""])[0];
-  const html = `${top}<main><div class="wrap">\n${pagehead}\n${honest}\n${secs.join("\n")}\n${more}\n${faqHtml}\n</div></main>\n${footer}\n<script>\n${theme}\n</script>\n${introJs}</body>\n</html>\n`;
+  const html = `${top}<main><div class="wrap">\n${pagehead}\n${honest}\n${secs.join("\n")}\n${more}\n${faqHtml}\n</div></main>\n${footer}\n<script>\n${theme}\n</script>\n${introJs}${feedbackClickJs()}</body>\n</html>\n`;
   const dir = path.join(out, BF_URL);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "index.html"), html);
