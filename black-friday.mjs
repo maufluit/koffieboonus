@@ -189,7 +189,7 @@ export function writeBlackFriday(out, tpl, h) {
   // Rij "Spring naar": alleen naar stukken die er nu staan en aanbiedingen hebben. Eén regel; op de telefoon zijwaarts te vegen.
   let jump = "";
   if (SPRING) {
-    const DOEL = [["Goedkoopste koffie per kilo", "Goedkoopst", "bf-goedkoopst"], ["Koffiebonen met", "Bonen", "bf-bonen"], ["Nespresso-cups met", "Nespresso", "bf-nespresso"], ["Dolce Gusto-cups met", "Dolce Gusto", "bf-dolce-gusto"], ["Senseo-pads met", "Senseo", "bf-senseo"], ["Koffiebonen in de aanbieding bij Roastmarket", "Roastmarket", "bf-roastmarket"]];
+    const DOEL = [["Goedkoopste koffie per kilo", "Goedkoopst", "bf-goedkoopst"], ["Koffiebonen met", "Bonen", "bf-bonen"], ["Nespresso-cups met", "Nespresso", "bf-nespresso"], ["Dolce Gusto-cups met", "Dolce Gusto", "bf-dolce-gusto"], ["Senseo-pads met", "Senseo", "bf-senseo"], ["Koffiebonen in de aanbieding bij Roastmarket", "Roastmarket", "bf-roastmarket"], ["Zin in speciaalkoffie", "Roastmarket", "bf-roastmarket"]];
     const links = [];
     for (let i = 0; i < secs.length; i++) {
       const m = secs[i].match(/^<section class="bfsec[^"]*"><h2>([^<]*)<\/h2>/);

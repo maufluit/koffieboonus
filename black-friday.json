@@ -13,5 +13,5 @@
   "eind_dagen_na": 3,
   "homelink_dagen_voor": 26,
   "per_soort": true,
-  "springrij": false
+  "springrij": true
 }
