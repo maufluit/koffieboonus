@@ -9,7 +9,7 @@ import { rmBlackFriday, RM_FOTOS } from "./roastmarket.mjs"; // advertentieblok 
 import { G, footerStatic, homeFaqExtra, SITE_DESC, MK_URL, mkLinkItem, mkIndexable, writeMeerkoop } from "./groei.mjs";
 import { NU, isCombo, nudgeInject } from "./nudge.mjs";
 import { winkelTitel } from "./titels.mjs"; // titels.json: winkelnaam vooraan + goedkoopste per kilo. Uit = site ongewijzigd. // nudging (nudge.json). Uit = site ongewijzigd.
-import { BN, VINDBAAR, brandNote, autoShopHead } from "./bijna.mjs"; // bijna op pagina 1 (bijna.json). Uit = site ongewijzigd.
+import { BN, VINDBAAR, PROEF, brandNote, autoShopHead } from "./bijna.mjs"; // bijna op pagina 1 (bijna.json). Uit = site ongewijzigd.
 import { ZT, HEAD_TERMS, headOf as headOf0 } from "./zoektermen.mjs"; // grote zoektermen (zoektermen.json). Uit = site ongewijzigd.
 import { gemakInject, writeManifest } from "./gemak.mjs";
 import { DC, DC_URL, DC_SLUG, markDecaf, decafTag, decafInject, decafPage, decafLink } from "./cafeinevrij.mjs"; // cafeïnevrije koffie (cafeinevrij.json). Uit = site ongewijzigd. // favoriete supermarkt, beginscherm, delen (gemak.json). Uit = site ongewijzigd.
@@ -462,6 +462,7 @@ function render(url, pg) {
     ? `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Die komt er wel: ${nxt[0].fromTxt || "binnenkort"} ${nxt.length === 1 ? "is er 1 aanbieding" : `zijn er ${nxt.length} aanbiedingen`}. Hieronder staan ze, met daaronder wat er nu wel in de aanbieding is.`
     : `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Hieronder staat wat er nu wel in de aanbieding is. Deze pagina wordt elke nacht bijgewerkt: zodra er weer een aanbieding is, staat die hier.`;
   { const note = brandNote(p); if (note) intro += " " + note; } // bijna.json "merknotities"
+  if (pg.vind && !n && PROEF.has(url)) { const seen = KNOWN_PAGES[url]?.seen; if (seen && seen < updated) intro += ` Laatst in de aanbieding: ${dateNL(seen)}.`; } // bijna.json "proef" (24 nov)
 
   const canon = SITE + url;
   const faq = faqOf(p, list);

@@ -7,7 +7,8 @@
     "vragen: op supermarktpagina's de vragen 'Is er deze week koffie 1+1 gratis bij ...?' en 'Wat kost een kilo koffie bij ... deze week?', plus een zin over 1+1 in het overzicht.",
     "systemen: op /goedkoopste-koffiecups/ een regel met de laagste prijs per cup per machine (Nespresso, Dolce Gusto).",
     "merknotities: een vaste zin bij een merk (Perla is het huismerk van Albert Heijn).",
-    "De titels en omschrijvingen in Google veranderen niet."
+    "De titels en omschrijvingen in Google veranderen niet.",
+    "proef (24 nov 2026, keuze Maurits): de pagina's in 'proef_paginas' blijven ook vindbaar zonder aanbieding, met de regel 'Laatst in de aanbieding: …'. Aparte lijst zodat we ze los kunnen meten (meetkalender groep 'lege merkpagina's'). proef = false: site gelijk aan daarvoor."
   ],
   "aan": true,
   "winkels": true,
@@ -16,9 +17,35 @@
   "systemen": true,
   "merknotities": true,
   "vindbaar_paginas": [
-    "/perla/", "/perla/cups/", "/starbucks/albert-heijn/", "/lor/cups/albert-heijn/", "/lor/cups/hoogvliet/",
-    "/cafe-nova/", "/cafe-nova/koffiebonen/", "/simon-levelt/", "/koffiebonen/vomar/", "/cups/vomar/", "/vomar/",
-    "/koffiebonen/hoogvliet/", "/cups/hoogvliet/", "/douwe-egberts/hoogvliet/", "/douwe-egberts/nettorama/",
-    "/gemalen-koffie/nettorama/", "/nettorama/", "/coop/"
+    "/perla/",
+    "/perla/cups/",
+    "/starbucks/albert-heijn/",
+    "/lor/cups/albert-heijn/",
+    "/lor/cups/hoogvliet/",
+    "/cafe-nova/",
+    "/cafe-nova/koffiebonen/",
+    "/simon-levelt/",
+    "/koffiebonen/vomar/",
+    "/cups/vomar/",
+    "/vomar/",
+    "/koffiebonen/hoogvliet/",
+    "/cups/hoogvliet/",
+    "/douwe-egberts/hoogvliet/",
+    "/douwe-egberts/nettorama/",
+    "/gemalen-koffie/nettorama/",
+    "/nettorama/",
+    "/coop/"
+  ],
+  "proef": true,
+  "proef_paginas": [
+    "/cafe-royal/",
+    "/cafe-royal/jumbo/",
+    "/melitta/",
+    "/melitta/cups/",
+    "/anne-en-max/",
+    "/cafe-nova/cups/plus/",
+    "/pads/dirk/",
+    "/cups/dirk/",
+    "/starbucks/cups/"
   ]
 }

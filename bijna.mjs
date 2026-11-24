@@ -5,13 +5,15 @@
 //   vragen:       vragen over 1+1 gratis en de prijs per kilo op supermarktpagina's.
 //   systemen:     laagste prijs per cup per machine op /goedkoopste-koffiecups/.
 //   merknotities: een vaste zin bij een merk.
+//   proef:        (24 nov) extra pagina's die vindbaar blijven zonder aanbieding, met "Laatst in de aanbieding: …".
 import fs from "node:fs";
 
 let C = { aan: false };
 try { C = { ...C, ...JSON.parse(fs.readFileSync(process.env.KB_BIJNA || "bijna.json", "utf8")) }; } catch { /* geen bestand = uit */ }
 const on = k => C.aan === true && C[k] === true;
-export const BN = { winkels: on("winkels"), vindbaar: on("vindbaar"), vragen: on("vragen"), systemen: on("systemen"), merknotities: on("merknotities") };
-export const VINDBAAR = new Set(BN.vindbaar && Array.isArray(C.vindbaar_paginas) ? C.vindbaar_paginas : []);
+export const BN = { winkels: on("winkels"), vindbaar: on("vindbaar"), vragen: on("vragen"), systemen: on("systemen"), merknotities: on("merknotities"), proef: on("vindbaar") && on("proef") };
+export const PROEF = new Set(BN.proef && Array.isArray(C.proef_paginas) ? C.proef_paginas : []);
+export const VINDBAAR = new Set([...(BN.vindbaar && Array.isArray(C.vindbaar_paginas) ? C.vindbaar_paginas : []), ...PROEF]);
 
 // Vaste zin bij een merk (alleen feiten die niet veranderen).
 const NOTES = { Perla: "Perla is het huismerk van Albert Heijn. De aanbiedingen lopen daar van maandag tot en met zondag." };
