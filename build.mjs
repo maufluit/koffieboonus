@@ -462,7 +462,9 @@ function render(url, pg) {
     ? `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Die komt er wel: ${nxt[0].fromTxt || "binnenkort"} ${nxt.length === 1 ? "is er 1 aanbieding" : `zijn er ${nxt.length} aanbiedingen`}. Hieronder staan ze, met daaronder wat er nu wel in de aanbieding is.`
     : `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Hieronder staat wat er nu wel in de aanbieding is. Deze pagina wordt elke nacht bijgewerkt: zodra er weer een aanbieding is, staat die hier.`;
   { const note = brandNote(p); if (note) intro += " " + note; } // bijna.json "merknotities"
-  if (pg.vind && !n && PROEF.has(url)) { const seen = KNOWN_PAGES[url]?.seen; if (seen && seen < updated) intro += ` Laatst in de aanbieding: ${dateNL(seen)}.`; } // bijna.json "proef" (24 nov)
+  // bijna.json "proef" (24 nov): korte, eerlijke inleiding met de laatste aanbiedingsdatum vooraan (op de telefoon wordt de inleiding ingekort)
+  const proefLeeg = pg.vind && !n && PROEF.has(url);
+  if (proefLeeg) { const seen = KNOWN_PAGES[url]?.seen; intro = `${cap(sl)}: nu geen aanbieding${seen && seen < updated ? ` (laatst in de aanbieding: ${dateNL(seen).replace(/ \d{4}$/, "")})` : ""}.${nxt.length ? ` ${cap(nxt[0].fromTxt || "binnenkort")} ${nxt.length === 1 ? "komt er 1 aanbieding" : `komen er ${nxt.length} aanbiedingen`}.` : ""} Hieronder staat wat er nu wel in de aanbieding is. Deze pagina wordt elke nacht bijgewerkt.`; }
 
   const canon = SITE + url;
   const faq = faqOf(p, list);
@@ -490,7 +492,7 @@ function render(url, pg) {
     const parts = counts(list, "shop").map(([s, c]) => { const u = urlOf({ ...p, shop: s }), pg2 = pages.get(u); return `${pg2 && pg2.indexable && pg2.list.length ? `<a href="${u}">${esc(s)}</a>` : esc(s)} (${c})`; });
     if (parts.length > 1) extra += `<p class="jump">Nu bij: ${parts.join(" · ")}</p>`;
   }
-  const top_ = `<section class="pagehead">${crumbHtml}<h1>${esc(h1)}</h1><p class="intro">${home && n ? esc(intro).replace("goedkoopste koffiebonen, cups en pads", `<a href="${HUB_URL}">goedkoopste koffiebonen, cups en pads</a>`) : esc(intro)}</p>${extra}</section>`;
+  let top_ = `<section class="pagehead">${crumbHtml}<h1>${esc(h1)}</h1><p class="intro">${home && n ? esc(intro).replace("goedkoopste koffiebonen, cups en pads", `<a href="${HUB_URL}">goedkoopste koffiebonen, cups en pads</a>`) : esc(intro)}</p>${extra}</section>`;
   let altHtml = "";
   if (!n) {
     const alt = alternativesOf(p, pg.t || KNOWN_PAGES[url]?.t || (p.sys ? { "Dolce Gusto": "Cups", Nespresso: "Cups", Senseo: "Pads", Tassimo: "Cups" }[p.sys] : null));
@@ -501,6 +503,7 @@ function render(url, pg) {
     }
   }
   if (nxt.length) altHtml = `<section class="hubsec nxt"><h2>${esc(cap(nxt[0].fromTxt || "Volgende week"))}: ${esc((p.brand || p.sys) ? Label : low(Label))}</h2>${listHtml(nxt.map(d => ({ ...d, until: d.fromTxt || d.until })), { limit: 8 })}</section>` + altHtml;
+  if (proefLeeg && altHtml) { top_ += altHtml; altHtml = ""; } // proef: alternatieven direct onder de kop, boven de filters
   const bottom = altHtml + ztBlocks(p, list) + relatedHtml(url, p) + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
   const preset = { brand: p.brand ? [p.brand] : [], sys: p.sys ? [p.sys] : [], type: p.type ? [p.type] : [], shop: p.shop ? [p.shop] : [] };
   const presetJs = `<script>window.PRESET=${js(preset)};window.PLABEL=${home ? "null" : js(Label)};window.STATIC=${n ? "true" : "false"};</script>`;
