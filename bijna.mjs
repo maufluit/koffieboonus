@@ -5,7 +5,7 @@
 //   vragen:       vragen over 1+1 gratis en de prijs per kilo op supermarktpagina's.
 //   systemen:     laagste prijs per cup per machine op /goedkoopste-koffiecups/.
 //   merknotities: een vaste zin bij een merk.
-//   proef:        (24 nov) extra pagina's die vindbaar blijven zonder aanbieding, met "Laatst in de aanbieding: …".
+//   proef:        (24 nov) extra pagina's die vindbaar blijven zonder aanbieding, met "nu geen aanbieding" en alternatieven bovenaan.
 import fs from "node:fs";
 
 let C = { aan: false };

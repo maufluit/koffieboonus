@@ -462,9 +462,9 @@ function render(url, pg) {
     ? `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Die komt er wel: ${nxt[0].fromTxt || "binnenkort"} ${nxt.length === 1 ? "is er 1 aanbieding" : `zijn er ${nxt.length} aanbiedingen`}. Hieronder staan ze, met daaronder wat er nu wel in de aanbieding is.`
     : `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Hieronder staat wat er nu wel in de aanbieding is. Deze pagina wordt elke nacht bijgewerkt: zodra er weer een aanbieding is, staat die hier.`;
   { const note = brandNote(p); if (note) intro += " " + note; } // bijna.json "merknotities"
-  // bijna.json "proef" (24 nov): korte, eerlijke inleiding met de laatste aanbiedingsdatum vooraan (op de telefoon wordt de inleiding ingekort)
+  // bijna.json "proef" (24 nov): korte, eerlijke inleiding (op de telefoon wordt de inleiding ingekort). Bewust geen "laatst in de aanbieding op": dat is geschiedenis uit PrijsProfeet-data (max 24 uur bewaren).
   const proefLeeg = pg.vind && !n && PROEF.has(url);
-  if (proefLeeg) { const seen = KNOWN_PAGES[url]?.seen; intro = `${cap(sl)}: nu geen aanbieding${seen && seen < updated ? ` (laatst in de aanbieding: ${dateNL(seen).replace(/ \d{4}$/, "")})` : ""}.${nxt.length ? ` ${cap(nxt[0].fromTxt || "binnenkort")} ${nxt.length === 1 ? "komt er 1 aanbieding" : `komen er ${nxt.length} aanbiedingen`}.` : ""} Hieronder staat wat er nu wel in de aanbieding is. Deze pagina wordt elke nacht bijgewerkt.`; }
+  if (proefLeeg) { intro = `${cap(sl)}: nu geen aanbieding.${nxt.length ? ` ${cap(nxt[0].fromTxt || "binnenkort")} ${nxt.length === 1 ? "komt er 1 aanbieding" : `komen er ${nxt.length} aanbiedingen`}.` : ""} Hieronder staat wat er nu wel in de aanbieding is. Deze pagina wordt elke nacht bijgewerkt.`; }
 
   const canon = SITE + url;
   const faq = faqOf(p, list);
