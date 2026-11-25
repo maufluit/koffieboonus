@@ -24,7 +24,7 @@ const COMBO = d => /\bof\b/i.test(d.name || "");
 const SOORTEN = [
   { k: "filter", label: "Filterkoffie (gemalen)", kort: "filterkoffie", ok: d => d.type === "Gemalen koffie" && d.pu === "kilo", cup: d => d.pp * GRAM / 1000, href: "/goedkoopste-gemalen-koffie/" },
   { k: "bonen", label: "Koffiebonen", kort: "bonen", ok: d => d.type === "Bonen" && d.pu === "kilo", cup: d => d.pp * GRAM / 1000, href: "/goedkoopste-koffiebonen/" },
-  { k: "pads", label: "Koffiepads", kort: "pads", ok: d => d.type === "Pads" && d.pu === "pad", cup: d => d.pp, href: "/goedkoopste-koffiepads/" },
+  { k: "pads", label: "Koffiepads", kort: "pads", ok: d => d.type === "Pads" && d.pu === "pad" && !MILK.test(d.name), cup: d => d.pp, href: "/goedkoopste-koffiepads/" },
   { k: "dg", label: "Dolce Gusto-cups", kort: "Dolce Gusto", ok: d => d.type === "Cups" && d.sys === "Dolce Gusto" && d.pu === "cup" && !MILK.test(d.name), cup: d => d.pp, href: "/goedkoopste-dolce-gusto-cups/" },
   { k: "nesp", label: "Nespresso-cups", kort: "Nespresso", ok: d => d.type === "Cups" && d.sys === "Nespresso" && !d.vertuo && !d.gok && d.pu === "cup", cup: d => d.pp, href: "/goedkoopste-nespresso-cups/" },
 ];
@@ -107,7 +107,7 @@ export function writeRekenpagina(OUT, tpl, h) {
 <ul>
 <li><strong>Filterkoffie en bonen:</strong> ${GRAM} gram koffie per kopje, dezelfde maat die de Consumentenbond in 2026 gebruikt. Een pak van 500 gram is dus goed voor ruim ${Math.floor(500 / GRAM)} kopjes. Hou je van sterke koffie of grote mokken, dan gebruik je meer.</li>
 <li><strong>Pads:</strong> 1 pad per kopje. Voor een grote mok gebruik je er 2.</li>
-<li><strong>Cups:</strong> 1 cup per kopje. Dolce Gusto-dranken met melk (zoals cappuccino) tellen niet mee: daar heb je soms 1 en soms 2 cups per kopje voor nodig, en dat staat niet altijd duidelijk op de verpakking.</li>
+<li><strong>Cups:</strong> 1 cup per kopje. Dolce Gusto-dranken en pads met melk (zoals cappuccino) tellen niet mee: daar heb je soms 1 en soms 2 cups per kopje voor nodig, en dat staat niet altijd duidelijk op de verpakking.</li>
 <li><strong>Alleen aanbiedingen van vandaag.</strong> We vergelijken de aanbiedingen die nu lopen bij ${shopsN} supermarkten. Normale prijzen zonder aanbieding tellen niet mee: een huismerk zonder actie kan dus goedkoper zijn dan wat hier staat.</li>
 <li><strong>Alleen als de prijs zeker is.</strong> Aanbiedingen waarbij het gewicht of het aantal niet duidelijk is, of waarbij je uit verschillende producten of maten mag kiezen, laten we weg. Een soort staat er pas bij vanaf ${MIN} vergelijkbare aanbiedingen.</li>
 <li><strong>Alleen koffie.</strong> Chocolademelk-, thee- en andere cups zonder koffie tellen niet mee.</li>
