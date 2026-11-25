@@ -12,6 +12,7 @@ import { winkelTitel } from "./titels.mjs"; // titels.json: winkelnaam vooraan +
 import { BN, VINDBAAR, brandNote, autoShopHead } from "./bijna.mjs"; // bijna op pagina 1 (bijna.json). Uit = site ongewijzigd.
 import { ZT, HEAD_TERMS, headOf as headOf0 } from "./zoektermen.mjs"; // grote zoektermen (zoektermen.json). Uit = site ongewijzigd.
 import { gemakInject, writeManifest } from "./gemak.mjs";
+import { RP_ON, RP_URL, writeRekenpagina } from "./rekenpagina.mjs"; // rekenpagina /wat-kost-een-kopje-koffie/ (rekenpagina.json). Uit = site ongewijzigd.
 import { DC, DC_URL, DC_SLUG, markDecaf, decafTag, decafInject, decafPage, decafLink } from "./cafeinevrij.mjs"; // cafeïnevrije koffie (cafeinevrij.json). Uit = site ongewijzigd. // favoriete supermarkt, beginscherm, delen (gemak.json). Uit = site ongewijzigd.
 // Verbeteringen voor meer bezoekers (groeiplan): elk met een schakelaar in groei.json. Alles uit = site zoals daarvoor.
 // Black Friday-pagina /black-friday-koffie/: aan/uit en instellingen in black-friday.json (zie black-friday.mjs).
@@ -72,7 +73,7 @@ const BRANDS = [...MAIN_BRANDS, ...Object.keys(brandCount).filter(b => !MAIN_BRA
 const taken = new Map(); // slug -> dim
 const dict = { brand: new Map(), sys: new Map(), type: new Map(), shop: new Map() };
 // Vaste adressen van de site zelf ("Goedkoopste ..."-pagina's, Black Friday): die mag een merk nooit innemen.
-const RESERVED = s => /^goedkoopste-/.test(s) || ["black-friday-koffie", "koffie-1-plus-1-gratis", "go", "over", "contact", "privacy", "hoe-verdienen-we-geld", DC_SLUG].includes(s);
+const RESERVED = s => /^goedkoopste-/.test(s) || ["black-friday-koffie", "koffie-1-plus-1-gratis", "go", "over", "contact", "privacy", "hoe-verdienen-we-geld", DC_SLUG, "wat-kost-een-kopje-koffie"].includes(s);
 function reg(dim, values, slugFn = slug) {
   for (const v of values) {
     const s = slugFn(v);
@@ -671,12 +672,14 @@ if (hubSections.length) {
   if (dp) { fs.mkdirSync(path.join(OUT, DC_URL), { recursive: true }); fs.writeFileSync(path.join(OUT, DC_URL, "index.html"), dp.html);
     const mod = track(DC_URL, dp.list, null, dp.indexable); if (dp.indexable) sitemap.push(`  <url><loc>${SITE}${DC_URL}</loc><lastmod>${mod}</lastmod></url>`);
     console.log(`Cafeïnevrij: ${dp.list.length} aanbiedingen nu, pagina ${dp.indexable ? "in Google" : "noindex"}`); } }
+{ const rp = writeRekenpagina(OUT, tpl, { deals, updated, dateNL, nameOf, SITE, shopsN: new Set(deals.map(d => d.shop)).size }); // rekenpagina.json
+  if (rp) { const mod = track(RP_URL, rp.list, null, rp.indexable); if (rp.indexable) sitemap.push(`  <url><loc>${SITE}${RP_URL}</loc><lastmod>${mod}</lastmod></url>`); } }
 writeGoPages(OUT, tpl); // /go/-doorstuurpagina's (alleen als affiliate/go-links.json aan staat)
 for (const f of RM_FOTOS) { fs.mkdirSync(path.join(OUT, "rm-fotos"), { recursive: true }); fs.copyFileSync("." + f, path.join(OUT, f)); } // foto's Roastmarket (eigen kopie, cookievrij)
 sitemap.push(...writeInfoPages(OUT, tpl)); // informatiepagina's: vaste datum (privacy_datum), niet in het geheugen van de vaste adressen
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
 // Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)
-const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : []), ...(BF_ON ? [BF_URL] : []), ...(G.meerkoop ? [MK_URL] : []), ...(INFO_ON ? INFO_URLS : []), ...(DC.pagina ? [DC_URL] : [])];
+const known = [...pages.keys(), ...cheapPages.keys(), ...(hubSections.length ? [HUB_URL] : []), ...(BF_ON ? [BF_URL] : []), ...(G.meerkoop ? [MK_URL] : []), ...(INFO_ON ? INFO_URLS : []), ...(DC.pagina ? [DC_URL] : []), ...(RP_ON ? [RP_URL] : [])];
 writeManifest(OUT); // gemak.json "beginscherm": manifest.webmanifest (naam, kleuren, pictogrammen)
 fs.writeFileSync(path.join(OUT, "404.html"), `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pagina niet gevonden | Koffieboonus</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#FFF9E9;color:#2B1B0E;max-width:560px;margin:15vh auto;padding:0 16px}a{color:#4E341B}@media (prefers-color-scheme:dark){body{background:#16110C;color:#F5ECDD}a{color:#F5A25C}}</style></head><body><h1>Hier is nu geen aanbieding</h1><p>Deze pagina bestaat op dit moment niet: er zijn te weinig aanbiedingen voor deze combinatie, of de aanbieding is afgelopen.</p><p id="near"></p><p><a href="/">Bekijk alle koffie-aanbiedingen</a></p><script>const K=${js(known)};let p=location.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);while(p.length){const u="/"+p.join("/")+"/";if(K.includes(u)){document.getElementById("near").innerHTML='Misschien zoek je <a href="'+u+'">een bredere pagina</a>.';break}p.pop()}</script></body></html>`);
 fs.writeFileSync(path.join(OUT, "paginas.json"), JSON.stringify(memo));

@@ -1,0 +1,13 @@
+{
+  "_uitleg": [
+    "Rekenpagina /wat-kost-een-kopje-koffie/ (kop A, keuze Maurits 15 nov 2026): zie rekenpagina.mjs en projectmap Bestanden/Groei/REKENPAGINA.md.",
+    "aan = false: de site is letter voor letter gelijk aan daarvoor (geen pagina, niet in de sitemap).",
+    "Alleen aanbiedingen met echte korting (actieprijs gelijk aan de normale prijs telt niet mee).",
+    "min_per_soort: een soort staat er pas bij vanaf zoveel vergelijkbare aanbiedingen.",
+    "gram_per_kopje: maat voor filterkoffie en bonen (Consumentenbond 2026: 8 gram).",
+    "Nog geen links vanaf andere pagina's (meetkalender: paginagroepen niet aanraken tot 12-16 dec)."
+  ],
+  "aan": true,
+  "min_per_soort": 3,
+  "gram_per_kopje": 8
+}
