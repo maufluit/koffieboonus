@@ -94,8 +94,18 @@ function parseSize(text){
     else count+=v;
   };
   t=t.replace(/\bkilo ?zak\b/g," 1 kg ");
+  // Webwinkels zetten de maat soms twee keer in de naam ("3 x 16 Koffiecapsules 3 x 16 Capsules"): dan telt hij één keer (fout gevonden 25 nov: Jumbo Dolce Gusto € 0,146 i.p.v. € 0,292 per cup).
+  {const seen=new Set();t=t.replace(new RegExp("(\\d+)\\s?[x×]\\s?(\\d+(?:\\.\\d+)?)\\s?("+UNIT_RE+")(?![a-z])","g"),(m,a,b)=>{const k=a+"x"+b;if(seen.has(k))return " ";seen.add(k);return m});}
   t=t.replace(new RegExp("(\\d+)\\s?[x×]\\s?(\\d+(?:\\.\\d+)?)\\s?("+UNIT_RE+")(?![a-z])","g"),(m,a,b,u)=>{add(+a*+b,u);return " "});
-  for(const m of t.matchAll(new RegExp("(\\d+(?:\\.\\d+)?)\\s?("+UNIT_RE+")(?![a-z])","g")))add(+m[1],m[2]);
+  // Dezelfde maat twee keer in andere woorden ("1 KG 1000 g", "20 stuks 20 capsules") telt één keer (fout gevonden 25 nov: Melitta-bonen Jumbo € 6,66 i.p.v. € 13,33 per kilo).
+  const seenV={g:new Set(),m:new Set(),c:new Set()};
+  for(const m of t.matchAll(new RegExp("(\\d+(?:\\.\\d+)?)\\s?("+UNIT_RE+")(?![a-z])","g"))){
+    const b={grams,ml,count};add(+m[1],m[2]);
+    const dg=grams-b.grams,dm=ml-b.ml,dc=count-b.count;
+    if(dg&&seenV.g.has(dg))grams-=dg;else if(dg)seenV.g.add(dg);
+    if(dm&&seenV.m.has(dm))ml-=dm;else if(dm)seenV.m.add(dm);
+    if(dc&&seenV.c.has(dc))count-=dc;else if(dc)seenV.c.add(dc);
+  }
   return {grams,ml,count};
 }
 export function unitPrice(o){
@@ -110,6 +120,8 @@ export function unitPrice(o){
   if(!(price>0))return null;
   // "zak 450/500 gram": twee verpakkingen in één regel, dus de maat is niet zeker en we rekenen niets uit.
   if(/\d\s?\/\s?\d+(?:[.,]\d+)?\s?(kg|gr|gram|g|ml|cl|l|liter)(?![a-z])/i.test(o.name||""))return null;
+  // "pak 16 of 36 stuks", "220 ml of 250 ml": je mag kiezen, dus de maat is niet zeker (fout gevonden 25 nov: SPAR-pads € 0,139 per pad door 16+36).
+  if(/\d+(?:[.,]\d+)?\s?[a-z]*\s+of\s+\d/i.test(o.name||""))return null;
   const sz=parseSize(o.name||"");
   let v=null,pu=null,lo,hi;
   if(["Bonen","Gemalen koffie","Oploskoffie"].includes(o.type)&&sz.grams>=50){v=price/(sz.grams/1000);pu="kilo";lo=3;hi=150}
@@ -259,7 +271,7 @@ async function main(){
     if(d.sys||d.type!=="Cups"||N_EX.test(n)||!N_BRANDS.has(d.brand))return;
     const st=n.match(/(\d+)\s*(stuks|st\b|capsules)/i);if(st&&(+st[1]===16||+st[1]===30)&&!N_NO_DG.has(d.brand))return;
     if(!/capsule|cups|\b(espresso|lungo|ristretto|roastery)\b/i.test(n))return;
-    d.sys="Nespresso";d.compat=1;nCompat.push(`${d.shop}: ${d.brand} ${n}`);
+    d.sys="Nespresso";d.compat=1;d.gok=1;nCompat.push(`${d.shop}: ${d.brand} ${n}`);
   });
   // Zelfde idee voor de andere systemen (13 nov):
   // Dolce Gusto: "Combi"-cups (een melk- en een koffiecapsule per kopje) zijn het Dolce Gusto-formaat; Nespresso heeft geen melkcapsules.
