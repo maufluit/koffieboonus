@@ -669,7 +669,7 @@ if (hubSections.length) {
   if (dp) { fs.mkdirSync(path.join(OUT, DC_URL), { recursive: true }); fs.writeFileSync(path.join(OUT, DC_URL, "index.html"), dp.html);
     const mod = track(DC_URL, dp.list, null, dp.indexable); if (dp.indexable) sitemap.push(`  <url><loc>${SITE}${DC_URL}</loc><lastmod>${mod}</lastmod></url>`);
     console.log(`Cafeïnevrij: ${dp.list.length} aanbiedingen nu, pagina ${dp.indexable ? "in Google" : "noindex"}`); } }
-sitemap.push(...writeKoffiemachines(OUT, tpl, { deals, pages, updated, dateNL })); // koffiemachines.json: /koffiemachines/ + soortpagina's (vóór de informatiepagina's, zodat 'Hoe verdienen we geld?' Coolblue noemt)
+sitemap.push(...writeKoffiemachines(OUT, tpl, { deals, pages, updated, dateNL, track })); // koffiemachines.json: /koffiemachines/ + soortpagina's (vóór de informatiepagina's, zodat 'Hoe verdienen we geld?' Coolblue noemt)
 sitemap.push(...writeInfoPages(OUT, tpl)); // informatiepagina's: vaste datum (privacy_datum), niet in het geheugen van de vaste adressen
 fs.writeFileSync(path.join(OUT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.join("\n")}\n</urlset>\n`);
 // Eigen 404-pagina: wijst naar de dichtstbijzijnde bestaande pagina (bijv. /lavazza/koffiebonen/ -> /lavazza/)

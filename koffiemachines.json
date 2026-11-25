@@ -13,10 +13,13 @@
     "nadeel: per soort een eerlijk nadeel, per kaartje (onze_keuze, goedkoopst, derde). algemeen: kenmerken die voor elke machine van die soort gelden (vullen aan tot 3).",
     "black_friday_blok: het blok 'Koffiemachines in de aanbieding bij Coolblue' op /black-friday-koffie/. Uit (besluit Maurits 16 nov, optie A): die pagina krijgt dan alleen de link naar de kiesgids.",
     "normale_prijs = base_price: volgens de Coolblue-handleiding de prijs vóór korting (Coolblue's eigen van-prijs). Getest 17 nov: 50 van 315 producten.",
-    "koppeling: op welke koffiepagina's onderaan het blok 'Nog geen ...? Zo kies je een machine' staat, en naar welke soort."
+    "koppeling: op welke koffiepagina's onderaan het blok 'Nog geen ...? Zo kies je een machine' staat, en naar welke soort.",
+    "compacte_tabbalk (25 nov): met de sectie aan krijgt de tabbalk 'Nu in de aanbieding / Volgende week' op de telefoon één regel (±40 px i.p.v. ±65 px), zodat het menu in de kop het eerste aanbod niet verder omlaag duwt. Gekozen tabblad blijft oranje (standaard = nu). Uit = tabbalk zoals nu.",
+    "geheugen (25 nov): de machinepagina's komen ook in /paginas.json, zodat de sitemapdatum alleen verandert als de gekozen machines of prijzen veranderen, en IndexNow (Bing) die pagina's dan meldt."
   ],
   "aan": false,
   "black_friday_blok": false,
+  "compacte_tabbalk": true,
   "feed_bestand": "coolblue.json",
   "winkel": "Coolblue",
   "netwerk": "Awin",

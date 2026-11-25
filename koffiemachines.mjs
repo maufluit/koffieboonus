@@ -198,6 +198,9 @@ const KM_CSS = [
   ".kmsale{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:5px;background:var(--deal);color:var(--dealink);font-size:12px;font-weight:700;vertical-align:2px;white-space:nowrap}",
   ".kmback{background:var(--kmsoft);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:24px 0 0;max-width:720px}.kmback p{margin:0}.kmback strong{color:var(--title)}.kmback a{display:inline-block;margin-top:6px;color:var(--ink);font-weight:700}",
 ].join("");
+// koffiemachines.json "compacte_tabbalk": de tabbalk 'Nu in de aanbieding / Volgende week' op de telefoon op één regel,
+// zodat het menu in de kop (Koffie | Koffiemachines) het eerste aanbod niet verder omlaag duwt. Gekozen tabblad blijft oranje.
+const TAB_CSS = "@media (max-width:860px){.tabs{gap:6px;margin:0 0 14px;flex-wrap:nowrap}.tabs button{flex:1 1 auto;padding:7px 8px;font-size:14.5px;border-radius:10px;white-space:nowrap;line-height:1.3}.tabs small{margin-left:3px;font-size:13px}}@media (max-width:374px){.tabs button{font-size:13.5px;padding:7px 5px}.tabs small{font-size:12px}}@media (max-width:339px){.tabs button{white-space:normal}}";
 const PAGE_CSS = [
   ".kmlead{margin:0;max-width:70ch}.nw{white-space:nowrap}.km h2{font-size:20px;color:var(--title);margin:30px 0 10px}.km h3{margin:0}.km p{max-width:70ch}",
   ".kmq{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 10px}.kmq legend{float:left;width:100%;font-weight:700;font-size:17px;margin:0 0 8px;padding:0}.kmq legend+*{clear:both}.kmq legend small{display:block;font-weight:400;font-size:13px;color:var(--mute)}.kmq fieldset{margin:0}.kmq .chips{position:relative;flex-wrap:wrap;overflow:visible;margin:0;padding:0}",
@@ -227,7 +230,7 @@ const nav = on => `<nav class="kmnav" aria-label="Onderdelen van Koffieboonus"><
 export function kmInject(tpl) {
   if (!KM_ON) return tpl;
   if (!tpl.includes(NAV_ANCHOR)) { console.warn("koffiemachines.mjs: plek voor het menu in de kop niet gevonden, geen menu."); return tpl; }
-  return tpl.replace(NAV_ANCHOR, () => "</p>" + nav("koffie") + "</div><button class=\"theme\"").replace("</style>", () => KM_CSS + (GO_ON ? AD_CSS : "") + "</style>");
+  return tpl.replace(NAV_ANCHOR, () => "</p>" + nav("koffie") + "</div><button class=\"theme\"").replace("</style>", () => KM_CSS + (CFG.compacte_tabbalk === true ? TAB_CSS : "") + (GO_ON ? AD_CSS : "") + "</style>");
 }
 
 // Rustig blok onderaan /nespresso/, /dolce-gusto/, /senseo/ en /koffiebonen/: naar onze eigen soortpagina (GEEN partnerlink).
@@ -403,9 +406,14 @@ export function writeKoffiemachines(out, tpl, h) {
   const upd = (FEED.updated || h.updated || "").slice(0, 10) || h.updated;
   const st = stats(deals);
   const lines = [];
-  const write = (url, html) => { const dir = path.join(out, url); fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, "index.html"), html); lines.push(`  <url><loc>${SITE}${url}</loc><lastmod>${upd}</lastmod></url>`); };
-  write(KM_URL, startPage(tpl, st, upd, deals));
-  for (const x of st) write(urlOf(x.k), soortPage(tpl, x, st, PICKS.get(x.k), { ...h, upd }));
+  // Geheugen (koffiemachines.json uitleg "geheugen"): met h.track komt elke pagina in /paginas.json. De sitemapdatum verandert dan
+  // alleen als de gekozen machines, hun prijzen of de goedkoopste prijs per kopje veranderen; build.mjs meldt die pagina's dan aan IndexNow.
+  // Zonder h.track (oude build.mjs): datum van de feed, zoals eerst.
+  const asList = xs => xs.filter(Boolean).map(x => ({ id: x.p.id, deal: x.p.price, pct: x.p.rrp || 0, end: x.slot || "", pp: x.c ? +x.c.cpk.toFixed(4) : null, shop: x.k || "", type: "Koffiemachine" }));
+  const listOf = x => asList([...(PICKS.get(x.k)?.picks || []).map(pk => ({ ...pk, k: x.k, c: x.c })), { p: { id: "soort", price: x.min }, k: x.k, c: x.c }]);
+  const write = (url, html, list) => { const dir = path.join(out, url); fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, "index.html"), html); const mod = h.track ? h.track(url, list, null, true) : upd; lines.push(`  <url><loc>${SITE}${url}</loc><lastmod>${mod}</lastmod></url>`); };
+  write(KM_URL, startPage(tpl, st, upd, deals), st.flatMap(listOf));
+  for (const x of st) write(urlOf(x.k), soortPage(tpl, x, st, PICKS.get(x.k), { ...h, upd }), listOf(x));
   const nGo = writeGoPages(out, tpl);
   console.log(`Koffiemachines: ${lines.length} pagina's, ${[...PICKS.values()].reduce((a, c) => a + c.picks.length, 0)} gekozen machines, /go/-pagina's: ${nGo}`);
   return lines;
