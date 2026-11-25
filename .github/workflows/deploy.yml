@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment2.outputs.page_url || steps.deployment3.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -49,7 +49,23 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site
+      # Publiceren mislukt soms door een storing bij GitHub ("Fetching artifact metadata failed").
+      # Dan na 1 en na 3 minuten opnieuw proberen met hetzelfde pakket, in plaats van de hele update te laten mislukken.
       - id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - name: Even wachten (storing bij GitHub)
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+      - id: deployment2
+        if: steps.deployment.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - name: Nog even wachten (storing bij GitHub)
+        if: steps.deployment.outcome == 'failure' && steps.deployment2.outcome == 'failure'
+        run: sleep 180
+      - id: deployment3
+        if: steps.deployment.outcome == 'failure' && steps.deployment2.outcome == 'failure'
         uses: actions/deploy-pages@v4
       - name: Laat Bing weten dat er nieuwe pagina's zijn
         continue-on-error: true
