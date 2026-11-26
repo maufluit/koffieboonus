@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { partsOf, PAGE_CSS } from "./extra-paginas.mjs";
 import { FB_ON } from "./feedback.mjs";
+import { unitPrice } from "./sync.mjs";
 
 let C = { aan: false };
 try { C = { ...C, ...JSON.parse(fs.readFileSync(process.env.KB_REKEN || "rekenpagina.json", "utf8")) }; } catch { /* geen bestand = uit */ }
@@ -14,6 +15,7 @@ export const RP_ON = C.aan === true;
 export const RP_URL = "/wat-kost-een-kopje-koffie/";
 const MIN = Number.isInteger(C.min_per_soort) ? C.min_per_soort : 3;
 const GRAM = typeof C.gram_per_kopje === "number" ? C.gram_per_kopje : 8; // Consumentenbond 2026
+const GRAM_OPLOS = typeof C.gram_oploskoffie === "number" ? C.gram_oploskoffie : 2; // 1 theelepel per kop (gebruiksaanwijzing op de pot), ±2 gram
 let FBURL = "";
 try { const f = JSON.parse(fs.readFileSync("feedback.json", "utf8")); if (FB_ON) FBURL = f.url; } catch { /* geen teller */ }
 
@@ -21,17 +23,15 @@ try { const f = JSON.parse(fs.readFileSync("feedback.json", "utf8")); if (FB_ON)
 const NO_COFFEE = /choco|nesquik|kitkat|chai|\bthee\b|\btea\b|cacao|chocolade|milo|marcilla?\s*choc/i;
 const MILK = /latte|cappuccino|macchiat|caf[eé] au lait|flat white|cortado|melk|mocha|chai|caramel/i;
 const COMBO = d => /\bof\b/i.test(d.name || "");
-// Passende Nespresso-cups zonder "Nespresso" op de verpakking (d.gok) tellen alleen mee bij merken die geen ander cupsysteem in de supermarkt hebben (keuze Maurits 26 nov).
-// Barista/XL e.d. zijn in sync.mjs al uitgesloten. Twijfelmerken (bijv. Nescafé: ook Dolce Gusto) blijven eruit.
-const NESP_ZEKER = new Set(["L'OR", "Douwe Egberts"]);
 const SOORTEN = [
   { k: "filter", label: "Filterkoffie (gemalen)", kort: "filterkoffie", ok: d => d.type === "Gemalen koffie" && d.pu === "kilo", cup: d => d.pp * GRAM / 1000, href: "/goedkoopste-gemalen-koffie/" },
   { k: "bonen", label: "Koffiebonen", kort: "bonen", ok: d => d.type === "Bonen" && d.pu === "kilo", cup: d => d.pp * GRAM / 1000, href: "/goedkoopste-koffiebonen/" },
+  { k: "oplos", label: "Oploskoffie", kort: "oploskoffie", ok: d => d.type === "Oploskoffie" && d.pu === "kilo" && !MILK.test(d.name), cup: d => d.pp * GRAM_OPLOS / 1000, href: "/oploskoffie/" },
   { k: "pads", label: "Koffiepads", kort: "pads", ok: d => d.type === "Pads" && d.pu === "pad" && !MILK.test(d.name), cup: d => d.pp, href: "/goedkoopste-koffiepads/" },
   { k: "dg", label: "Dolce Gusto-cups", kort: "Dolce Gusto", ok: d => d.type === "Cups" && d.sys === "Dolce Gusto" && d.pu === "cup" && !MILK.test(d.name), cup: d => d.pp, href: "/goedkoopste-dolce-gusto-cups/" },
-  { k: "nesp", label: "Nespresso-cups", kort: "Nespresso", ok: d => d.type === "Cups" && d.sys === "Nespresso" && !d.vertuo && (!d.gok || NESP_ZEKER.has(d.brand)) && d.pu === "cup", cup: d => d.pp, href: "/goedkoopste-nespresso-cups/" },
+  { k: "nesp", label: "Nespresso-cups", kort: "Nespresso", ok: d => d.type === "Cups" && d.sys === "Nespresso" && !d.vertuo && d.pu === "cup", cup: d => d.pp, href: "/goedkoopste-nespresso-cups/" },
 ];
-const FROM = [["filter", /gemalen|filter/], ["bonen", /bonen/], ["pads", /pads|senseo/], ["dg", /dolce-gusto/], ["nesp", /nespresso/]];
+const FROM = [["filter", /gemalen|filter/], ["bonen", /bonen/], ["pads", /pads|senseo/], ["oplos", /oploskoffie/], ["dg", /dolce-gusto/], ["nesp", /nespresso/]];
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const js = v => JSON.stringify(v).replace(/</g, "\\u003c");
@@ -41,7 +41,18 @@ const eur0 = n => "€ " + n.toLocaleString("nl-NL");
 const keer = f => { const r = Math.round(f); const w = ["", "", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien"][r] || String(r); return (f < r - 0.05 ? "bijna " : f > r + 0.05 ? "ruim " : "") + w; };
 
 // Berekening: per soort de goedkoopste en de middelste aanbieding per kopje (alleen zekere prijzen, geen combinatieacties, alleen koffie).
-export function rekenen(deals) {
+// "Nu voor €x (check voorwaarden)": PrijsProfeet noemt het aantal niet (meestal 'bij 2 stuks'). De site toont dan geen prijs per stuk.
+// Hier rekenen we wél met de actieprijs, maar alleen als die klopt met het kortingspercentage (keuze Maurits 26 nov: pads moeten erop).
+const numE = t => Number(String(t).replace(/[^\d,]/g, "").replace(",", "."));
+function metVoorwaarden(d) {
+  if (d.pp != null || !/^Nu voor €[\d,]+ \(check voorwaarden\)$/.test(d.deal || "")) return d;
+  const prijs = numE(d.deal), reg = numE(d.reg);
+  if (!(prijs > 0 && reg > prijs) || Math.abs((1 - prijs / reg) * 100 - (d.pct || 0)) > 2) return d;
+  const u = unitPrice({ ...d, deal: `Nu voor €${String(prijs).replace(".", ",")}` });
+  return u ? { ...d, ...u, voorw: 1 } : d;
+}
+export function rekenen(deals0) {
+  const deals = deals0.map(metVoorwaarden);
   const rows = [];
   for (const s of SOORTEN) {
     const ls = deals.filter(d => d.pp != null && !d.nodisc && (d.pct || 0) > 0 && !COMBO(d) && !NO_COFFEE.test(d.name || "") && s.ok(d))
@@ -97,7 +108,7 @@ export function writeRekenpagina(OUT, tpl, h) {
 <p>Koffie is in vijf jaar 74% duurder geworden, mat de <a href="https://www.consumentenbond.nl/nieuws/2026/koffie-duurder-dan-ooit" rel="noopener">Consumentenbond</a>. Maar wat je per kopje betaalt, hangt vooral af van hoe je koffie zet en of je op aanbiedingen let. Met de aanbiedingen van vandaag kost een kopje ${esc(loRow.s.kort)} vanaf ${L} cent en een kopje ${esc(R.hiRow.s.kort)} tot ${H} cent. Bij drie kopjes per dag is dat ${eur0(jaar(R.lo.c))} of ${eur0(jaar(R.hi.c))} per jaar.</p>
 <h2>De goedkoopste aanbieding per soort, vandaag</h2>
 <ul class="rp-cards">${R.rows.map(kaart).join("")}</ul>
-<p class="rp-note">Bij 1+1 gratis en ‘2 voor …’ geldt de prijs als je het genoemde aantal koopt. Staat een soort er niet bij, dan zijn er vandaag te weinig aanbiedingen om eerlijk te vergelijken.</p>
+<p class="rp-note">Bij 1+1 gratis, ‘2 voor …’ en ‘check voorwaarden’ geldt de prijs als je het genoemde aantal koopt (bij ‘check voorwaarden’ staat dat aantal in de winkel). Staat een soort er niet bij, dan zijn er vandaag te weinig aanbiedingen om eerlijk te vergelijken.</p>
 <h2 id="reken">Wat kost jouw koffie per jaar?</h2>
 <div class="box rp-calc" id="rp-calc">
 <p class="rp-row">Ik drink <span class="rp-step"><button type="button" data-d="-1" aria-label="Eén kopje minder">−</button><output id="rp-n" aria-live="polite">3</output><button type="button" data-d="1" aria-label="Eén kopje meer">+</button></span> kopjes per dag</p>
@@ -112,7 +123,8 @@ export function writeRekenpagina(OUT, tpl, h) {
 <ul>
 <li><strong>Filterkoffie en bonen:</strong> ${GRAM} gram koffie per kopje, dezelfde maat die de Consumentenbond in 2026 gebruikt. Een pak van 500 gram is dus goed voor ruim ${Math.floor(500 / GRAM)} kopjes. Hou je van sterke koffie of grote mokken, dan gebruik je meer.</li>
 <li><strong>Pads:</strong> 1 pad per kopje. Voor een grote mok gebruik je er 2.</li>
-<li><strong>Cups:</strong> 1 cup per kopje. Bij Nespresso tellen ook cups van L’OR en Douwe Egberts mee die in een Nespresso-apparaat passen (geen Vertuo). Dolce Gusto-dranken en pads met melk (zoals cappuccino) tellen niet mee: daar heb je soms 1 en soms 2 cups per kopje voor nodig, en dat staat niet altijd duidelijk op de verpakking.</li>
+<li><strong>Oploskoffie:</strong> 1 theelepel per kopje (zo staat het op de pot), ongeveer ${GRAM_OPLOS} gram. Oplosdranken met melk (cappuccino, latte) tellen niet mee.</li>
+<li><strong>Cups:</strong> 1 cup per kopje. Bij Nespresso tellen ook cups mee die in een Nespresso-apparaat passen zonder dat er ‘Nespresso’ op staat (geen Vertuo). Dolce Gusto-dranken en pads met melk (zoals cappuccino) tellen niet mee: daar heb je soms 1 en soms 2 cups per kopje voor nodig, en dat staat niet altijd duidelijk op de verpakking.</li>
 <li><strong>Alleen aanbiedingen van vandaag.</strong> We vergelijken de aanbiedingen die nu lopen bij ${shopsN} supermarkten. Normale prijzen zonder aanbieding tellen niet mee: een huismerk zonder actie kan dus goedkoper zijn dan wat hier staat.</li>
 <li><strong>Alleen als de prijs zeker is.</strong> Aanbiedingen waarbij het gewicht of het aantal niet duidelijk is, of waarbij je uit verschillende producten of maten mag kiezen, laten we weg. Een soort staat er pas bij vanaf ${MIN} vergelijkbare aanbiedingen.</li>
 <li><strong>Alleen koffie.</strong> Chocolademelk-, thee- en andere cups zonder koffie tellen niet mee.</li>
