@@ -77,7 +77,9 @@ export function writeRekenpagina(OUT, tpl, h) {
     desc = `Een kopje koffie kost deze week ${L} tot ${H} cent, afhankelijk van hoe je het zet. Bekijk de goedkoopste aanbieding per soort en reken uit wat jouw koffie per jaar kost.`;
     const loRow = R.rows[0];
     const zin = `Een kopje koffie kost deze week tussen ${L} en ${H} cent, afhankelijk van hoe je het zet. Bron: Koffieboonus.nl, aanbiedingen van ${datum}.`;
-    const kaart = r => `<li class="rp-card"><div class="rp-top"><span class="rp-soort">${esc(r.s.label)}</span><span class="rp-cent">${cent(r.lo.c)} cent <small>per kopje</small></span></div><div class="rp-jaar">${eur0(jaar(r.lo.c))} per jaar bij 3 kopjes per dag</div><div class="rp-deal">${esc(nameOf(r.lo.d))}, ${esc(r.lo.d.shop)}, ${esc(r.lo.d.deal)}${r.lo.d.until ? `, ${esc(r.lo.d.until)}` : ""}</div><a class="rp-link" href="${r.s.href}">Bekijk de goedkoopste ${esc(r.s.kort)} ›</a></li>`;
+    // Prijsladder (herontwerp 26 nov, wens Maurits): één rij per soort, van goedkoop naar duur, met een balk die het verschil laat zien.
+    const maxLo = Math.max(...R.rows.map(r => r.lo.c));
+    const kaart = (r, i) => `<li class="rp-card${i === 0 ? " rp-best" : ""}">${i === 0 ? `<span class="rp-tag">Goedkoopst vandaag</span>` : ""}<div class="rp-top"><span class="rp-soort">${esc(r.s.label)}</span><span class="rp-cent">${cent(r.lo.c)} cent <small>per kopje</small></span></div><div class="rp-bar" aria-hidden="true"><span style="width:${Math.max(4, Math.round(r.lo.c / maxLo * 100))}%"></span></div><div class="rp-jaar">${eur0(jaar(r.lo.c))} per jaar bij 3 kopjes per dag</div><div class="rp-deal">${esc(nameOf(r.lo.d))}, ${esc(r.lo.d.shop)}, ${esc(r.lo.d.deal)}${r.lo.d.until ? `, ${esc(r.lo.d.until)}` : ""}</div><a class="rp-link" href="${r.s.href}">Bekijk de goedkoopste ${esc(r.s.kort)} ›</a></li>`;
     const data = Object.fromEntries(R.rows.map(r => [r.s.k, { lo: Math.round(r.lo.c * 10000) / 10000, mid: Math.round(r.mid * 10000) / 10000, l: r.s.kort }]));
     const cheapK = loRow.s.k;
     const opts = R.rows.map(r => `<button type="button" data-k="${r.s.k}" aria-pressed="false">${esc(r.s.kort)}</button>`).join("");
@@ -152,9 +154,11 @@ draw()})();</script>`;
     `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>`,
   ].join("\n");
   const CSS = `.rp-ans{font-size:clamp(20px,4.5vw,26px);line-height:1.3;margin:0 0 6px;color:var(--title)}.rp-src{font-size:14px;color:var(--mute);margin:0 0 16px}
-.rp-cards{list-style:none;padding:0;margin:8px 0 8px;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}.rp-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0}
-.rp-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.rp-soort{font-weight:600}.rp-cent{font-size:22px;font-weight:700;color:var(--title);white-space:nowrap}.rp-cent small{font-size:13px;font-weight:400;color:var(--mute)}
-.rp-jaar{font-size:14px;margin:2px 0 6px}.rp-deal{font-size:14px;color:var(--mute);margin:0 0 6px}.rp-link{font-weight:600;font-size:14px}.rp-note{font-size:14px;color:var(--mute)}
+.prose .rp-cards{list-style:none;padding:0;margin:12px 0 10px;display:flex;flex-direction:column;gap:10px}.prose .rp-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0}
+.rp-best{border-color:var(--brown);box-shadow:0 0 0 1px var(--brown)}.rp-tag{display:inline-block;margin:0 0 6px;padding:1px 8px;border-radius:999px;background:var(--brown);color:var(--brownink);font-size:12px;font-weight:600;}
+.rp-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}.rp-soort{font-weight:600;font-size:17px}.rp-cent{font-size:24px;font-weight:700;color:var(--title);white-space:nowrap;margin-left:auto}.rp-cent small{font-size:13px;font-weight:400;color:var(--mute)}@media(max-width:420px){.rp-cent{font-size:22px}.rp-cent small{display:block;text-align:right}}
+.rp-bar{height:8px;border-radius:999px;background:var(--line);margin:8px 0 8px;overflow:hidden}.rp-bar span{display:block;height:100%;border-radius:999px;background:var(--brown);opacity:.55}.rp-best .rp-bar span{opacity:1}
+.rp-jaar{font-size:15px;font-weight:600;margin:0 0 2px}.rp-deal{font-size:14px;color:var(--mute);margin:0 0 6px}.rp-link{font-weight:600;font-size:14px}.rp-note{font-size:14px;color:var(--mute)}
 .rp-calc .rp-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px}.rp-step{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;overflow:hidden}
 .rp-step button,.rp-opts button{font:inherit;border:0;background:var(--card);color:var(--ink);cursor:pointer;min-height:40px}.rp-step button{width:40px;font-size:20px}.rp-step output{min-width:28px;text-align:center;font-weight:700}
 .rp-opts{display:flex;flex-wrap:wrap;gap:6px}.rp-opts button{border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:14px}.rp-opts button[aria-pressed="true"]{background:var(--brown);color:var(--brownink);border-color:var(--brown)}
