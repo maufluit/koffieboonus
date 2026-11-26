@@ -48,7 +48,7 @@ const TYPE_SLUG = { Bonen: "koffiebonen", "Gemalen koffie": "gemalen-koffie", Cu
 const TYPE_WORD = { Bonen: "koffiebonen", "Gemalen koffie": "gemalen koffie", Cups: "koffiecups", Pads: "koffiepads", Oploskoffie: "oploskoffie", "IJskoffie & koffiedrank": "ijskoffie" };
 const SYS_DEFAULT = { "Dolce Gusto": "cups", Nespresso: "cups", Senseo: "pads" };
 const MIN_BRAND_DEALS = 3; // overige merken krijgen pas een pagina vanaf zoveel aanbiedingen
-const MIN_COMBO_DEALS = 2; // combinaties pas vanaf zoveel aanbiedingen
+const MIN_COMBO_DEALS = 1; // combinaties vanaf 1 aanbieding (wens Maurits 26 nov; was 2)
 
 const slug = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/&/g, "en").replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -107,8 +107,10 @@ function add(p) {
   if (dims >= 2) {
     if (list.length < MIN_COMBO_DEALS) return;
     // Heeft een bredere pagina precies dezelfde aanbiedingen, dan maken we deze niet: geen dubbele pagina's.
+    // Uitzondering (wens Maurits 26 nov): systeem + supermarkt (bijv. /dolce-gusto/jumbo/) komt er altijd, ook als
+    // een merkpagina dezelfde aanbiedingen heeft (alle Dolce Gusto bij Jumbo is nu Nescafé): zo zoeken mensen ernaar.
     const k = setKey(p);
-    if (seenSets.has(k)) return;
+    if (seenSets.has(k) && !(p.sys && p.shop && dims === 2)) return; // niet systeem + soort: /dolce-gusto/cups/ is gelijk aan /dolce-gusto/
     seenSets.set(k, u);
   } else if (list.length) seenSets.set(setKey(p), seenSets.get(setKey(p)) || u);
   pages.set(u, { p, list, indexable: dims === 0 || (dims === 1 ? list.length >= 1 : true) });
