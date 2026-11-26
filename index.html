@@ -264,11 +264,11 @@ function card(g,best){
   const lowEff=fmt(Math.min(...g.map(effP)));
   const multiPrice=allMulti?(n>1?`<div class="pnow">vanaf ${ms[0].q} voor ${fmt(Math.min(...ms.map(x=>x.t)))}</div>`:`<div class="pnow mk">${multiTxt(d)} <s class="reg">${fmt(ms[0].q*num(d.reg))}</s></div>`):anyMulti?`<div class="pnow">vanaf ${lowEff} per stuk</div>`:null;
   const price=(np||nd)?"":multiPrice!==null?multiPrice:priceType?`<div class="pnow">${n>1?"vanaf "+lowNow:fmt(nowP(d))}${n===1?` <s class="reg">${esc(d.reg)}</s>`:""}</div>`:(n>1?`<div class="pnow">vanaf ${lowNow}</div>`:`<span class="reg">${esc(d.reg)}</span>`);
-  const lnk=x=>x.url?`<a href="${esc(x.url)}" target="_blank" rel="sponsored nofollow noopener">${esc(x.name)}</a>`:esc(x.name);
+  const lnk=x=>x.url?`<a href="${esc(x.url)}" target="_blank" rel="sponsored nofollow noopener" data-w="${esc(x.shop)}">${esc(x.name)}</a>`:esc(x.name);
   const urls=[...new Set(g.map(x=>x.url).filter(Boolean))];
   let goUrl=urls.length===1?urls[0]:"";
   if(!goUrl&&urls.length){try{goUrl=new URL(urls[0]).origin+"/"}catch(e){}}
-  const go=goUrl?`<div class="gocell"><a class="go" href="${esc(goUrl)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>`:`<div class="gocell"></div>`;
+  const go=goUrl?`<div class="gocell"><a class="go" href="${esc(goUrl)}" target="_blank" rel="sponsored nofollow noopener" aria-label="Bekijk bij ${esc(d.shop)}" data-w="${esc(d.shop)}">Bekijk<span class="gs"> bij ${esc(d.shop)}</span> ›</a></div>`:`<div class="gocell"></div>`;
   const items=n>1?g.map(x=>`<div class="it"><span>${lnk(x)}${x.online&&!allOn?tagH("Alleen online"):""}</span><span class="meta">${x.noprice?"prijs onbekend":x.nodisc?(isNow(x)?fmt(nowP(x)):esc(x.deal)):(isNow(x)?`<s>${esc(x.reg)}</s> ${fmt(nowP(x))}`:multi(x)?multiTxt(x):esc(x.reg))}${x.pp!=null?` · ${fmtPP(x.pp)} per ${x.pu}`:""}</span></div>`).join(""):"";
   const allPP=g.every(x=>x.pp!=null)&&new Set(g.map(x=>x.pu)).size===1;
   const pu=allPP?g[0].pu:null,lowest=allPP?Math.min(...g.map(x=>x.pp)):null;

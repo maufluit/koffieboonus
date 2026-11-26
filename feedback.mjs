@@ -38,7 +38,7 @@ const HTML = `<section class="fb" id="fb" aria-labelledby="fb-q">
 // Klein script: stuurt alleen {soort, waarde, pagina} naar het eigen tellertje, zonder cookies.
 const JS = (url) => `<script>(function(){var U=${JSON.stringify(url)},P=location.pathname;
 function s(o){o.p=P;try{var b=JSON.stringify(o);if(navigator.sendBeacon&&navigator.sendBeacon(U,b))return;fetch(U,{method:"POST",body:b,keepalive:true,mode:"no-cors"})}catch(e){}}
-document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest('a[rel~="sponsored"]');if(!a)return;var m=/Bekijk bij (.+)$/.exec(a.getAttribute("aria-label")||""),r=a.closest(".row"),w=m?m[1]:(r&&r.querySelector(".shop")?r.querySelector(".shop").textContent.trim():"");s({t:"klik",v:w})});
+document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest('a[rel~="sponsored"]');if(!a)return;var r=a.closest(".row"),w=a.getAttribute("data-w")||"";if(!w&&r&&r.getAttribute("data-k")){var k=r.getAttribute("data-k").split("|")[0],i=k.indexOf("~");if(i>=0)w=k.slice(i+1)}if(!w){var m=/Bekijk bij (.+)$/.exec(a.getAttribute("aria-label")||"");if(m)w=m[1]}if(!w&&r&&r.querySelector(".shop"))w=r.querySelector(".shop").textContent.split("\u00b7")[0].trim();s({t:"klik",v:w})});
 document.addEventListener("change",function(e){var i=e.target;if(i.dataset&&i.dataset.k&&i.checked)s({t:"filter",v:i.dataset.k+":"+i.value});else if(i.id==="sort")s({t:"sort",v:i.value})});
 var f=document.getElementById("fb");if(!f)return;
 var bt=document.getElementById("fb-btns"),mo=document.getElementById("fb-more"),ta=document.getElementById("fb-t"),hp=document.getElementById("fb-w"),th=document.getElementById("fb-thx"),n=document.getElementById("fb-n");
