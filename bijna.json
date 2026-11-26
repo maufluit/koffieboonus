@@ -9,7 +9,8 @@
     "merknotities: een vaste zin bij een merk (Perla is het huismerk van Albert Heijn).",
     "De titels en omschrijvingen in Google veranderen niet.",
     "proef (24 nov 2026, keuze Maurits): de pagina's in 'proef_paginas' blijven ook vindbaar zonder aanbieding, met een korte melding 'nu geen aanbieding' en de alternatieven bovenaan (geen datum: PrijsProfeet-voorwaarden). Aparte lijst zodat we ze los kunnen meten (meetkalender groep 'lege merkpagina's'). proef = false: site gelijk aan daarvoor.",
-    "systeem_winkel (26 nov 2026, wens Maurits): Dolce Gusto, Nespresso en Senseo bij elke supermarkt (51 adressen) blijven vindbaar, ook zonder aanbieding, met de opzet van de proef (alternatieven bovenaan). Meetkalender groep 'systeem-winkel'."
+    "systeem_winkel (26 nov 2026, wens Maurits): Dolce Gusto, Nespresso en Senseo bij elke supermarkt (51 adressen) blijven vindbaar, ook zonder aanbieding, met de opzet van de proef (alternatieven bovenaan). Meetkalender groep 'systeem-winkel'.",
+    "verrijken (26 nov 2026, akkoord Maurits): pagina's met een supermarkt erin krijgen 'waar is het nu in de aanbieding' (prijsladder andere supermarkten), vragen uit de cijfers van vandaag, vaste feiten (wanneer de aanbiedingen wisselen, welke merken passen, link rekenpagina); lege bonen-/gemalen-pagina's het Roastmarket-blok onder de alternatieven; vangnet: systeem × supermarkt langer dan 28 dagen leeg = uit Google."
   ],
   "aan": true,
   "winkels": true,
@@ -38,6 +39,7 @@
     "/coop/"
   ],
   "systeem_winkel": true,
+  "verrijken": true,
   "proef": true,
   "proef_paginas": [
     "/cafe-royal/",

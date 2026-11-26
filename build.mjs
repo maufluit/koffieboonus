@@ -173,6 +173,7 @@ for (const [u, k] of Object.entries(KNOWN_PAGES)) {
 // bijna.json "vindbaar": pagina's waar mensen aantoonbaar op zoeken blijven in Google staan, ook als er even geen (of maar één) aanbieding is.
 // Bestaat zo'n pagina nog niet (ook niet in het geheugen), dan maken we hem: zo komt een verdwenen pagina terug.
 // bijna.json "systeem_winkel" (26 nov, wens Maurits): Dolce Gusto, Nespresso en Senseo bij elke supermarkt blijven altijd vindbaar, met de opzet van de proef.
+const VANGNET_DAGEN = 28; let vangnetN = 0;
 const SW = new Set(BN.systeemWinkel ? SYSTEMS.flatMap(sys => SHOPS.map(shop => urlOf({ sys, shop }))) : []);
 for (const u of new Set([...VINDBAAR, ...SW])) {
   let pg = pages.get(u);
@@ -183,8 +184,15 @@ for (const u of new Set([...VINDBAAR, ...SW])) {
     if (!ok || urlOf(p) !== u) { console.warn(`Vindbare pagina overgeslagen (adres onbekend): ${u}`); continue; }
     pg = { p, list: dealsFor(p), indexable: false, kept: true }; pages.set(u, pg);
   }
-  if (!pg.indexable) { pg.indexable = true; pg.vind = true; }
+  if (!pg.indexable) {
+    // Vangnet (bijna.json "verrijken", 26 nov): een automatische systeem × supermarkt-pagina die al meer dan VANGNET_DAGEN leeg is, gaat uit Google
+    // (blijft wel bestaan, met alternatieven). Komt er weer een aanbieding, dan gaat hij vanzelf terug. "seen" = laatste dag mét aanbiedingen (eigen paginageheugen).
+    const k = KNOWN_PAGES[u];
+    if (BN.verrijken && SW.has(u) && !VINDBAAR.has(u) && !pg.list.length && k?.seen && daysBetween(k.seen, updated) > VANGNET_DAGEN) { vangnetN++; continue; }
+    pg.indexable = true; pg.vind = true;
+  }
 }
+if (vangnetN) console.log(`Vangnet: ${vangnetN} systeem × supermarkt-pagina's langer dan ${VANGNET_DAGEN} dagen leeg, niet in Google.`);
 
 // Alternatieven voor een pagina zonder aanbiedingen: steeds één onderdeel weglaten (eerst de supermarkt, dan het merk/systeem, dan de soort).
 function alternativesOf(p, hintType) {
@@ -343,6 +351,61 @@ function relatedHtml(url, p) {
   return groups.length ? `<section class="more"><h2>Ook bekijken</h2>${groups.join("")}</section>` : "";
 }
 
+// ---------- minder dunne combinatiepagina's (bijna.json "verrijken", akkoord Maurits 26 nov) ----------
+// Op pagina's met een supermarkt erin (bijv. /dolce-gusto/jumbo/, /lavazza/koffiebonen/dirk/): vergelijking met de andere supermarkten
+// (prijsladder), vragen met antwoorden uit de cijfers van vandaag en vaste feiten (wanneer de aanbiedingen wisselen, welke merken passen).
+// Alles komt uit de aanbiedingen van vandaag: geen prijsgeschiedenis (PrijsProfeet-voorwaarden).
+const RP_SOORT = { "Dolce Gusto": "Dolce Gusto", Nespresso: "Nespresso", Senseo: "pads", Pads: "pads", Bonen: "bonen", "Gemalen koffie": "filterkoffie", Oploskoffie: "oploskoffie" };
+function vergelijk(p) {
+  if (!BN.verrijken || !p.shop || Object.keys(p).length < 2) return null;
+  const q = { ...p }; delete q.shop;
+  const alle = dealsFor(q);
+  const winkels = [...new Set(alle.map(d => d.shop))];
+  if (winkels.length < 2) return null;
+  const units = {}; alle.forEach(d => { if (d.pp != null) units[d.pu] = (units[d.pu] || 0) + 1; });
+  const unit = Object.entries(units).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const rijen = winkels.map(s => {
+    const ls = alle.filter(d => d.shop === s), pp = unit ? ls.filter(d => d.pp != null && d.pu === unit).map(d => d.pp) : [];
+    const dz = ls.filter(d => !d.nodisc && d.pct > 0), u = urlOf({ ...q, shop: s }), pg = pages.get(u);
+    return { s, n: ls.length, laag: pp.length ? Math.min(...pp) : null, max: dz.length ? Math.max(...dz.map(d => d.pct)) : 0, href: pg && pg.indexable && pg.list.length ? u : null };
+  }).sort((a, b) => (a.laag ?? 1e9) - (b.laag ?? 1e9) || b.max - a.max || b.n - a.n);
+  return { q, unit, rijen, wat: sentLabel(q) };
+}
+function vergelijkHtml(p, v) {
+  if (!v) return "";
+  const hoog = Math.max(...v.rijen.map(r => r.laag || 0));
+  const minLaag = Math.min(...v.rijen.map(r => r.laag ?? 1e9));
+  const li = v.rijen.map((r, i) => {
+    const hier = r.s === p.shop, eerste = r.laag != null && r.laag === minLaag; // gelijke laagste prijs: allemaal 'Goedkoopst'
+
+    const naam = r.href && !hier ? `<a href="${r.href}">${esc(r.s)}<span class="pijl" aria-hidden="true">›</span></a>` : esc(r.s);
+    const tag = eerste ? `<span class="lad-tag">Goedkoopst</span>${hier ? ' <span class="lad-tag hier">Deze winkel</span>' : ""}` : hier ? '<span class="lad-tag hier">Deze winkel</span>' : "";
+    return `<li${eerste || hier ? ' class="top"' : ""}>${tag}<div class="lad-top"><span class="lad-naam">${naam}</span>${r.laag != null ? `<span class="lad-max">vanaf ${eur(r.laag)} <small>per ${v.unit}</small></span>` : `<span class="lad-max geen">${r.max ? `tot ${r.max}% korting` : "prijs per stuk onbekend"}</span>`}</div><div class="lad-bar prijs" aria-hidden="true"><span style="width:${r.laag != null && hoog ? Math.max(4, Math.round(r.laag / hoog * 100)) : 0}%"></span></div><div class="lad-sub">${plural(r.n, "aanbieding", "aanbiedingen")}${r.max && r.laag != null ? ` · tot ${r.max}% korting` : ""}</div></li>`;
+  }).join("");
+  const hier = v.rijen.find(r => r.s === p.shop);
+  const zin = hier ? `${esc(p.shop)} staat ${v.rijen.indexOf(hier) === 0 ? "bovenaan: daar is het nu het goedkoopst" : `op plek ${v.rijen.indexOf(hier) + 1} van ${v.rijen.length}`}.` : `Bij ${esc(p.shop)} is er nu geen aanbieding; bij deze supermarkten wel.`;
+  return `<section class="zt" id="vergelijk"><h2>${esc(cap(v.wat))}: waar is het nu in de aanbieding?</h2><p>Op ${dateNL(updated)} bij ${plural(v.rijen.length, "supermarkt", "supermarkten")}${v.unit ? `, van goedkoop naar duur per ${v.unit}` : ""}. ${zin}</p><ul class="lad">${li}</ul></section>`;
+}
+function feitenHtml(p) {
+  if (!BN.verrijken || !p.shop || Object.keys(p).length < 2) return "";
+  const z = [];
+  const van = deals.filter(d => d.shop === p.shop && d.until);
+  if (van.length) { const c = {}; van.forEach(d => { c[d.until] = (c[d.until] || 0) + 1; }); const un = Object.entries(c).sort((a, b) => b[1] - a[1])[0][0]; z.push(`De meeste koffieaanbiedingen bij ${esc(p.shop)} lopen nu ${esc(un)}. Onder ‘Volgende week’ zie je de nieuwe aanbiedingen zodra ze bekend zijn.`); }
+  if (p.sys) { const m = [...new Set(deals.filter(d => d.sys === p.sys && !d.vertuo).map(d => d.brand))].filter(b => b && b !== "Overig").slice(0, 8); if (m.length > 1) z.push(`Deze week in de aanbieding voor je ${esc(p.sys)}-apparaat, bij alle supermarkten samen: ${m.map(esc).join(", ")}.`); }
+  const rk = RP_ON && (RP_SOORT[p.sys] || RP_SOORT[p.type]);
+  if (rk) z.push(`Wat kost een kopje ${esc(rk)} je per jaar? <a href="${RP_URL}">Reken het uit</a>.`);
+  return z.length ? `<section class="zt"><h2>Goed om te weten</h2>${z.map(x => `<p>${x}</p>`).join("")}</section>` : "";
+}
+function vergelijkFaq(p, v, list) {
+  if (!v) return [];
+  const wat = v.wat, eerste = v.rijen[0];
+  const out = [[`Is er deze week ${wat} in de aanbieding bij ${p.shop}?`, list.length
+    ? `Ja. Op ${dateNL(updated)} ${list.length === 1 ? "is er 1 aanbieding" : `zijn er ${list.length} aanbiedingen`} voor ${wat} bij ${p.shop}.`
+    : `Nee, op ${dateNL(updated)} niet. Wel bij ${plural(v.rijen.length, "andere supermarkt", "andere supermarkten")}, onder andere ${v.rijen.slice(0, 3).map(r => r.s).join(", ")}.`]];
+  if (eerste.laag != null) out.push([`Waar ${/(cups|pads|bonen)$/.test(wat) ? "zijn" : "is"} ${wat} nu het goedkoopst?`, `Op ${dateNL(updated)} bij ${eerste.s}: vanaf ${eur(eerste.laag)} per ${v.unit}${eerste.max ? `, tot ${eerste.max}% korting` : ""}. De prijs is berekend uit de verpakkingsgrootte; controleer hem altijd bij de winkel.`]);
+  return out;
+}
+
 // ---------- grote zoektermen (zoektermen.json) ----------
 // "Populair": links met de zoekterm als linktekst naar de pagina's voor de grote zoektermen (niet naar de pagina zelf).
 // Alleen op de startpagina, de 8 zoektermpagina's zelf, de pagina's per supermarkt en de speciale pagina's (Goedkoopste, Black Friday).
@@ -404,6 +467,7 @@ function crumbs(p) {
 
 function render(url, pg) {
   const { p, list, indexable } = pg;
+  let rmCss = "";
   const n = list.length, home = url === "/";
   const sl = sentLabel(p), Label = labelOf(p);
   const disc = list.filter(d => !d.nodisc);
@@ -475,6 +539,8 @@ function render(url, pg) {
 
   const canon = SITE + url;
   const faq = faqOf(p, list);
+  const vg = vergelijk(p);
+  faq.splice(1, 0, ...vergelijkFaq(p, vg, list)); // bijna.json "verrijken": vragen direct na de eerste (ook in de FAQ-gegevens voor Google)
   if (home) faq.unshift(...homeFaqExtra(deals).filter(([q]) => !(INFO_ON && q === "Wie zit er achter Koffieboonus?"))); // groei.json "uitleg"; "Wie zit er achter" staat op /over/ zodra die bestaat
   const trail = crumbs(p);
   const ld = [
@@ -511,11 +577,13 @@ function render(url, pg) {
   }
   if (nxt.length) altHtml = `<section class="hubsec nxt"><h2>${esc(cap(nxt[0].fromTxt || "Volgende week"))}: ${esc((p.brand || p.sys) ? Label : low(Label))}</h2>${listHtml(nxt.map(d => ({ ...d, until: d.fromTxt || d.until })), { limit: 8 })}</section>` + altHtml;
   if (proefLeeg && altHtml) { top_ += altHtml; altHtml = ""; } // proef: alternatieven direct onder de kop, boven de filters
-  const bottom = altHtml + ztBlocks(p, list) + relatedHtml(url, p) + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
+  let rmHtml = ""; // bijna.json "verrijken": Roastmarket alleen op lege bonen-/gemalen-pagina's, onder de alternatieven (advertentie)
+  if (BN.verrijken && !n && ["Bonen", "Gemalen koffie"].includes(p.type || pg.t || KNOWN_PAGES[url]?.t)) { const rm = rmBlackFriday(); if (rm) { rmHtml = rm.block.replace('class="bfsec rmsec"', 'class="bfsec rmsec rmleeg"'); rmCss = rm.css; } }
+  const bottom = altHtml + vergelijkHtml(p, vg) + feitenHtml(p) + rmHtml + ztBlocks(p, list) + relatedHtml(url, p) + `<section class="faq"><h2>Veelgestelde vragen</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>`;
   const preset = { brand: p.brand ? [p.brand] : [], sys: p.sys ? [p.sys] : [], type: p.type ? [p.type] : [], shop: p.shop ? [p.shop] : [] };
   const presetJs = `<script>window.PRESET=${js(preset)};window.PLABEL=${home ? "null" : js(Label)};window.STATIC=${n ? "true" : "false"};</script>`;
   const body = n ? listHtml(list) : `<div class="empty"><strong>Nu geen aanbiedingen</strong> voor ${esc(sl)}.<br>Zodra er weer een is, staat die hier. Hieronder vind je vergelijkbare aanbiedingen.</div>`;
-  const html = tpl
+  const html = (rmCss ? tpl.replace("</style>", () => rmCss + "</style>") : tpl)
     .replace("{{HEAD}}", () => head)
     .replace("{{PRESETJS}}", () => presetJs)
     .replace("{{TOP}}", () => top_)

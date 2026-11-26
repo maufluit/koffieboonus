@@ -6,13 +6,15 @@
 //   systemen:     laagste prijs per cup per machine op /goedkoopste-koffiecups/.
 //   merknotities: een vaste zin bij een merk.
 //   systeem_winkel: (26 nov, wens Maurits) elke machine bij elke supermarkt (bijv. /dolce-gusto/jumbo/) blijft vindbaar, ook zonder aanbieding, met de opzet van de proef.
+//   verrijken:    (26 nov, akkoord Maurits) combinatiepagina's met een supermarkt: vergelijking met andere supermarkten, vragen, vaste feiten,
+//                 Roastmarket op lege bonen-/gemalen-pagina's, en een vangnet (systeem × supermarkt > 28 dagen leeg = uit Google).
 //   proef:        (24 nov) extra pagina's die vindbaar blijven zonder aanbieding, met "nu geen aanbieding" en alternatieven bovenaan.
 import fs from "node:fs";
 
 let C = { aan: false };
 try { C = { ...C, ...JSON.parse(fs.readFileSync(process.env.KB_BIJNA || "bijna.json", "utf8")) }; } catch { /* geen bestand = uit */ }
 const on = k => C.aan === true && C[k] === true;
-export const BN = { winkels: on("winkels"), vindbaar: on("vindbaar"), vragen: on("vragen"), systemen: on("systemen"), merknotities: on("merknotities"), proef: on("vindbaar") && on("proef"), systeemWinkel: on("vindbaar") && on("systeem_winkel") };
+export const BN = { winkels: on("winkels"), vindbaar: on("vindbaar"), vragen: on("vragen"), systemen: on("systemen"), merknotities: on("merknotities"), proef: on("vindbaar") && on("proef"), systeemWinkel: on("vindbaar") && on("systeem_winkel"), verrijken: on("verrijken") };
 export const PROEF = new Set(BN.proef && Array.isArray(C.proef_paginas) ? C.proef_paginas : []);
 export const VINDBAAR = new Set([...(BN.vindbaar && Array.isArray(C.vindbaar_paginas) ? C.vindbaar_paginas : []), ...PROEF]);
 

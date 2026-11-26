@@ -28,7 +28,7 @@ const CSS = `
 .lad-naam a:focus-visible{outline:3px solid var(--orange);outline-offset:2px}.lad-naam .pijl{color:var(--mute);margin-left:4px}
 .lad-max{font-weight:700;color:var(--title);white-space:nowrap}.lad-max.geen{font-weight:400;color:var(--mute);font-size:14px}
 .lad-bar{height:7px;border-radius:999px;background:var(--line);margin:8px 0 6px;overflow:hidden}.lad-bar span{display:block;height:100%;border-radius:999px;background:var(--deal);opacity:.75}.lad li.top .lad-bar span{opacity:1}
-.lad-sub{font-size:14px;color:var(--mute)}.lad-tag{display:inline-block;margin:0 0 6px;padding:1px 8px;border-radius:999px;background:var(--brown);color:var(--brownink);font-size:12px;font-weight:600}
+.lad-sub{font-size:14px;color:var(--mute)}.lad-max small{font-size:13px;font-weight:400;color:var(--mute)}.lad-tag.hier{background:var(--orange);color:var(--orangeink)}.lad-bar.prijs span{background:var(--brown);opacity:.5}.lad li.top .lad-bar.prijs span{opacity:1}.zt#vergelijk ~ .zt p a,.zt p a{color:var(--ink);font-weight:600}.lad-tag{display:inline-block;margin:0 0 6px;padding:1px 8px;border-radius:999px;background:var(--brown);color:var(--brownink);font-size:12px;font-weight:600}
 /* Veelgestelde vragen */
 .faq details{padding:0;border-radius:12px;overflow:hidden}.faq summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px}
 .faq summary::-webkit-details-marker{display:none}.faq summary::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid var(--mute);border-bottom:2px solid var(--mute);transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s}
