@@ -172,7 +172,9 @@ for (const [u, k] of Object.entries(KNOWN_PAGES)) {
 
 // bijna.json "vindbaar": pagina's waar mensen aantoonbaar op zoeken blijven in Google staan, ook als er even geen (of maar één) aanbieding is.
 // Bestaat zo'n pagina nog niet (ook niet in het geheugen), dan maken we hem: zo komt een verdwenen pagina terug.
-for (const u of VINDBAAR) {
+// bijna.json "systeem_winkel" (26 nov, wens Maurits): Dolce Gusto, Nespresso en Senseo bij elke supermarkt blijven altijd vindbaar, met de opzet van de proef.
+const SW = new Set(BN.systeemWinkel ? SYSTEMS.flatMap(sys => SHOPS.map(shop => urlOf({ sys, shop }))) : []);
+for (const u of new Set([...VINDBAAR, ...SW])) {
   let pg = pages.get(u);
   if (!pg) {
     const parts = u.split("/").filter(Boolean), p = {};
@@ -468,7 +470,7 @@ function render(url, pg) {
     : `Op ${dateNL(updated)} is er geen aanbieding voor ${sl}. Hieronder staat wat er nu wel in de aanbieding is. Deze pagina wordt elke nacht bijgewerkt: zodra er weer een aanbieding is, staat die hier.`;
   { const note = brandNote(p); if (note) intro += " " + note; } // bijna.json "merknotities"
   // bijna.json "proef" (24 nov): korte, eerlijke inleiding (op de telefoon wordt de inleiding ingekort). Bewust geen "laatst in de aanbieding op": dat is geschiedenis uit PrijsProfeet-data (max 24 uur bewaren).
-  const proefLeeg = pg.vind && !n && PROEF.has(url);
+  const proefLeeg = pg.vind && !n && (PROEF.has(url) || SW.has(url));
   if (proefLeeg) { intro = `${cap(sl)}: nu geen aanbieding.${nxt.length ? ` ${cap(nxt[0].fromTxt || "binnenkort")} ${nxt.length === 1 ? "komt er 1 aanbieding" : `komen er ${nxt.length} aanbiedingen`}.` : ""} Hieronder staat wat er nu wel in de aanbieding is. Deze pagina wordt elke nacht bijgewerkt.`; }
 
   const canon = SITE + url;

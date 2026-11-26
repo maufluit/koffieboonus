@@ -8,7 +8,8 @@
     "systemen: op /goedkoopste-koffiecups/ een regel met de laagste prijs per cup per machine (Nespresso, Dolce Gusto).",
     "merknotities: een vaste zin bij een merk (Perla is het huismerk van Albert Heijn).",
     "De titels en omschrijvingen in Google veranderen niet.",
-    "proef (24 nov 2026, keuze Maurits): de pagina's in 'proef_paginas' blijven ook vindbaar zonder aanbieding, met een korte melding 'nu geen aanbieding' en de alternatieven bovenaan (geen datum: PrijsProfeet-voorwaarden). Aparte lijst zodat we ze los kunnen meten (meetkalender groep 'lege merkpagina's'). proef = false: site gelijk aan daarvoor."
+    "proef (24 nov 2026, keuze Maurits): de pagina's in 'proef_paginas' blijven ook vindbaar zonder aanbieding, met een korte melding 'nu geen aanbieding' en de alternatieven bovenaan (geen datum: PrijsProfeet-voorwaarden). Aparte lijst zodat we ze los kunnen meten (meetkalender groep 'lege merkpagina's'). proef = false: site gelijk aan daarvoor.",
+    "systeem_winkel (26 nov 2026, wens Maurits): Dolce Gusto, Nespresso en Senseo bij elke supermarkt (51 adressen) blijven vindbaar, ook zonder aanbieding, met de opzet van de proef (alternatieven bovenaan). Meetkalender groep 'systeem-winkel'."
   ],
   "aan": true,
   "winkels": true,
@@ -36,6 +37,7 @@
     "/nettorama/",
     "/coop/"
   ],
+  "systeem_winkel": true,
   "proef": true,
   "proef_paginas": [
     "/cafe-royal/",

@@ -5,13 +5,14 @@
 //   vragen:       vragen over 1+1 gratis en de prijs per kilo op supermarktpagina's.
 //   systemen:     laagste prijs per cup per machine op /goedkoopste-koffiecups/.
 //   merknotities: een vaste zin bij een merk.
+//   systeem_winkel: (26 nov, wens Maurits) elke machine bij elke supermarkt (bijv. /dolce-gusto/jumbo/) blijft vindbaar, ook zonder aanbieding, met de opzet van de proef.
 //   proef:        (24 nov) extra pagina's die vindbaar blijven zonder aanbieding, met "nu geen aanbieding" en alternatieven bovenaan.
 import fs from "node:fs";
 
 let C = { aan: false };
 try { C = { ...C, ...JSON.parse(fs.readFileSync(process.env.KB_BIJNA || "bijna.json", "utf8")) }; } catch { /* geen bestand = uit */ }
 const on = k => C.aan === true && C[k] === true;
-export const BN = { winkels: on("winkels"), vindbaar: on("vindbaar"), vragen: on("vragen"), systemen: on("systemen"), merknotities: on("merknotities"), proef: on("vindbaar") && on("proef") };
+export const BN = { winkels: on("winkels"), vindbaar: on("vindbaar"), vragen: on("vragen"), systemen: on("systemen"), merknotities: on("merknotities"), proef: on("vindbaar") && on("proef"), systeemWinkel: on("vindbaar") && on("systeem_winkel") };
 export const PROEF = new Set(BN.proef && Array.isArray(C.proef_paginas) ? C.proef_paginas : []);
 export const VINDBAAR = new Set([...(BN.vindbaar && Array.isArray(C.vindbaar_paginas) ? C.vindbaar_paginas : []), ...PROEF]);
 
