@@ -21,12 +21,15 @@ try { const f = JSON.parse(fs.readFileSync("feedback.json", "utf8")); if (FB_ON)
 const NO_COFFEE = /choco|nesquik|kitkat|chai|\bthee\b|\btea\b|cacao|chocolade|milo|marcilla?\s*choc/i;
 const MILK = /latte|cappuccino|macchiat|caf[eé] au lait|flat white|cortado|melk|mocha|chai|caramel/i;
 const COMBO = d => /\bof\b/i.test(d.name || "");
+// Passende Nespresso-cups zonder "Nespresso" op de verpakking (d.gok) tellen alleen mee bij merken die geen ander cupsysteem in de supermarkt hebben (keuze Maurits 26 nov).
+// Barista/XL e.d. zijn in sync.mjs al uitgesloten. Twijfelmerken (bijv. Nescafé: ook Dolce Gusto) blijven eruit.
+const NESP_ZEKER = new Set(["L'OR", "Douwe Egberts"]);
 const SOORTEN = [
   { k: "filter", label: "Filterkoffie (gemalen)", kort: "filterkoffie", ok: d => d.type === "Gemalen koffie" && d.pu === "kilo", cup: d => d.pp * GRAM / 1000, href: "/goedkoopste-gemalen-koffie/" },
   { k: "bonen", label: "Koffiebonen", kort: "bonen", ok: d => d.type === "Bonen" && d.pu === "kilo", cup: d => d.pp * GRAM / 1000, href: "/goedkoopste-koffiebonen/" },
   { k: "pads", label: "Koffiepads", kort: "pads", ok: d => d.type === "Pads" && d.pu === "pad" && !MILK.test(d.name), cup: d => d.pp, href: "/goedkoopste-koffiepads/" },
   { k: "dg", label: "Dolce Gusto-cups", kort: "Dolce Gusto", ok: d => d.type === "Cups" && d.sys === "Dolce Gusto" && d.pu === "cup" && !MILK.test(d.name), cup: d => d.pp, href: "/goedkoopste-dolce-gusto-cups/" },
-  { k: "nesp", label: "Nespresso-cups", kort: "Nespresso", ok: d => d.type === "Cups" && d.sys === "Nespresso" && !d.vertuo && !d.gok && d.pu === "cup", cup: d => d.pp, href: "/goedkoopste-nespresso-cups/" },
+  { k: "nesp", label: "Nespresso-cups", kort: "Nespresso", ok: d => d.type === "Cups" && d.sys === "Nespresso" && !d.vertuo && (!d.gok || NESP_ZEKER.has(d.brand)) && d.pu === "cup", cup: d => d.pp, href: "/goedkoopste-nespresso-cups/" },
 ];
 const FROM = [["filter", /gemalen|filter/], ["bonen", /bonen/], ["pads", /pads|senseo/], ["dg", /dolce-gusto/], ["nesp", /nespresso/]];
 
@@ -107,7 +110,7 @@ export function writeRekenpagina(OUT, tpl, h) {
 <ul>
 <li><strong>Filterkoffie en bonen:</strong> ${GRAM} gram koffie per kopje, dezelfde maat die de Consumentenbond in 2026 gebruikt. Een pak van 500 gram is dus goed voor ruim ${Math.floor(500 / GRAM)} kopjes. Hou je van sterke koffie of grote mokken, dan gebruik je meer.</li>
 <li><strong>Pads:</strong> 1 pad per kopje. Voor een grote mok gebruik je er 2.</li>
-<li><strong>Cups:</strong> 1 cup per kopje. Dolce Gusto-dranken en pads met melk (zoals cappuccino) tellen niet mee: daar heb je soms 1 en soms 2 cups per kopje voor nodig, en dat staat niet altijd duidelijk op de verpakking.</li>
+<li><strong>Cups:</strong> 1 cup per kopje. Bij Nespresso tellen ook cups van L’OR en Douwe Egberts mee die in een Nespresso-apparaat passen (geen Vertuo). Dolce Gusto-dranken en pads met melk (zoals cappuccino) tellen niet mee: daar heb je soms 1 en soms 2 cups per kopje voor nodig, en dat staat niet altijd duidelijk op de verpakking.</li>
 <li><strong>Alleen aanbiedingen van vandaag.</strong> We vergelijken de aanbiedingen die nu lopen bij ${shopsN} supermarkten. Normale prijzen zonder aanbieding tellen niet mee: een huismerk zonder actie kan dus goedkoper zijn dan wat hier staat.</li>
 <li><strong>Alleen als de prijs zeker is.</strong> Aanbiedingen waarbij het gewicht of het aantal niet duidelijk is, of waarbij je uit verschillende producten of maten mag kiezen, laten we weg. Een soort staat er pas bij vanaf ${MIN} vergelijkbare aanbiedingen.</li>
 <li><strong>Alleen koffie.</strong> Chocolademelk-, thee- en andere cups zonder koffie tellen niet mee.</li>
