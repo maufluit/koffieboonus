@@ -247,6 +247,11 @@ async function main(){
     for(const p of items){const ms=mapItems(p,today);if(ms.length){for(const m of ms){const k=m.id+(m.next?"n":"");if(!seen.has(k))seen.set(k,m)}}else if(p.is_promotional&&COFFEE.test(p.name||"")&&!SKIP.test(p.name||""))skipped.add(`${p.retailer}: ${p.name} (${p.savings_percentage}%, ${p.promotion_status}, vanaf ${p.valid_from})`)}
     await sleep(600);
   }
+  // Geen koffie, wel in de koffiecategorie van de bron (gevonden 26 nov: Zanetti burrata als "oploskoffie", SILVERCREST-koffiemolen, Krups-cupmachine).
+  // Apparaten en zuivel komen niet op de site; ze staan wel in het logboek van de run.
+  const GEEN_KOFFIE=/koffiecupmachine|koffiemachine|koffiezetapparaat|espressomachine|cupmachine|koffiemolen|melkopschuimer|waterkoker|\b\d{2,4}\s?W\b|burrata|mozzarella|\bkaas\b/i;
+  const geenKoffie=[];for(const [k,d] of seen)if(GEEN_KOFFIE.test(d.name||"")){geenKoffie.push(`${d.shop}: ${d.brand} ${d.name}`);seen.delete(k)}
+  if(geenKoffie.length)console.log("Geen koffie, overgeslagen:\n"+geenKoffie.join("\n"));
   const deals=[...seen.values()];
   // Submerken horen onder het hoofdmerk (één filter per merk), per geval bekeken:
   // Perla Biologisch/Huisblends/Superiore -> Perla; Nescafé Dolce Gusto -> Nescafé (het systeem blijft in de productnaam);

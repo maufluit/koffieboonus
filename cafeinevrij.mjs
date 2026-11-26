@@ -6,6 +6,7 @@
 //  - link:   'Cafeïnevrije koffie' onder 'Ook bekijken' op de startpagina en de pagina's per soort.
 // Woordkeuze (besluit 15 nov): op de site overal 'cafeïnevrij'; 'decaf' alleen in titel, inleiding en één vraag, zodat Google beide herkent.
 import fs from "node:fs";
+import { ladder } from "./ontwerp.mjs";
 
 let C = { aan: false };
 try { C = { ...C, ...JSON.parse(fs.readFileSync(process.env.KB_DECAF || "cafeinevrij.json", "utf8")) }; } catch { /* geen bestand = uit */ }
@@ -118,7 +119,7 @@ export function decafPage(tpl, h) {
     .replace("{{PRESETJS}}", () => presetJs)
     .replace("{{TOP}}", () => top_)
     .replace("{{LIST}}", () => body)
-    .replace("{{BOTTOM}}", () => table + more + faqHtml);
+    .replace("{{BOTTOM}}", () => ladder(table) + more + faqHtml);
   return { html, list, indexable };
 }
 

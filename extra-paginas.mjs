@@ -6,6 +6,7 @@
 // Alleen voor testen en previews: KB_GEGEVENS=<pad> en KB_GO=<pad> gebruiken een ander instellingenbestand.
 import fs from "node:fs";
 import { GM } from "./gemak.mjs";
+import { OW } from "./ontwerp.mjs";
 import path from "node:path";
 
 const SITE = "https://koffieboonus.nl";
@@ -138,9 +139,10 @@ function contactBody() {
   if (INFO.plaats) rows.push(`<p><strong>Plaats:</strong> ${esc(INFO.plaats)}</p>`);
   if (INFO.kvk) rows.push(`<p><strong>KvK-nummer:</strong> ${esc(INFO.kvk)}</p>`);
   rows.push(`<p><strong>E-mail:</strong> ${mail()}</p>`);
+  const gegevens = [INFO.naam, INFO.plaats, INFO.kvk ? `KvK ${INFO.kvk}` : ""].filter(Boolean).map(esc).join(" · ");
   return [
     `<p>Een vraag, een idee of een fout gezien? Mail naar ${mail()}.</p>`,
-    `<div class="box">${rows.join("")}</div>`,
+    OW ? `<p class="btns"><a class="btn" href="mailto:${esc(INFO.email)}">✉ Mail ons</a></p><p class="meta">We lezen elke mail en antwoorden meestal binnen een paar dagen. Koffieboonus.nl · ${gegevens}</p>` : `<div class="box">${rows.join("")}</div>`,
     `<h2>Waarvoor kun je mailen?</h2><ul><li>Een fout in een aanbieding. Noem de pagina en de winkel, dan zoeken we het uit.</li><li>Ideeën om Koffieboonus beter te maken.</li><li>Samenwerking of adverteren.</li><li>Vragen over je privacy (zie ook de <a href="${PRIVACY_URL}">privacyverklaring</a>).</li></ul>`,
     `<h2>Vragen over een product of bestelling?</h2><p>Koffieboonus verkoopt zelf niets. Vragen over een product, een bestelling of de prijs in de winkel kun je het beste aan de winkel zelf stellen.</p>`,
   ].join("\n");
